@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Daily Report Dashboard — บ่อเลี้ยงกุ้ง 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1"></script>
+<style>
+:root{
+  --green:#16a34a; --green-bg:#dcfce7; --green-line:#86efac;
+  --yellow:#d97706; --yellow-bg:#fef3c7; --yellow-line:#fcd34d;
+  --red:#dc2626; --red-bg:#fee2e2; --red-line:#fca5a5;
+  --ink:#0f172a; --muted:#64748b; --line:#e2e8f0; --card:#ffffff;
+  --bg:#f1f5f9; --head1:#0f766e; --head2:#134e4a; --accent:#0d9488;
+  --radius:14px; --gap:16px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Sans Thai',system-ui,sans-serif;background:var(--bg);color:var(--ink);line-height:1.45;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1360px;margin:0 auto;padding:20px}
+/* Header */
+.head{background:linear-gradient(135deg,var(--head1),var(--head2));color:#fff;border-radius:var(--radius);padding:22px 26px;margin-bottom:var(--gap);box-shadow:0 6px 20px rgba(15,118,110,.25)}
+.head-top{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px}
+.head h1{font-size:22px;font-weight:800;letter-spacing:-.3px}
+.head .sub{font-size:13px;opacity:.85;margin-top:3px}
+.head .asof{font-size:12px;opacity:.8;text-align:right}
+.head .asof b{font-size:14px}
+/* Filters */
+.filters{margin-top:18px;display:flex;flex-wrap:wrap;gap:18px}
+.fgroup{display:flex;flex-direction:column;gap:6px}
+.fgroup .flabel{font-size:11px;text-transform:uppercase;letter-spacing:.6px;opacity:.8;font-weight:600}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{cursor:pointer;user-select:none;font-size:13px;font-weight:600;padding:6px 13px;border-radius:999px;border:1.5px solid rgba(255,255,255,.35);background:rgba(255,255,255,.08);color:#fff;transition:.15s}
+.chip:hover{background:rgba(255,255,255,.2)}
+.chip.on{background:#fff;color:var(--head2);border-color:#fff}
+.chip.on.g{color:var(--green)} .chip.on.y{color:var(--yellow)} .chip.on.r{color:var(--red)}
+.reset{cursor:pointer;font-size:12px;font-weight:600;color:#fff;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.3);padding:6px 12px;border-radius:8px;align-self:flex-end}
+.reset:hover{background:rgba(255,255,255,.22)}
+/* KPI */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:var(--gap);margin-bottom:var(--gap)}
+.kpi{background:var(--card);border-radius:var(--radius);padding:18px 20px;box-shadow:0 1px 3px rgba(0,0,0,.07);border-left:5px solid var(--accent);position:relative}
+.kpi.g{border-left-color:var(--green)} .kpi.y{border-left-color:var(--yellow)} .kpi.r{border-left-color:var(--red)}
+.kpi .klabel{font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px}
+.kpi .kval{font-size:34px;font-weight:800;margin-top:6px;line-height:1}
+.kpi.g .kval{color:var(--green)} .kpi.y .kval{color:var(--yellow)} .kpi.r .kval{color:var(--red)}
+.kpi .kpct{font-size:14px;font-weight:700;margin-top:4px;color:var(--muted)}
+.kpi .kbar{height:6px;border-radius:4px;background:var(--line);margin-top:10px;overflow:hidden}
+.kpi .kbar>span{display:block;height:100%;border-radius:4px}
+/* Section */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:var(--gap);margin-bottom:var(--gap)}
+.grid2.wide{grid-template-columns:1.1fr .9fr}
+.card{background:var(--card);border-radius:var(--radius);padding:20px 22px;box-shadow:0 1px 3px rgba(0,0,0,.07)}
+.card h3{font-size:15px;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:8px}
+.card .hint{font-size:12px;color:var(--muted);margin-bottom:14px}
+.card h3 .dot{width:9px;height:9px;border-radius:50%;background:var(--accent)}
+canvas{max-height:260px}
+/* Parameter breakdown */
+.param-row{display:grid;grid-template-columns:120px 1fr;align-items:center;gap:12px;margin-bottom:12px}
+.param-name{font-size:13px;font-weight:600}
+.param-name small{display:block;color:var(--muted);font-weight:400;font-size:11px}
+.pbar{display:flex;height:30px;border-radius:8px;overflow:hidden;background:var(--line)}
+.pseg{display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700;cursor:pointer;transition:.15s;min-width:0}
+.pseg:hover{filter:brightness(1.08);outline:2px solid rgba(0,0,0,.15);outline-offset:-2px}
+.pseg.g{background:var(--green)} .pseg.y{background:var(--yellow)} .pseg.r{background:var(--red)}
+.pseg span{padding:0 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.plegend{display:flex;gap:16px;font-size:12px;color:var(--muted);margin-top:6px}
+.plegend b{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:middle}
+/* Top 10 */
+.urg-table{width:100%;border-collapse:collapse;font-size:13px}
+.urg-table th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);padding:8px 10px;border-bottom:2px solid var(--line);white-space:nowrap}
+.urg-table td{padding:9px 10px;border-bottom:1px solid #f1f5f9}
+.urg-table tr:hover td{background:#f8fafc}
+.rank{width:26px;height:26px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;color:#fff;background:var(--muted)}
+.rank.top{background:var(--red)}
+.pondtag{font-weight:700;font-family:ui-monospace,monospace}
+.mod-badge{display:inline-block;font-size:11px;font-weight:700;padding:2px 7px;border-radius:6px;background:#e0f2fe;color:#0369a1}
+.uscore{font-weight:800}
+.mini{display:inline-flex;align-items:center;gap:5px}
+.pill{font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px}
+.pill.g{background:var(--green-bg);color:var(--green)} .pill.y{background:var(--yellow-bg);color:var(--yellow)} .pill.r{background:var(--red-bg);color:var(--red)}
+/* Detail table */
+.tablecard{background:var(--card);border-radius:var(--radius);padding:20px 22px;box-shadow:0 1px 3px rgba(0,0,0,.07);margin-bottom:var(--gap);overflow-x:auto}
+.dtable{width:100%;border-collapse:collapse;font-size:12.5px;white-space:nowrap}
+.dtable th{position:sticky;top:0;background:#f8fafc;text-align:center;font-size:11px;text-transform:uppercase;letter-spacing:.3px;color:var(--muted);padding:9px 8px;border-bottom:2px solid var(--line);cursor:pointer;user-select:none}
+.dtable th:hover{color:var(--ink)}
+.dtable td{padding:7px 8px;border-bottom:1px solid #f1f5f9;text-align:center}
+.dtable td.l{text-align:left}
+.dtable tr:hover td{background:#f8fafc}
+.cell{display:inline-block;min-width:44px;padding:2px 6px;border-radius:6px;font-weight:600}
+.cell.g{background:var(--green-bg);color:#166534} .cell.y{background:var(--yellow-bg);color:#92400e} .cell.r{background:var(--red-bg);color:#991b1b}
+.st{font-weight:800;font-size:11px;padding:3px 9px;border-radius:999px}
+.st.Green{background:var(--green-bg);color:var(--green)} .st.Yellow{background:var(--yellow-bg);color:var(--yellow)} .st.Red{background:var(--red-bg);color:var(--red)} .st.Close{background:#e2e8f0;color:#475569}
+.closerow td{opacity:.6}
+/* Modal */
+.overlay{position:fixed;inset:0;background:rgba(15,23,42,.55);display:none;align-items:center;justify-content:center;z-index:50;padding:20px}
+.overlay.show{display:flex}
+.modal{background:#fff;border-radius:16px;max-width:640px;width:100%;max-height:82vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.modal-h{padding:18px 22px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:#fff}
+.modal-h h4{font-size:16px;font-weight:700}
+.modal-h .x{cursor:pointer;font-size:22px;color:var(--muted);line-height:1;border:none;background:none}
+.modal-b{padding:16px 22px}
+.mrow{display:flex;justify-content:space-between;align-items:center;padding:11px 12px;border-radius:10px;margin-bottom:8px;border:1px solid var(--line)}
+.mrow .mp{font-weight:700;font-family:ui-monospace,monospace}
+.mrow .mv{font-weight:800;font-size:15px}
+.mrow small{color:var(--muted);font-weight:400;display:block;font-size:11px}
+.footnote{font-size:12px;color:var(--muted);text-align:center;padding:14px}
+.section-title{font-size:13px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin:4px 4px 10px}
+@media(max-width:920px){.grid2,.grid2.wide{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <div class="head-top">
+      <div>
+        <h1>🦐 Daily Report Dashboard — บ่อเลี้ยงกุ้ง</h1>
+        <div class="sub">สรุปสถานะรายวัน · Module A · B · C · D · เทียบค่ามาตรฐานการเลี้ยง</div>
+      </div>
+      <div class="asof">ข้อมูล ณ วันที่<br><b id="asof">30 มิ.ย. 2026</b></div>
+    </div>
+    <div class="filters">
+      <div class="fgroup">
+        <div class="flabel">พื้นที่ (Module)</div>
+        <div class="chips" id="f-mod"></div>
+      </div>
+      <div class="fgroup">
+        <div class="flabel">สถานะรวม</div>
+        <div class="chips" id="f-st"></div>
+      </div>
+      <div class="fgroup">
+        <div class="flabel">สถานะบ่อ</div>
+        <div class="chips" id="f-pond"></div>
+      </div>
+      <div class="fgroup" style="justify-content:flex-end">
+        <div class="flabel">&nbsp;</div>
+        <div class="reset" id="reset">↺ ล้างตัวกรอง</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 1 -->
+  <div class="section-title">1 · สรุปสถานะรวม (เฉพาะบ่อที่เลี้ยงอยู่ · ไม่รวมบ่อปิด)</div>
+  <div class="kpis" id="kpis"></div>
+
+  <div class="grid2 wide">
+    <div class="card">
+      <h3><span class="dot"></span>สัดส่วนสถานะบ่อ</h3>
+      <div class="hint">จำนวนบ่อ เขียว / เหลือง / แดง ในกลุ่มที่เลือก</div>
+      <canvas id="donut"></canvas>
+    </div>
+    <div class="card">
+      <h3><span class="dot"></span>สถานะแยกตาม Module</h3>
+      <div class="hint">เปรียบเทียบจำนวนบ่อแต่ละสถานะในแต่ละพื้นที่</div>
+      <canvas id="modbar"></canvas>
+    </div>
+  </div>
+
+  <!-- SECTION 2 -->
+  <div class="section-title">2 · สถานะรายพารามิเตอร์ — คลิกที่แถบสีเพื่อดูบ่อและค่าที่ผิดเกณฑ์</div>
+  <div class="card" style="margin-bottom:var(--gap)">
+    <div class="hint">แต่ละแถบแสดงจำนวนบ่อในสถานะ เขียว/เหลือง/แดง ของพารามิเตอร์นั้น · <b>คลิกช่วงสีเหลืองหรือแดงเพื่อเจาะดูรายบ่อ</b></div>
+    <div id="params"></div>
+    <div class="plegend">
+      <span><b style="background:var(--green)"></b>ปกติ (Green)</span>
+      <span><b style="background:var(--yellow)"></b>เฝ้าระวัง (Yellow)</span>
+      <span><b style="background:var(--red)"></b>ผิดเกณฑ์ (Red)</span>
+    </div>
+  </div>
+
+  <!-- SECTION 3 -->
+  <div class="section-title">3 · Top 10 บ่อที่ต้องแก้ไขด่วนที่สุด</div>
+  <div class="card" style="margin-bottom:var(--gap)">
+    <div class="hint">จัดอันดับจาก <b>ตัวตาย/วัน (50%) + TAN (25%) + NO₂-N (25%)</b> — normalize ตามค่าสูงสุดของบ่อที่เลี้ยงอยู่ในกลุ่มที่เลือก</div>
+    <div style="overflow-x:auto"><table class="urg-table" id="urg"></table></div>
+  </div>
+
+  <!-- DETAIL -->
+  <div class="section-title">รายละเอียดรายบ่อ (คลิกหัวคอลัมน์เพื่อเรียงลำดับ)</div>
+  <div class="tablecard">
+    <table class="dtable" id="detail"></table>
+  </div>
+
+  <div class="footnote">
+    เกณฑ์มาตรฐาน: pH 7.0–9.0 (เป้า 8.0) · T.Alk 120–180 ppm (เป้า 150) · TAN เป้า 0 (≤3) · NO₂-N เป้า 0.5 (≤3) · อาหารเทียบ STD Feed ตาม DOC · ตัวตายยิ่งต่ำยิ่งดี<br>
+    ที่มา: Google Sheet “2026 Daily Report” — สีสถานะและคะแนนคำนวณจากไฟล์ต้นทาง
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <div class="modal-h"><h4 id="mtitle"></h4><button class="x" id="mclose">×</button></div>
+    <div class="modal-b" id="mbody"></div>
+  </div>
+</div>
+
+<script>
+/* ---------- DATA (from "2026 Daily Report") ---------- */
+// keys: module,pond,type,unit,status,mbw,biomass,feed,sal,ph,alk,tan,no2,mort,stdFeed,diffKg,diffPct,
+//       c=[feed,ph,alk,tan,no2,mort] colors G/Y/R,  s=[...] scores,  overall, total
+const RAW = [
+["A","A2I03","Inter",2,"Culture",3,540.0,65,30,7.425,182,0.245,8.36,40,42,23,56,"RRGGRG",[14,5,3,3,12,3],"Red",40],
+["A","A2I04","Inter",2,"Culture",2.34,421.2,60,30,7.34,180,2.06,6.72,70,35,25,72,"RRGGYY",[14,5,3,3,6,9],"Red",40],
+["A","A3I05","Inter",3,"Close",0.65,263.3,null,20,7.51,144,0.969,0.593,50,35,-35,-100,"",[],"",0],
+["A","A4I07","Inter",4,"Culture",21,2457.0,65,20,7.77,146,0.151,0.43,364,97,-32,-33,"RYGGGR",[14,4,3,3,3,15],"Red",42],
+["A","A4I08","Inter",4,"Culture",27.5,3360.5,100,20,7.645,124,0.241,0.758,364,117,-17,-15,"YYRGGR",[9,4,8,3,3,15],"Red",42],
+["A","A5I09","Inter",5,"Culture",6,1056.0,55,20,7.88,164,0.155,0.306,434,67,-12,-18,"YGGGGR",[9,3,3,3,3,15],"Yellow",36],
+["A","A1G01","Growout",1,"Culture",40.5,4282.9,0,20,7.92,142,0.231,0.73,400,115,-115,-100,"RGGGGR",[14,3,3,3,3,15],"Red",41],
+["A","A1G02","Growout",1,"Culture",38.45,5770.4,150,20,7.685,106,0.274,1.14,200,160,-10,-6,"GYRGGR",[6,4,8,3,3,15],"Yellow",39],
+["A","A2G03","Growout",2,"Culture",42,4342.8,0,20,7.84,202,0.523,3.41,53,114,-114,-100,"RGYGGY",[14,3,5,3,3,9],"Yellow",37],
+["A","A2G04","Growout",2,"Culture",6.18,2023.2,125,20,7.93,166,3.48,0.445,110,126,-1,-1,"GGGGGR",[6,3,3,3,3,15],"Yellow",33],
+["A","A3G05","Growout",3,"Culture",1.66,560.3,80,30,7.81,144,0.143,0.064,30,55,25,47,"RGGGGG",[14,3,3,3,3,3],"Yellow",29],
+["A","A4G07","Growout",4,"Culture",19.51,5531.1,155,20,8.2,126,0.302,6.47,385,227,-72,-32,"RGRGYR",[14,3,8,3,6,15],"Red",49],
+["A","A4G08","Growout",4,"Culture",27.42,5330.4,175,20,8.175,126,0.669,1.7,423,186,-11,-6,"GGRGGR",[6,3,8,3,3,15],"Yellow",38],
+["A","A5G09","Growout",5,"Culture",11.1,3114.7,125,20,7.7,174,0.104,0.267,450,161,-36,-22,"RYGGGR",[14,4,3,3,3,15],"Red",42],
+["A","A5G10","Growout",5,"Culture",1.97,664.9,80,19,7.84,148,1.13,5.86,30,60,20,34,"RGGGYG",[14,3,3,3,6,3],"Yellow",32],
+["A","A6G11","Growout",6,"Culture",38.31,6302.0,150,18,7.53,146,0.267,5.94,310,175,-25,-14,"YYGGYR",[9,4,3,3,6,15],"Red",40],
+["B","B1I01","Inter",1,"Close",41.7,3377.7,0,24,7.76,180,0.352,1.54,170,89,-89,-100,"",[],"",0],
+["B","B1I02","Inter",1,"Close",38.462,3028.8,0,20,7.67,140,0.193,7,350,84,-84,-100,"",[],"",0],
+["B","B5I09","Inter",5,"Culture",14.8,2997.0,100,20,7.83,210,0.113,0.487,1360,139,-39,-28,"RGYGGR",[14,3,5,3,3,15],"Red",43],
+["B","B5I10","Inter",5,"Culture",11.4,2180.3,100,21,7.89,238,0.419,0.595,1760,111,-11,-10,"GGYGGR",[6,3,5,3,3,15],"Yellow",35],
+["B","B6I11","Inter",6,"Culture",22,2059.2,75,20,7.875,190,0.413,0.547,210,80,-5,-7,"GGGGGR",[6,3,3,3,3,15],"Yellow",33],
+["B","B6I12","Inter",6,"Culture",22,2059.2,55,20,7.91,160,0.12,0.384,220,80,-25,-32,"RGGGGR",[14,3,3,3,3,15],"Red",41],
+["B","B1G01","Growout",1,"Close",43.48,4930.6,0,22,7.73,144,0.135,1.78,400,129,-129,-100,"",[],"",0],
+["B","B1G02","Growout",1,"Culture",38.45,6307.1,180,18,7.63,154,0.103,7.16,300,175,5,3,"GYGGRR",[6,4,3,3,12,15],"Red",43],
+["B","B2G03","Growout",2,"Culture",9.2,2918.7,225,24,7.68,206,0.103,0.91,53,158,67,42,"RYYGGY",[14,4,5,3,3,9],"Yellow",38],
+["B","B2G04","Growout",2,"Culture",9.7,3732.1,275,24,7.56,192,0.457,1.03,1030,200,75,37,"RYGGGR",[14,4,3,3,3,15],"Red",42],
+["B","B3G05","Growout",3,"Close",40,10114.0,225,20,7.54,148,0.337,1.4,50,274,-49,-18,"",[],"",0],
+["B","B3G06","Growout",3,"Culture",40,10530.0,225,20,7.51,144,0.969,0.593,50,285,-60,-21,"RYGGGY",[14,4,3,3,3,9],"Yellow",36],
+["B","B5G09","Growout",5,"Culture",14.4,4957.2,175,19,7.715,144,0.255,3.74,2070,233,-58,-25,"RYGGGR",[14,4,3,3,3,15],"Red",42],
+["B","B5G10","Growout",5,"Culture",11,4098.6,175,20,7.735,166,0.899,3.66,2730,211,-36,-17,"YYGGGR",[9,4,3,3,3,15],"Yellow",37],
+["B","B6G11","Growout",6,"Culture",28.7,4649.4,150,19,7.88,204,0.369,7.62,358,158,-8,-5,"GGYGRR",[6,3,5,3,12,15],"Red",44],
+["B","B6G12","Growout",6,"Culture",29,4463.1,125,19,7.87,200,0.124,7.6,344,150,-25,-16,"YGGGRR",[9,3,3,3,12,15],"Red",45],
+["C","C2I03","Inter",2,"Culture",26.31,2973.0,100,20,7.82,150,null,5.75,31,106,-6,-5,"GGGGYG",[6,3,3,3,6,3],"Yellow",24],
+["C","C2I04","Inter",2,"Culture",1.8,320.6,30,19,7.9,134,null,0.366,77,30,0,1,"GGGGGY",[6,3,3,3,3,9],"Yellow",27],
+["C","C4I07","Inter",4,"Culture",27.41,2168.1,100,33,7.64,136,0.84,0.117,0,76,24,32,"RYGGGG",[14,4,3,3,3,3],"Yellow",30],
+["C","C4I08","Inter",4,"Close",null,null,null,30,7.65,194,null,0.352,null,null,null,null,"",[],"",0],
+["C","C5I09","Inter",5,"Close",null,null,null,30,7.705,208,0.175,0.196,50,null,null,null,"",[],"",0],
+["C","C5I10","Inter",5,"Close",null,null,null,27,7.44,94,0.184,0.29,27,null,null,null,"",[],"",0],
+["C","C1G01","Growout",1,"Culture",2.2,705.4,50,21,7.89,144,null,2.9,null,60,-10,-17,"YGGGGG",[9,3,3,3,3,3],"Yellow",24],
+["C","C1G02","Growout",1,"Culture",38.45,5094.9,175,19,7.485,114,null,2.88,null,141,34,24,"RRRGGG",[14,5,8,3,3,3],"Yellow",36],
+["C","C2G03","Growout",2,"Culture",29,4932.9,75,20,7.63,174,0.125,7.32,null,165,-90,-55,"RYGGRG",[14,4,3,3,12,3],"Yellow",39],
+["C","C2G04","Growout",2,"Culture",2,641.3,75,20,7.87,148,null,0.138,null,57,18,31,"RGGGGG",[14,3,3,3,3,3],"Yellow",29],
+["C","C3G05","Growout",3,"Culture",33.31,5935.8,175,20,7.695,92,2.86,3.18,null,180,-5,-3,"GYRGGG",[6,4,8,3,3,3],"Yellow",27],
+["C","C3G06","Growout",3,"Culture",20.9,3639.7,175,21,7.44,98,null,4.35,null,146,29,20,"RRRGGG",[14,5,8,3,3,3],"Yellow",36],
+["C","C4G07","Growout",4,"Culture",25,3543.8,150,20,7.525,118,0.59,0.428,132,129,21,16,"YYRGGR",[9,4,8,3,3,15],"Red",42],
+["C","C4G08","Growout",4,"Culture",19.69,3987.2,150,21,7.695,214,null,0.318,null,163,-13,-8,"GYYGGG",[6,4,5,3,3,3],"Yellow",24],
+["C","C5G09","Growout",5,"Culture",0.5,200.0,null,20,8.09,172,0.107,0.431,0,28,-28,-100,"RGGGGG",[14,3,3,3,3,3],"Yellow",29],
+["C","C5G10","Growout",5,"Culture",5,2000.0,50,25,7.99,170,0.107,0.145,0,136,-86,-63,"RGGGGG",[14,3,3,3,3,3],"Yellow",29],
+["D","D2I03","Inter",2,"Culture",27,2673.0,75,27,8.29,180,0.063,0.079,112,94,-19,-20,"RGGGGR",[14,3,3,3,3,15],"Red",41],
+["D","D2I04","Inter",2,"Culture",27.4,2712.6,50,26,8.21,152,0.077,0.052,115,95,-45,-47,"RGGGGR",[14,3,3,3,3,15],"Red",41],
+["D","D3I05","Inter",3,"Culture",8.2,1431.7,100,24,7.66,156,0.201,9.54,500,81,19,23,"RYGGRR",[14,4,3,3,12,15],"Red",51],
+["D","D3I06","Inter",3,"Culture",9.8,1464.1,90,20,7.71,140,0.483,4.41,200,78,12,15,"YYGGGR",[9,4,3,3,3,15],"Yellow",37],
+["D","D5I09","Inter",5,"Culture",37,3759.6,0,27,7.49,160,0.175,2.61,50,107,-107,-100,"RRGGGY",[14,5,3,3,3,9],"Yellow",37],
+["D","D5I10","Inter",5,"Culture",38,4583.7,0,27,8.03,94,0.184,8.19,27,128,-128,-100,"RGRGRG",[14,3,8,3,12,3],"Red",43],
+["D","D1G01","Growout",1,"Culture",28.5,7848.9,250,20,7.53,140,0.86,10.1,92,266,-16,-6,"GYGGRY",[6,4,3,3,12,9],"Yellow",37],
+["D","D1G02","Growout",1,"Culture",38.45,8051.4,275,7.51,7.63,190,4.64,4.95,111,223,52,23,"RYGRRR",[14,4,3,12,12,15],"Red",60],
+["D","D2G03","Growout",2,"Culture",28.5,6348.4,250,20,7.67,178,0.182,6.46,617,215,35,16,"YYGGYR",[9,4,3,3,6,15],"Red",40],
+["D","D2G04","Growout",2,"Culture",28.5,6348.4,225,20,7.76,170,0.557,8.94,621,215,10,5,"GYGGRR",[6,4,3,3,12,15],"Red",43],
+["D","D3G05","Growout",3,"Culture",7.4,2410.9,200,20,7.81,188,2.391,1.5,700,142,58,41,"RGGGGR",[14,3,3,3,3,15],"Red",41],
+["D","D3G06","Growout",3,"Culture",9.8,2249.1,175,20,7.67,130,0.259,5.3,500,121,54,45,"RYRGYR",[14,4,8,3,6,15],"Red",50],
+["D","D4G07","Growout",4,"Culture",8.5,2667.9,175,21,7.7,196,0.224,10.5,123,149,26,17,"YYGGRR",[9,4,3,3,12,15],"Red",46],
+["D","D4G08","Growout",4,"Culture",8.6,2699.3,160,21,7.7,158,0.471,9.77,130,151,9,6,"GYGGRR",[6,4,3,3,12,15],"Red",43],
+["D","D5G09","Growout",5,"Culture",0.5,200.0,50,20,8.17,208,0.107,0.431,0,28,22,79,"RGYGGG",[14,3,5,3,3,3],"Yellow",31],
+["D","D5G10","Growout",5,"Culture",0.5,200.0,50,20,8.04,144,0.107,0.145,0,28,22,79,"RGGGGG",[14,3,3,3,3,3],"Yellow",29]
+];
+const KEYS=["module","pond","type","unit","status","mbw","biomass","feed","sal","ph","alk","tan","no2","mort","stdFeed","diffKg","diffPct","cstr","s","overall","total"];
+const DATA = RAW.map(r=>{const o={};KEYS.forEach((k,i)=>o[k]=r[i]);
+  const cc=o.cstr.split("");o.c={feed:cc[0]||"",ph:cc[1]||"",alk:cc[2]||"",tan:cc[3]||"",no2:cc[4]||"",mort:cc[5]||""};
+  return o;});
+
+const PARAMS=[
+  {key:"feed",name:"อาหาร/วัน",sub:"Feed vs STD",unit:"kg",val:d=>d.feed,ref:d=>"STD "+fmt(d.stdFeed)+" ("+(d.diffPct>0?"+":"")+d.diffPct+"%)"},
+  {key:"ph",name:"pH เฉลี่ย",sub:"เช้า-บ่าย",unit:"",val:d=>d.ph,ref:d=>"เป้า 8.0 (7.0–9.0)"},
+  {key:"alk",name:"T.Alk",sub:"ppm",unit:"ppm",val:d=>d.alk,ref:d=>"เป้า 150 (120–180)"},
+  {key:"tan",name:"TAN",sub:"ppm",unit:"ppm",val:d=>d.tan,ref:d=>"เป้า 0 (≤3)"},
+  {key:"no2",name:"NO₂-N",sub:"ppm",unit:"ppm",val:d=>d.no2,ref:d=>"เป้า 0.5 (≤3)"},
+  {key:"mort",name:"ตัวตาย/วัน",sub:"pcs/day",unit:"pcs",val:d=>d.mort,ref:d=>"ยิ่งต่ำยิ่งดี"}
+];
+const CMAP={G:"var(--green)",Y:"var(--yellow)",R:"var(--red)"};
+const CNAME={G:"ปกติ",Y:"เฝ้าระวัง",R:"ผิดเกณฑ์"};
+const CCLASS={G:"g",Y:"y",R:"r"};
+
+/* ---------- STATE ---------- */
+const state={mod:new Set(),st:new Set(),pond:new Set(["Culture"])};
+const MODS=["A","B","C","D"], STS=["Red","Yellow","Green"], PONDS=["Culture","Close"];
+
+function fmt(n){if(n===null||n===undefined||n==="")return "–";return (typeof n==="number")?(Number.isInteger(n)?n.toLocaleString():n.toLocaleString(undefined,{maximumFractionDigits:2})):n;}
+
+/* filtered full set (respects pond-status filter, includes Close if chosen) */
+function filteredAll(){
+  return DATA.filter(d=>{
+    if(state.mod.size && !state.mod.has(d.module))return false;
+    if(state.pond.size && !state.pond.has(d.status))return false;
+    if(state.st.size){ if(d.status!=="Culture")return false; if(!state.st.has(d.overall))return false; }
+    return true;
+  });
+}
+/* analysis set = culture only (for KPIs/charts/params/top10) */
+function analysisSet(){ return filteredAll().filter(d=>d.status==="Culture"); }
+
+/* ---------- FILTER UI ---------- */
+function chip(txt,on,cls){return `<div class="chip ${on?"on "+(cls||""):""}" data-v="${txt}">${txt}</div>`;}
+function buildFilters(){
+  document.getElementById("f-mod").innerHTML=MODS.map(m=>chip(m,state.mod.has(m))).join("");
+  document.getElementById("f-st").innerHTML=STS.map(s=>{const c=s==="Red"?"r":s==="Yellow"?"y":"g";const lbl=s==="Red"?"แดง":s==="Yellow"?"เหลือง":"เขียว";return `<div class="chip ${state.st.has(s)?"on "+c:""}" data-v="${s}">${lbl}</div>`;}).join("");
+  document.getElementById("f-pond").innerHTML=PONDS.map(p=>{const lbl=p==="Culture"?"เลี้ยงอยู่":"ปิดบ่อ";return `<div class="chip ${state.pond.has(p)?"on":""}" data-v="${p}">${lbl}</div>`;}).join("");
+  bindChips("f-mod",state.mod);bindChips("f-st",state.st);bindChips("f-pond",state.pond);
+}
+function bindChips(id,set){
+  document.getElementById(id).querySelectorAll(".chip").forEach(c=>{
+    c.onclick=()=>{const v=c.dataset.v;set.has(v)?set.delete(v):set.add(v);render();};
+  });
+}
+document.getElementById("reset").onclick=()=>{state.mod.clear();state.st.clear();state.pond=new Set(["Culture"]);render();};
+
+/* ---------- SECTION 1: KPIs + charts ---------- */
+let donutChart,modChart;
+function renderKPIs(){
+  const set=analysisSet();
+  const g=set.filter(d=>d.overall==="Green").length;
+  const y=set.filter(d=>d.overall==="Yellow").length;
+  const r=set.filter(d=>d.overall==="Red").length;
+  const tot=set.length;
+  const pct=n=>tot?Math.round(n/tot*100):0;
+  document.getElementById("kpis").innerHTML=`
+    <div class="kpi"><div class="klabel">บ่อที่เลี้ยงอยู่</div><div class="kval">${tot}</div><div class="kpct">บ่อ (ไม่รวมปิด)</div></div>
+    <div class="kpi g"><div class="klabel">🟢 เขียว · ปกติ</div><div class="kval">${g}</div><div class="kpct">${pct(g)}%</div><div class="kbar"><span style="width:${pct(g)}%;background:var(--green)"></span></div></div>
+    <div class="kpi y"><div class="klabel">🟡 เหลือง · เฝ้าระวัง</div><div class="kval">${y}</div><div class="kpct">${pct(y)}%</div><div class="kbar"><span style="width:${pct(y)}%;background:var(--yellow)"></span></div></div>
+    <div class="kpi r"><div class="klabel">🔴 แดง · ต้องแก้ไข</div><div class="kval">${r}</div><div class="kpct">${pct(r)}%</div><div class="kbar"><span style="width:${pct(r)}%;background:var(--red)"></span></div></div>`;
+  return {g,y,r,tot};
+}
+function renderDonut(c){
+  const ctx=document.getElementById("donut");
+  const data=[c.g,c.y,c.r];
+  if(donutChart)donutChart.destroy();
+  donutChart=new Chart(ctx,{type:"doughnut",
+    data:{labels:["เขียว","เหลือง","แดง"],datasets:[{data,backgroundColor:["#16a34a","#d97706","#dc2626"],borderWidth:2,borderColor:"#fff"}]},
+    options:{cutout:"62%",plugins:{legend:{position:"bottom",labels:{font:{family:"Noto Sans Thai",size:13},padding:14,usePointStyle:true}},
+      tooltip:{callbacks:{label:x=>` ${x.label}: ${x.raw} บ่อ (${c.tot?Math.round(x.raw/c.tot*100):0}%)`}}}}});
+}
+function renderModBar(){
+  const ctx=document.getElementById("modbar");
+  const mods=state.mod.size?[...state.mod]:MODS;
+  const set=analysisSet();
+  const g=mods.map(m=>set.filter(d=>d.module===m&&d.overall==="Green").length);
+  const y=mods.map(m=>set.filter(d=>d.module===m&&d.overall==="Yellow").length);
+  const r=mods.map(m=>set.filter(d=>d.module===m&&d.overall==="Red").length);
+  if(modChart)modChart.destroy();
+  modChart=new Chart(ctx,{type:"bar",
+    data:{labels:mods.map(m=>"Module "+m),datasets:[
+      {label:"เขียว",data:g,backgroundColor:"#16a34a"},
+      {label:"เหลือง",data:y,backgroundColor:"#d97706"},
+      {label:"แดง",data:r,backgroundColor:"#dc2626"}]},
+    options:{responsive:true,scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,ticks:{precision:0},grid:{color:"#f1f5f9"}}},
+      plugins:{legend:{position:"bottom",labels:{font:{family:"Noto Sans Thai"},usePointStyle:true,padding:12}}}}});
+}
+
+/* ---------- SECTION 2: parameter breakdown ---------- */
+function renderParams(){
+  const set=analysisSet();
+  const wrap=document.getElementById("params");
+  wrap.innerHTML=PARAMS.map(p=>{
+    const g=set.filter(d=>d.c[p.key]==="G").length;
+    const y=set.filter(d=>d.c[p.key]==="Y").length;
+    const r=set.filter(d=>d.c[p.key]==="R").length;
+    const tot=g+y+r||1;
+    const seg=(n,cls,letter)=>n?`<div class="pseg ${cls}" style="flex:${n}" data-p="${p.key}" data-c="${letter}"><span>${n}</span></div>`:"";
+    return `<div class="param-row">
+      <div class="param-name">${p.name}<small>${p.sub}</small></div>
+      <div class="pbar">${seg(g,"g","G")}${seg(y,"y","Y")}${seg(r,"r","R")}</div>
+    </div>`;
+  }).join("");
+  wrap.querySelectorAll(".pseg").forEach(s=>{
+    s.onclick=()=>{ if(s.dataset.c==="G")return; openDrill(s.dataset.p,s.dataset.c); };
+  });
+}
+
+/* Drill-down modal */
+function openDrill(pkey,color){
+  const p=PARAMS.find(x=>x.key===pkey);
+  const set=analysisSet().filter(d=>d.c[pkey]===color).sort((a,b)=>(p.val(b)??-1)-(p.val(a)??-1));
+  document.getElementById("mtitle").innerHTML=`${p.name} — สถานะ<span class="pill ${CCLASS[color]}" style="margin-left:8px">${CNAME[color]}</span> · ${set.length} บ่อ`;
+  document.getElementById("mbody").innerHTML= set.length? set.map(d=>`
+    <div class="mrow" style="border-left:5px solid ${CMAP[color]}">
+      <div><span class="mp">${d.pond}</span> <span class="mod-badge">Module ${d.module}</span><small>${p.ref(d)}</small></div>
+      <div style="text-align:right"><span class="mv" style="color:${CMAP[color]}">${fmt(p.val(d))} ${p.unit}</span></div>
+    </div>`).join("") : `<p style="color:var(--muted);text-align:center;padding:20px">ไม่มีบ่อในสถานะนี้</p>`;
+  document.getElementById("overlay").classList.add("show");
+}
+document.getElementById("mclose").onclick=()=>document.getElementById("overlay").classList.remove("show");
+document.getElementById("overlay").onclick=e=>{if(e.target.id==="overlay")e.currentTarget.classList.remove("show");};
+
+/* ---------- SECTION 3: Top 10 urgent ---------- */
+function renderUrgent(){
+  const set=analysisSet();
+  const maxM=Math.max(1,...set.map(d=>d.mort||0));
+  const maxT=Math.max(0.0001,...set.map(d=>d.tan||0));
+  const maxN=Math.max(0.0001,...set.map(d=>d.no2||0));
+  const scored=set.map(d=>{
+    const u=0.5*(d.mort||0)/maxM + 0.25*(d.tan||0)/maxT + 0.25*(d.no2||0)/maxN;
+    return {d,u:Math.round(u*100)};
+  }).sort((a,b)=>b.u-a.u).slice(0,10);
+  const cchip=(d,k)=>`<span class="pill ${CCLASS[d.c[k]]||"g"}">${fmt(PARAMS.find(p=>p.key===k).val(d))}</span>`;
+  document.getElementById("urg").innerHTML=`
+    <thead><tr><th>#</th><th>บ่อ</th><th>Module</th><th>สถานะ</th><th>ตัวตาย/วัน</th><th>TAN</th><th>NO₂-N</th><th>คะแนนด่วน</th></tr></thead>
+    <tbody>${scored.map((x,i)=>{const d=x.d;return `<tr>
+      <td><span class="rank ${i<3?"top":""}">${i+1}</span></td>
+      <td><span class="pondtag">${d.pond}</span></td>
+      <td><span class="mod-badge">${d.module}</span></td>
+      <td><span class="st ${d.overall}">${d.overall==="Red"?"แดง":d.overall==="Yellow"?"เหลือง":"เขียว"}</span></td>
+      <td>${cchip(d,"mort")}</td><td>${cchip(d,"tan")}</td><td>${cchip(d,"no2")}</td>
+      <td><span class="uscore" style="color:${x.u>=50?"var(--red)":x.u>=30?"var(--yellow)":"var(--muted)"}">${x.u}</span></td>
+    </tr>`;}).join("")}</tbody>`;
+}
+
+/* ---------- DETAIL TABLE ---------- */
+let sortKey="total",sortDir=-1;
+const COLS=[
+  {k:"module",t:"Mod",l:true},{k:"pond",t:"บ่อ",l:true},{k:"type",t:"ชนิด",l:true},{k:"status",t:"สถานะบ่อ",l:true},
+  {k:"feed",t:"อาหาร",c:"feed"},{k:"ph",t:"pH",c:"ph"},{k:"alk",t:"Alk",c:"alk"},
+  {k:"tan",t:"TAN",c:"tan"},{k:"no2",t:"NO₂",c:"no2"},{k:"mort",t:"ตัวตาย",c:"mort"},
+  {k:"overall",t:"รวม"},{k:"total",t:"คะแนน"}
+];
+function renderDetail(){
+  let rows=filteredAll().slice().sort((a,b)=>{
+    let va=a[sortKey],vb=b[sortKey];
+    if(va===null||va===undefined)va=-Infinity; if(vb===null||vb===undefined)vb=-Infinity;
+    if(typeof va==="string")return sortDir*va.localeCompare(vb);
+    return sortDir*(va-vb);
+  });
+  const head=COLS.map(c=>`<th data-k="${c.k}">${c.t}${sortKey===c.k?(sortDir<0?" ▾":" ▴"):""}</th>`).join("");
+  const body=rows.map(d=>{
+    const isClose=d.status==="Close";
+    const cell=(c)=>{
+      const v=fmt(d[c.k]);
+      if(c.c && !isClose){const col=d.c[c.c];return `<td><span class="cell ${CCLASS[col]||""}">${v}</span></td>`;}
+      if(c.k==="overall"){return isClose?`<td><span class="st Close">ปิด</span></td>`:`<td><span class="st ${d.overall}">${d.overall==="Red"?"แดง":d.overall==="Yellow"?"เหลือง":"เขียว"}</span></td>`;}
+      if(c.k==="status"){return `<td class="l"><span class="st ${isClose?"Close":""}">${isClose?"ปิดบ่อ":"เลี้ยงอยู่"}</span></td>`;}
+      return `<td class="${c.l?"l":""}">${v}</td>`;
+    };
+    return `<tr class="${isClose?"closerow":""}">${COLS.map(cell).join("")}</tr>`;
+  }).join("");
+  document.getElementById("detail").innerHTML=`<thead><tr>${head}</tr></thead><tbody>${body}</tbody>`;
+  document.getElementById("detail").querySelectorAll("th").forEach(th=>{
+    th.onclick=()=>{const k=th.dataset.k;if(sortKey===k)sortDir*=-1;else{sortKey=k;sortDir=(k==="pond"||k==="module")?1:-1;}renderDetail();};
+  });
+}
+
+/* ---------- RENDER ALL ---------- */
+function render(){
+  buildFilters();
+  const c=renderKPIs();
+  renderDonut(c);
+  renderModBar();
+  renderParams();
+  renderUrgent();
+  renderDetail();
+}
+render();
+</script>
+</body>
+</html>
