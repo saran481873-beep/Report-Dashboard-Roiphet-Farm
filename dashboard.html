@@ -1,0 +1,1027 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Roiphet Farm — Executive Dashboard 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
+<style>
+:root{
+  --green:#16a34a; --green-bg:#dcfce7; --green-line:#86efac;
+  --yellow:#d97706; --yellow-bg:#fef3c7; --yellow-line:#fcd34d;
+  --red:#dc2626; --red-bg:#fee2e2; --red-line:#fca5a5;
+  --ink:#0f172a; --muted:#64748b; --line:#e2e8f0; --card:#ffffff;
+  --bg:#f1f5f9; --head1:#0f766e; --head2:#134e4a; --accent:#0d9488;
+  --radius:14px; --gap:16px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Sans Thai',system-ui,sans-serif;background:var(--bg);color:var(--ink);line-height:1.45;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1360px;margin:0 auto;padding:20px}
+a{color:inherit;text-decoration:none}
+/* Header */
+.head{background:linear-gradient(135deg,var(--head1),var(--head2));color:#fff;border-radius:var(--radius);padding:20px 26px;margin-bottom:var(--gap);box-shadow:0 6px 20px rgba(15,118,110,.25)}
+.head-top{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px}
+.head h1{font-size:22px;font-weight:800;letter-spacing:-.3px}
+.head .sub{font-size:13px;opacity:.85;margin-top:3px}
+.head .asof{font-size:12px;opacity:.85;text-align:right}
+.head .asof b{font-size:14px}
+.live-badge{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;margin-top:6px;justify-content:flex-end}
+.live-dot{width:9px;height:9px;border-radius:50%;background:#f87171}
+.live-dot.on{background:#4ade80;animation:lp 2s infinite}
+@keyframes lp{0%{box-shadow:0 0 0 0 rgba(74,222,128,.5)}70%{box-shadow:0 0 0 7px rgba(74,222,128,0)}100%{box-shadow:0 0 0 0 rgba(74,222,128,0)}}
+.refresh-btn{cursor:pointer;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.1);color:#fff;border-radius:8px;padding:4px 9px;font-size:13px;margin-left:8px}
+.refresh-btn:hover{background:rgba(255,255,255,.22)}
+/* Nav */
+.nav{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.nav a{font-size:13px;font-weight:700;padding:8px 15px;border-radius:999px;border:1.5px solid rgba(255,255,255,.35);background:rgba(255,255,255,.08);color:#fff;transition:.15s}
+.nav a:hover{background:rgba(255,255,255,.2)}
+.nav a.on{background:#fff;color:var(--head2);border-color:#fff}
+.backlink{display:inline-block;margin-bottom:12px;font-size:13px;font-weight:700;color:var(--accent);cursor:pointer}
+/* Filters */
+.filters{margin-top:16px;display:flex;flex-wrap:wrap;gap:18px}
+.fgroup{display:flex;flex-direction:column;gap:6px}
+.fgroup .flabel{font-size:11px;text-transform:uppercase;letter-spacing:.6px;opacity:.8;font-weight:600}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{cursor:pointer;user-select:none;font-size:13px;font-weight:600;padding:6px 13px;border-radius:999px;border:1.5px solid rgba(255,255,255,.35);background:rgba(255,255,255,.08);color:#fff;transition:.15s}
+.chip:hover{background:rgba(255,255,255,.2)}
+.chip.on{background:#fff;color:var(--head2);border-color:#fff}
+/* Home cards */
+.home-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:var(--gap)}
+.mcard{background:var(--card);border-radius:var(--radius);padding:24px;box-shadow:0 1px 3px rgba(0,0,0,.07);cursor:pointer;transition:.18s;border-top:5px solid var(--accent);display:flex;flex-direction:column;gap:8px;min-height:170px}
+.mcard:hover{transform:translateY(-3px);box-shadow:0 10px 28px rgba(15,118,110,.16)}
+.mcard .ic{font-size:34px}
+.mcard h3{font-size:18px;font-weight:800}
+.mcard p{font-size:13px;color:var(--muted);flex:1}
+.mcard .go{font-size:12px;font-weight:700;color:var(--accent)}
+.mcard.ext{border-top-color:#6366f1}
+.mcard.c-sit{border-top-color:#16a34a}.mcard.c-perf{border-top-color:#0d9488}.mcard.c-week{border-top-color:#d97706}
+.mcard.c-fin{border-top-color:#7c3aed}.mcard.c-order{border-top-color:#dc2626}
+/* KPI */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:var(--gap);margin-bottom:var(--gap)}
+.kpi{background:var(--card);border-radius:var(--radius);padding:16px 18px;box-shadow:0 1px 3px rgba(0,0,0,.07);border-left:5px solid var(--accent)}
+.kpi.g{border-left-color:var(--green)} .kpi.y{border-left-color:var(--yellow)} .kpi.r{border-left-color:var(--red)} .kpi.b{border-left-color:#2563eb} .kpi.v{border-left-color:#7c3aed} .kpi.dim{border-left-color:#94a3b8}
+.kpi .klabel{font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px}
+.kpi .kval{font-size:30px;font-weight:800;margin-top:6px;line-height:1}
+.kpi .ksub{font-size:12px;color:var(--muted);margin-top:5px;font-weight:600}
+/* Cards / layout */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:var(--gap);margin-bottom:var(--gap)}
+.grid2.wide{grid-template-columns:1.2fr .8fr}
+.card{background:var(--card);border-radius:var(--radius);padding:20px 22px;box-shadow:0 1px 3px rgba(0,0,0,.07);margin-bottom:var(--gap)}
+.card h3{font-size:15px;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:8px}
+.card .hint{font-size:12px;color:var(--muted);margin-bottom:14px}
+.card h3 .dot{width:9px;height:9px;border-radius:50%;background:var(--accent)}
+canvas{max-height:300px}
+/* Tables */
+.tablecard{background:var(--card);border-radius:var(--radius);padding:18px 20px;box-shadow:0 1px 3px rgba(0,0,0,.07);margin-bottom:var(--gap);overflow-x:auto}
+.dtable{width:100%;border-collapse:collapse;font-size:12.5px;white-space:nowrap}
+.dtable th{position:sticky;top:0;background:#f8fafc;text-align:center;font-size:11px;letter-spacing:.3px;color:var(--muted);padding:9px 8px;border-bottom:2px solid var(--line)}
+.dtable td{padding:7px 9px;border-bottom:1px solid #f1f5f9;text-align:center}
+.dtable td.l{text-align:left}
+.dtable tr:hover td{background:#f8fafc}
+.dtable tfoot td{font-weight:800;background:#f0fdfa;border-top:2px solid var(--accent)}
+.pondtag{font-weight:700;font-family:ui-monospace,monospace}
+.pondtag.bad{color:var(--red)}
+.mod-badge{display:inline-block;font-size:11px;font-weight:700;padding:2px 7px;border-radius:6px;background:#e0f2fe;color:#0369a1}
+.pill{font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px}
+.pill.g{background:var(--green-bg);color:var(--green)} .pill.r{background:var(--red-bg);color:var(--red)} .pill.b{background:#e0e7ff;color:#4338ca} .pill.dim{background:#e2e8f0;color:#475569}
+/* Situation map */
+.mapcard{overflow-x:auto}
+.sitmap{border-collapse:collapse;margin:0 auto;font-family:ui-monospace,monospace}
+.sitmap td{border:1px solid #e5e7eb;text-align:center;font-size:10.5px;font-weight:700;padding:4px 5px;min-width:34px;height:26px;color:#0f172a;white-space:nowrap}
+.sitmap td.pond{border:1px solid rgba(0,0,0,.18)}
+.sitmap td.pond.dim{opacity:.18}
+.sitmap td.lbl{font-family:'Noto Sans Thai';font-weight:800;color:#334155}
+.legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:14px;font-size:12.5px;font-weight:600}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend b{width:14px;height:14px;border-radius:4px;border:1px solid rgba(0,0,0,.15);display:inline-block}
+/* Cost segments */
+.costgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.costbox{background:#f8fafc;border:1px solid var(--line);border-radius:12px;padding:14px 16px;cursor:pointer;transition:.15s}
+.costbox:hover{border-color:var(--accent);box-shadow:0 2px 10px rgba(13,148,136,.12)}
+.costbox .cl{font-size:12px;color:var(--muted);font-weight:700}
+.costbox .cv{font-size:22px;font-weight:800;margin-top:4px}
+.costbox .cd{font-size:11px;color:var(--accent);font-weight:700;margin-top:4px}
+/* Modal */
+.overlay{position:fixed;inset:0;background:rgba(15,23,42,.55);display:none;align-items:center;justify-content:center;z-index:50;padding:20px}
+.overlay.show{display:flex}
+.modal{background:#fff;border-radius:16px;max-width:620px;width:100%;max-height:82vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.modal-h{padding:16px 22px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:#fff}
+.modal-h h4{font-size:16px;font-weight:700}
+.modal-h .x{cursor:pointer;font-size:22px;color:var(--muted);border:none;background:none}
+.modal-b{padding:16px 22px}
+.mrow{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border-radius:10px;margin-bottom:7px;border:1px solid var(--line)}
+.mrow .mp{font-weight:700}
+.mrow .mv{font-weight:800}
+.section-title{font-size:13px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin:6px 4px 10px}
+.footnote{font-size:12px;color:var(--muted);text-align:center;padding:16px}
+.loading{text-align:center;padding:50px;color:var(--muted);font-weight:600}
+.hidden{display:none!important}
+@media(max-width:920px){.grid2,.grid2.wide{grid-template-columns:1fr}}
+/* ---- Situation modern polish ---- */
+.kpi{position:relative;transition:.18s}
+.kpi:hover{transform:translateY(-2px);box-shadow:0 8px 22px rgba(15,23,42,.09)}
+.kpi .ksic{position:absolute;top:14px;right:16px;font-size:20px;opacity:.55}
+.mapcard{background:linear-gradient(180deg,#ffffff,#f8fafb)}
+.maptbl-wrap{overflow-x:auto;padding:4px 2px 8px;border-radius:12px}
+.sitgrid{display:grid;grid-auto-rows:46px;gap:5px;width:max-content;margin:8px auto;padding-right:92px;--pw:59px}
+.modcell{justify-content:flex-start}
+.modcell.right span{margin-left:-2px}
+.sitgrid .gpond{border-radius:10px;font:700 11px/1 ui-monospace,monospace;display:flex;align-items:center;justify-content:center;text-align:center;color:#0f172a;box-shadow:inset 0 0 0 1px rgba(255,255,255,.5),0 1px 2px rgba(0,0,0,.1);transition:.12s;overflow:hidden}
+.sitgrid .gpond:hover{transform:scale(1.14);z-index:5;box-shadow:0 6px 16px rgba(0,0,0,.28)}
+.sitgrid .gpond.dim{opacity:.15}
+.sitgrid .gpond.rw{font-size:9px;box-shadow:inset 0 0 0 2px #0f766e,0 1px 3px rgba(0,0,0,.18)}
+.sitgrid .statcell,.sitgrid .modcell{overflow:visible;white-space:nowrap;z-index:3}
+.sitgrid .statcell{display:flex;align-items:center}
+.sitgrid .modcell{display:flex;align-items:center}
+.statpill{display:inline-block;padding:9px 20px;border-radius:999px;font-size:14px;font-weight:800;color:#0f172a;box-shadow:inset 0 0 0 1px rgba(0,0,0,.14),0 2px 6px rgba(0,0,0,.16);white-space:nowrap}
+.modcell span{font-size:15.5px;font-weight:800;color:#0f766e;letter-spacing:.3px;padding:7px 16px;border-radius:10px;background:#ecfdf5;box-shadow:inset 0 0 0 1.5px #99f6e4;white-space:nowrap}
+.rwswatch{width:14px;height:14px;border-radius:4px;background:#00ff00;box-shadow:inset 0 0 0 2px #0f766e;display:inline-block}
+.sit-blocklabel{font-size:13px;font-weight:800;color:#134e4a;margin:20px 0 10px;padding-left:10px;border-left:4px solid #0d9488}
+.rgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:9px;max-width:660px}
+.rpond{font-family:ui-monospace,monospace;font-weight:700;font-size:11.5px;text-align:center;padding:12px 6px;border-radius:10px;color:#0f172a;box-shadow:inset 0 0 0 1px rgba(255,255,255,.5),0 1px 2px rgba(0,0,0,.08);transition:.12s}
+.rpond:hover{transform:translateY(-2px);box-shadow:0 5px 14px rgba(0,0,0,.18)}
+.rpond.dim{opacity:.16}
+.legend{padding-top:16px;margin-top:16px;border-top:1px dashed var(--line)}
+.dtable.stripe tbody tr:nth-child(even) td{background:#fafcfc}
+.dtable.stripe tbody tr:hover td{background:#eefaf7}
+.dtable .grp{background:#ecfdf5;color:#0f766e;border-bottom:2px solid #a7f3d0}
+.dtable tr.totrow td{font-weight:800;background:#f0fdfa;border-top:2px solid var(--accent)}
+.dtable tr.hlrow td{background:#fffbeb}
+.dtable tr.hlrow .mod-badge{background:#fde68a;color:#92400e}
+/* ---- global modern polish (Performance/Weekly/Financial/Order Harvest) ---- */
+.card,.tablecard{background:linear-gradient(180deg,#ffffff,#fbfdfd);border:1px solid #eef2f4}
+.kpi{background:linear-gradient(180deg,#ffffff,#fbfdfd)}
+.kpi .ksic{position:absolute;top:14px;right:16px;font-size:20px;opacity:.5}
+.dtable th{background:#f0fdfa;color:#0f766e;border-bottom:2px solid #99f6e4;font-weight:700}
+.dtable tbody tr:nth-child(even) td{background:#fafcfc}
+.dtable tbody tr:hover td{background:#eefaf7}
+.dtable tfoot td{background:#f0fdfa;border-top:2px solid var(--accent);font-weight:800}
+.costbox{background:linear-gradient(180deg,#f8fafc,#eef6f5);transition:.16s}
+.costbox:hover{transform:translateY(-2px);border-color:var(--accent);box-shadow:0 6px 16px rgba(13,148,136,.14)}
+.mcard{background:linear-gradient(180deg,#ffffff,#fafdfd)}
+.costbox .cd{color:#0d9488}
+.pill.b{background:#e0f2fe;color:#0369a1}
+/* ---- larger, clearer typography ---- */
+body{font-size:15px}
+.head h1{font-size:24px}
+.head .sub{font-size:14.5px}
+.nav a{font-size:14px}
+.chip{font-size:14px}
+.fgroup .flabel{font-size:12px}
+.kpi .klabel{font-size:13px}
+.kpi .kval{font-size:35px}
+.kpi .ksub{font-size:13.5px}
+.card h3,.tablecard h3{font-size:17px}
+.card .hint,.hint{font-size:13.5px}
+.dtable{font-size:14px}
+.dtable th{font-size:12.5px}
+.dtable td{padding:10px 11px}
+.tablecard .hint{font-size:13.5px}
+.costbox .cl{font-size:13.5px}
+.costbox .cv{font-size:27px}
+.costbox .cd{font-size:12.5px}
+.pill{font-size:12.5px}
+.mod-badge{font-size:12.5px}
+.pondtag{font-size:14px}
+.mcard h3{font-size:20px}
+.mcard p{font-size:14.5px}
+.mcard .go{font-size:13.5px}
+.section-title{font-size:14px}
+.mrow .mp{font-size:14.5px}
+.mrow .mv{font-size:16px}
+.footnote{font-size:13.5px}
+.legend{font-size:14px}
+.sitgrid .gpond{font-size:12px}
+.sitgrid .gpond.rw{font-size:10px}
+.statpill{font-size:14.5px}
+.modcell span{font-size:16px}
+.modal-h h4{font-size:18px}
+/* IN Stock hover tooltip */
+.ohtip{position:fixed;z-index:100;display:none;background:#0f172a;color:#fff;border-radius:10px;padding:10px 13px;box-shadow:0 10px 28px rgba(0,0,0,.3);font-size:12.5px;max-width:280px;max-height:340px;overflow:auto;pointer-events:none}
+.ohtip-h{font-weight:800;margin-bottom:6px;color:#5eead4;border-bottom:1px solid rgba(255,255,255,.15);padding-bottom:5px}
+.ohtip-r{display:flex;justify-content:space-between;gap:16px;padding:2px 0}
+.ohtip-r span{font-family:ui-monospace,monospace}
+.ohtip-r b{color:#fde68a}
+.dtable tr.stkrow:hover td{background:#eefaf7}
+/* Spotlight search */
+.spot-btn{cursor:pointer;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.1);color:#fff;border-radius:8px;padding:4px 10px;font-size:13px;margin-left:8px;display:inline-flex;align-items:center;gap:6px}
+.spot-btn:hover{background:rgba(255,255,255,.22)}
+.spot-btn kbd{font-size:10px;font-weight:700;opacity:.75;border:1px solid rgba(255,255,255,.4);border-radius:4px;padding:1px 4px}
+.spot-box{background:#fff;border-radius:16px;max-width:580px;width:100%;max-height:72vh;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.35);display:flex;flex-direction:column}
+.spot-inputwrap{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--line)}
+.spot-ic{font-size:17px}
+.spot-input{flex:1;border:none;outline:none;font-size:16px;font-family:'Noto Sans Thai',sans-serif;color:var(--ink);background:transparent}
+.spot-esc{font-size:10.5px;color:var(--muted);border:1px solid var(--line);border-radius:5px;padding:2px 6px;white-space:nowrap}
+.spot-results{overflow-y:auto;padding:8px;max-height:56vh}
+.spot-item{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer}
+.spot-item:hover,.spot-item.sel{background:#f0fdfa}
+.spot-item .si-l{display:flex;align-items:center;gap:10px;overflow:hidden}
+.spot-item .si-ic{font-size:17px;width:22px;text-align:center;flex-shrink:0}
+.spot-item .si-t{font-weight:700;font-size:13.5px;font-family:ui-monospace,monospace}
+.spot-item .si-s{font-size:11.5px;color:var(--muted);margin-top:1px}
+.spot-item .spot-tag{font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:999px;background:#e0f2fe;color:#0369a1;flex-shrink:0}
+.spot-empty{padding:26px;text-align:center;color:var(--muted);font-size:13px}
+@keyframes spotflash{0%{background:#fef08a}70%{background:#fef9c3}100%{background:transparent}}
+tr.spot-hl td{animation:spotflash 2.3s ease-out}
+/* Widget hide/show + local spotlight */
+.card h3,.tablecard h3{display:flex;align-items:center;gap:8px}
+.hide-btn{margin-left:auto;cursor:pointer;border:none;background:transparent;color:var(--muted);font-size:13px;font-weight:700;line-height:1;padding:4px 7px;border-radius:6px;opacity:.5;transition:.15s;flex-shrink:0}
+.hide-btn:hover{opacity:1;background:#fee2e2;color:#dc2626}
+#hiddenBar{padding:10px 16px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:16px;background:#fffbeb;border:1px dashed #fbbf24}
+#hiddenBar .hb-lbl{font-size:12.5px;font-weight:700;color:#92400e;flex-shrink:0}
+#hiddenBar .chip{background:#fff;border-color:#fde68a;color:#92400e;font-size:12px}
+#hiddenBar .chip.all{margin-left:auto;background:#92400e;color:#fff;border-color:#92400e}
+@keyframes spotflash2{0%{box-shadow:0 0 0 4px #fde68a,0 1px 3px rgba(0,0,0,.07)}100%{box-shadow:0 1px 3px rgba(0,0,0,.07)}}
+.spot-hl2{animation:spotflash2 2.3s ease-out}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <div class="head-top">
+      <div>
+        <h1>🦐 Roiphet Farm — Executive Dashboard 2026</h1>
+        <div class="sub" id="subtitle">ศูนย์รวมข้อมูลผู้บริหาร · Module A · B · C · D</div>
+      </div>
+      <div class="asof">ข้อมูล ณ<br><b id="asof">กำลังโหลด…</b>
+        <div class="live-badge"><span class="live-dot" id="livedot"></span><span id="livetext">กำลังเชื่อมต่อ…</span><button class="refresh-btn" id="refresh" title="รีเฟรช">↻</button><button class="spot-btn" id="spotBtn" title="ค้นหาบ่อ/พื้นที่/หน้า">ค้นหา <kbd>Ctrl K</kbd></button></div>
+      </div>
+    </div>
+    <div class="nav" id="nav"></div>
+    <div id="filterbar"></div>
+  </div>
+  <div id="app"><div class="loading">กำลังโหลด…</div></div>
+  <div class="footnote">อัปเดตอัตโนมัติทุกวัน · ดึงข้อมูลสดจาก 2026 Daily Report · Roiphet Farm</div>
+</div>
+
+<div class="overlay" id="overlay"><div class="modal">
+  <div class="modal-h"><h4 id="mTitle"></h4><button class="x" onclick="closeModal()">×</button></div>
+  <div class="modal-b" id="mBody"></div>
+</div></div>
+
+<div class="overlay" id="spotOverlay"><div class="spot-box">
+  <div class="spot-inputwrap"><input type="text" id="spotInput" class="spot-input" placeholder="ค้นหาบ่อ, พื้นที่, ตาราง/กราฟในหน้านี้, หรือหน้า Dashboard… เช่น A5I09, Module B, Scorecard" autocomplete="off"><span class="spot-esc">ESC ปิด</span></div>
+  <div class="spot-results" id="spotResults"></div>
+</div></div>
+
+<script>
+const API='https://script.google.com/macros/s/AKfycbyNznon22ahA9zsdkxSM4D8CthhsrC2yMlWITm_1lP65ay8qKKGZ-9Ar58RtF2GeeEN/exec';
+const DAILY_URL='https://taupe-faun-f1808d.netlify.app';
+const MONTHS=['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
+const MONTH_TH=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+const PAGES=[
+  {id:'home',label:'หน้าหลัก'},
+  {id:'situation',label:'1 · Situation'},
+  {id:'performance',label:'2 · Performance'},
+  {id:'weekly',label:'3 · Weekly'},
+  {id:'daily',label:'4 · Daily ↗',ext:DAILY_URL},
+  {id:'financial',label:'5 · Financial'},
+  {id:'orderharvest',label:'6 · Order Harvest'}
+];
+const cache={};
+let charts=[];
+if(window.Chart&&window.ChartDataLabels){ Chart.register(window.ChartDataLabels); Chart.defaults.plugins.datalabels={display:false}; Chart.defaults.font.family="'Noto Sans Thai',sans-serif"; }
+function destroyCharts(){charts.forEach(c=>{try{c.destroy()}catch(e){}});charts=[];}
+async function getTab(tab){ if(cache[tab])return cache[tab]; const r=await fetch(API+'?tab='+tab); const j=await r.json(); cache[tab]=j; return j; }
+function num(x){ if(x==null)return NaN; const s=String(x).replace(/[, %]/g,'').replace(/[^\d.\-]/g,''); const n=parseFloat(s); return isNaN(n)?NaN:n; }
+function fmt(n,d){ if(n==null||isNaN(n))return '–'; return Number(n).toLocaleString('en-US',{minimumFractionDigits:d||0,maximumFractionDigits:d||0}); }
+function el(t){return document.getElementById(t);}
+
+/* ---------- ROUTER ---------- */
+function route(){ let h=(location.hash||'#home').slice(1); const p=PAGES.find(x=>x.id===h); if(!p){h='home';} renderNav(h); renderPage(h); }
+function renderNav(active){
+  el('nav').innerHTML=PAGES.map(p=>p.ext?`<a href="${p.ext}" target="_blank">${p.label}</a>`:`<a href="#${p.id}" class="${p.id===active?'on':''}">${p.label}</a>`).join('');
+}
+window.addEventListener('hashchange',route);
+
+/* ---------- MODAL ---------- */
+function openModal(title,html){el('mTitle').innerHTML=title;el('mBody').innerHTML=html;el('overlay').classList.add('show');}
+function closeModal(){el('overlay').classList.remove('show');}
+el('overlay').addEventListener('click',e=>{if(e.target===el('overlay'))closeModal();});
+
+/* ---------- SPOTLIGHT SEARCH ---------- */
+let spotIndex=null, spotItems=[], spotSel=0, spotlightTarget=null;
+async function buildSpotIndex(){
+  if(spotIndex)return spotIndex;
+  const idx=PAGES.filter(p=>p.id!=='home').map(p=>({type:'page',id:p.id,title:p.label,ext:p.ext}));
+  ['A','B','C','D','R'].forEach(m=>idx.push({type:'module',mod:m}));
+  try{
+    const wk=await getTab('weekly'); const W=wk.values; const H=W[0];
+    const gi=(name)=>H.findIndex(h=>(h||'').trim().toLowerCase()===name.toLowerCase());
+    const iPond=gi('Pond'),iMod=gi('Module'),iType=gi('Type'),iStat=gi('Status'),iDOC=gi('DOC');
+    for(let i=1;i<W.length;i++){ const pond=(W[i][iPond]||'').trim(); if(!pond)continue;
+      idx.push({type:'pond',pond,mod:(W[i][iMod]||'').trim(),ptype:(W[i][iType]||'').trim(),status:(W[i][iStat]||'').trim(),doc:(W[i][iDOC]||'').trim()});
+    }
+  }catch(e){}
+  spotIndex=idx; return idx;
+}
+function spotScore(q,item){
+  const hay=(item.type==='page'?item.title:item.type==='module'?('module '+item.mod):item.type==='widget'?item.title:(item.pond+' '+item.mod)).toLowerCase();
+  const i=hay.indexOf(q); return i<0?-1:(hay.startsWith(q)?1000-i:500-i);
+}
+function currentPageWidgets(){
+  const page=(location.hash||'#home').slice(1);
+  if(page==='home'||page==='daily')return [];
+  return Array.from(document.querySelectorAll('#app [data-widget-page="'+page+'"]')).map(n=>({type:'widget',page,id:n.dataset.widgetId,title:n.dataset.widgetTitle,hidden:n.style.display==='none'}));
+}
+async function spotSearch(q){
+  const idx=await buildSpotIndex();
+  const widgets=currentPageWidgets();
+  if(!q)return widgets.length? widgets.concat(idx.filter(x=>x.type==='page').slice(0,4)) : idx.filter(x=>x.type==='page').slice(0,6);
+  const ql=q.toLowerCase();
+  return widgets.concat(idx).map(x=>({x,s:spotScore(ql,x)})).filter(r=>r.s>=0).sort((a,b)=>b.s-a.s).slice(0,30).map(r=>r.x);
+}
+function spotItemHtml(item,i){
+  const sel=i===spotSel?' sel':'';
+  if(item.type==='page')return `<div class="spot-item${sel}" onmouseenter="spotSel=${i};refreshSpotSel()" onclick="spotOpen(${i})"><div class="si-l"><div><div class="si-t" style="font-family:inherit">${item.title}</div><div class="si-s">ไปที่หน้า Dashboard</div></div></div><span class="spot-tag">หน้า</span></div>`;
+  if(item.type==='module')return `<div class="spot-item${sel}" onmouseenter="spotSel=${i};refreshSpotSel()" onclick="spotOpen(${i})"><div class="si-l"><div><div class="si-t" style="font-family:inherit">Module ${item.mod}</div><div class="si-s">ดูภาพรวมพื้นที่ที่หน้า Situation</div></div></div><span class="spot-tag">พื้นที่</span></div>`;
+  if(item.type==='widget')return `<div class="spot-item${sel}" onmouseenter="spotSel=${i};refreshSpotSel()" onclick="spotOpen(${i})"><div class="si-l"><div><div class="si-t" style="font-family:inherit">${item.title}</div><div class="si-s">${item.hidden?'ซ่อนอยู่ · คลิกเพื่อแสดงและเลื่อนไปดู':'ตาราง/กราฟในหน้านี้ · คลิกเพื่อเลื่อนไปดู'}</div></div></div><span class="spot-tag" style="${item.hidden?'background:#fef3c7;color:#92400e':''}">${item.hidden?'ซ่อนอยู่':'ในหน้านี้'}</span></div>`;
+  return `<div class="spot-item${sel}" onmouseenter="spotSel=${i};refreshSpotSel()" onclick="spotOpen(${i})"><div class="si-l"><div><div class="si-t">${item.pond}</div><div class="si-s">Module ${item.mod||'-'} · ${item.ptype||'-'} · ${item.status||'-'}${item.doc?' · DOC '+item.doc+' วัน':''}</div></div></div><span class="spot-tag">บ่อ</span></div>`;
+}
+async function spotRender(q){
+  spotItems=await spotSearch(q); spotSel=0;
+  const box=el('spotResults');
+  if(!box)return;
+  if(!spotItems.length){ box.innerHTML=`<div class="spot-empty">ไม่พบผลลัพธ์สำหรับ "${q}"</div>`; return; }
+  box.innerHTML=spotItems.map((it,i)=>spotItemHtml(it,i)).join('');
+}
+function refreshSpotSel(){ const nodes=el('spotResults').querySelectorAll('.spot-item'); nodes.forEach((n,i)=>n.classList.toggle('sel',i===spotSel)); const s=nodes[spotSel]; if(s)s.scrollIntoView({block:'nearest'}); }
+window.spotOpen=function(i){
+  const item=spotItems[i]; if(!item)return;
+  if(item.type==='page'){ closeSpotlight(); if(item.ext){window.open(item.ext,'_blank');} else if(location.hash==='#'+item.id){renderPage(item.id);} else {location.hash='#'+item.id;} return; }
+  if(item.type==='module'){ F.situation.area=[item.mod]; closeSpotlight(); if(location.hash==='#situation'){renderPage('situation');} else {location.hash='#situation';} return; }
+  if(item.type==='widget'){
+    closeSpotlight();
+    if(item.hidden){ showWidget(item.page,item.id); }
+    else{ const node=document.querySelector('[data-widget-id="'+item.id+'"][data-widget-page="'+item.page+'"]'); if(node){ const y=node.getBoundingClientRect().top+window.scrollY-90; window.scrollTo(0,y); node.classList.add('spot-hl2'); setTimeout(()=>node.classList.remove('spot-hl2'),2300); } }
+    return;
+  }
+  spotlightTarget=item.pond; F.weekly.area=['all']; F.weekly.type='all'; F.weekly.status='all';
+  closeSpotlight();
+  if(location.hash==='#weekly'){renderPage('weekly');} else {location.hash='#weekly';}
+};
+function openSpotlight(){ el('spotOverlay').classList.add('show'); const inp=el('spotInput'); inp.value=''; spotRender(''); setTimeout(()=>inp.focus(),30); }
+function closeSpotlight(){ el('spotOverlay').classList.remove('show'); }
+el('spotOverlay').addEventListener('click',e=>{ if(e.target===el('spotOverlay'))closeSpotlight(); });
+el('spotBtn').onclick=openSpotlight;
+el('spotInput').addEventListener('input',e=>spotRender(e.target.value.trim()));
+el('spotInput').addEventListener('keydown',e=>{
+  if(e.key==='ArrowDown'){ e.preventDefault(); spotSel=Math.min(spotSel+1,spotItems.length-1); refreshSpotSel(); }
+  else if(e.key==='ArrowUp'){ e.preventDefault(); spotSel=Math.max(spotSel-1,0); refreshSpotSel(); }
+  else if(e.key==='Enter'){ e.preventDefault(); if(spotItems.length)spotOpen(spotSel); }
+  else if(e.key==='Escape'){ closeSpotlight(); }
+});
+document.addEventListener('keydown',e=>{
+  const tag=(e.target&&e.target.tagName)||'';
+  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){ e.preventDefault(); openSpotlight(); return; }
+  if(e.key==='/'&&tag!=='INPUT'&&tag!=='TEXTAREA'){ e.preventDefault(); openSpotlight(); }
+  else if(e.key==='Escape'){ closeSpotlight(); }
+});
+
+/* ---------- LIVE STATUS ---------- */
+function setLive(ok,txt){el('livedot').classList.toggle('on',ok);el('livetext').textContent=txt;}
+el('refresh').onclick=()=>{for(const k in cache)delete cache[k];route();};
+
+/* ---------- WIDGET HIDE/SHOW (per-page, persisted) ---------- */
+function getHidden(page){ try{ return JSON.parse(localStorage.getItem('hiddenWidgets_'+page)||'[]'); }catch(e){ return []; } }
+function setHidden(page,arr){ try{ localStorage.setItem('hiddenWidgets_'+page,JSON.stringify(arr)); }catch(e){} }
+function decorateWidgets(page){
+  const app=el('app'); if(!app)return;
+  const nodes=app.querySelectorAll('.card, .tablecard');
+  const hidden=getHidden(page);
+  nodes.forEach((node,i)=>{
+    const h3=node.querySelector('h3'); if(!h3)return;
+    const id='w'+i;
+    const title=(h3.textContent||'').trim();
+    node.dataset.widgetId=id; node.dataset.widgetTitle=title; node.dataset.widgetPage=page;
+    if(!h3.querySelector('.hide-btn')){
+      const btn=document.createElement('button');
+      btn.type='button'; btn.className='hide-btn'; btn.title='ซ่อนการ์ดนี้ (หาเจอได้อีกครั้งผ่านช่องค้นหา)';
+      btn.textContent='×';
+      btn.addEventListener('click',(e)=>{ e.stopPropagation(); hideWidget(page,id); });
+      h3.appendChild(btn);
+    }
+    if(hidden.includes(id))node.style.display='none';
+  });
+  renderHiddenBar(page);
+}
+function renderHiddenBar(page){
+  const hidden=getHidden(page);
+  const app=el('app');
+  let bar=document.getElementById('hiddenBar');
+  if(!hidden.length){ if(bar)bar.remove(); return; }
+  const items=hidden.map(id=>{
+    const node=document.querySelector('[data-widget-id="'+id+'"][data-widget-page="'+page+'"]');
+    const title=node?node.dataset.widgetTitle:id;
+    return `<span class="chip" onclick="showWidget('${page}','${id}')">${title}</span>`;
+  }).join('');
+  const html=`<div id="hiddenBar"><span class="hb-lbl">ซ่อนอยู่ ${hidden.length} รายการ:</span>${items}<span class="chip all" onclick="showAllWidgets('${page}')">แสดงทั้งหมด</span></div>`;
+  if(bar){ bar.outerHTML=html; } else if(app){ app.insertAdjacentHTML('afterbegin',html); }
+}
+window.hideWidget=function(page,id){
+  const arr=getHidden(page); if(!arr.includes(id))arr.push(id); setHidden(page,arr);
+  const node=document.querySelector('[data-widget-id="'+id+'"][data-widget-page="'+page+'"]'); if(node)node.style.display='none';
+  renderHiddenBar(page);
+};
+window.showWidget=function(page,id){
+  const arr=getHidden(page).filter(x=>x!==id); setHidden(page,arr);
+  const node=document.querySelector('[data-widget-id="'+id+'"][data-widget-page="'+page+'"]');
+  if(node){ node.style.display=''; const y=node.getBoundingClientRect().top+window.scrollY-90; window.scrollTo(0,y); node.classList.add('spot-hl2'); setTimeout(()=>node.classList.remove('spot-hl2'),2300); }
+  renderHiddenBar(page);
+};
+window.showAllWidgets=function(page){
+  setHidden(page,[]);
+  document.querySelectorAll('#app [data-widget-page="'+page+'"]').forEach(n=>{ n.style.display=''; });
+  renderHiddenBar(page);
+};
+
+/* filter state per page */
+const F={situation:{type:'all',area:['all']},performance:{month:'all',area:['all']},weekly:{type:'all',status:'all',area:['all'],sortKey:null,sortDir:1},financial:{month:'all',area:['all']},orderharvest:{size:'all',area:['all']}};
+
+/* ---------- PAGE DISPATCH ---------- */
+async function renderPage(id){
+  destroyCharts(); el('filterbar').innerHTML='';
+  if(id==='home'){el('subtitle').textContent='ศูนย์รวมข้อมูลผู้บริหาร · Module A · B · C · D';renderHome();return;}
+  el('app').innerHTML='<div class="loading">กำลังโหลดข้อมูลสด…</div>';
+  try{
+    if(id==='situation')await pageSituation();
+    else if(id==='performance')await pagePerformance();
+    else if(id==='weekly')await pageWeekly();
+    else if(id==='financial')await pageFinancial();
+    else if(id==='orderharvest')await pageOrder();
+    setLive(true,'ออนไลน์');
+    el('asof').textContent=new Date().toLocaleString('th-TH',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  }catch(e){ el('app').innerHTML='<div class="loading">โหลดข้อมูลไม่สำเร็จ: '+e.message+'</div>'; setLive(false,'ออฟไลน์'); }
+}
+
+/* =================== HOME =================== */
+function renderHome(){
+  const cards=[
+    {id:'situation',cls:'c-sit',ic:'🗺️',t:'1 · Situation',d:'ผังตำแหน่งบ่อทั้งฟาร์ม สถานะตามสี จำนวนบ่อเลี้ยง/ปิด %บ่อมีกุ้ง และตาราง DOC/Size/Prepare'},
+    {id:'performance',cls:'c-perf',ic:'📈',t:'2 · Performance',d:'Production, Yield, %SR, FCR, AVG Size, DOC และโครงสร้างต้นทุน Sales/DC/VC/FC แบบเจาะลึก'},
+    {id:'weekly',cls:'c-week',ic:'📅',t:'3 · Weekly',d:'รายละเอียดบ่อเลี้ยงรายสัปดาห์ MBW, ADG, %SR, FCR เตือนบ่อโตช้า/รอดต่ำ'},
+    {id:'daily',cls:'ext',ic:'📊',t:'4 · Daily ↗',d:'แดชบอร์ดรายวันเดิม (เปิดหน้าใหม่)',ext:DAILY_URL},
+    {id:'financial',cls:'c-fin',ic:'💰',t:'5 · Financial',d:'รายรับ–กำไรรายเดือนทั้งปี และต้นทุนต่อกิโลกรัม Production/Total/Net Profit'},
+    {id:'orderharvest',cls:'c-order',ic:'🚚',t:'6 · Order Harvest',d:'สรุปแผน–ผลจับจริงเดือนปัจจุบัน แยกตาม Type และ IN Stock'}
+  ];
+  el('app').innerHTML=`<div class="home-grid">`+cards.map(c=>{
+    const click=c.ext?`onclick="window.open('${c.ext}','_blank')"`:`onclick="location.hash='#${c.id}'"`;
+    return `<div class="mcard ${c.cls}" ${click}><div class="ic">${c.ic}</div><h3>${c.t}</h3><p>${c.d}</p><div class="go">เปิดดู →</div></div>`;
+  }).join('')+`</div>`;
+}
+
+/* ---------- filter bar helper ---------- */
+function filterBar(page,groups){
+  el('filterbar').innerHTML=`<div class="filters">`+groups.map(g=>{
+    const cur=F[page][g.key];
+    const isOn=(v)=> g.multi ? (Array.isArray(cur)&&cur.includes(v)) : cur===v;
+    const handler=(v)=> g.multi ? `toggleF('${page}','${g.key}','${v}')` : `setF('${page}','${g.key}','${v}')`;
+    return `<div class="fgroup"><div class="flabel">${g.label}${g.multi?' (เลือกได้หลายพื้นที่)':''}</div><div class="chips">${
+      g.opts.map(o=>`<span class="chip ${isOn(o.v)?'on':''}" onclick="${handler(o.v)}">${o.t}</span>`).join('')
+    }</div></div>`;
+  }).join('')+`</div>`;
+}
+window.setF=function(page,key,v){F[page][key]=v;renderPage(page);};
+window.toggleF=function(page,key,v){
+  let a=(Array.isArray(F[page][key])?F[page][key]:['all']).slice();
+  if(v==='all'){ a=['all']; }
+  else{
+    a=a.filter(x=>x!=='all');
+    if(a.includes(v))a=a.filter(x=>x!==v); else a.push(v);
+    if(!a.length)a=['all'];
+  }
+  F[page][key]=a;
+  renderPage(page);
+};
+
+/* =================== SITUATION =================== */
+function intOf(x){ return parseInt(String(x==null?'':x).replace(/[^0-9]/g,''))||0; }
+async function pageSituation(){
+  el('subtitle').textContent='ผังฟาร์มและสถานะบ่อ · อัปเดตสีตามไฟล์ต้นทาง';
+  const d=await getTab('situation'); const V=d.values,B=d.bg;
+  // R-module ponds from Weekly (not present in Situation layout sheet)
+  let weeklyR=[];
+  try{ const wk=await getTab('weekly'); const W=wk.values; const Hh=W[0];
+    const iP=Hh.findIndex(h=>(h||'').trim()==='Pond'), iT=Hh.findIndex(h=>(h||'').trim()==='Type'), iS=Hh.findIndex(h=>(h||'').trim()==='Status');
+    for(let i=1;i<W.length;i++){ if((W[i][0]||'').trim()==='R'){ weeklyR.push({pond:(W[i][iP]||'').trim(),type:(W[i][iT]||'').trim(),status:(W[i][iS]||'').trim()}); } }
+  }catch(e){}
+  const st=F.situation;
+  filterBar('situation',[
+    {label:'ประเภทบ่อ',key:'type',opts:[{v:'all',t:'ทั้งหมด'},{v:'I',t:'Inter (I)'},{v:'G',t:'Growout (G)'}]},
+    {label:'พื้นที่ (Module)',key:'area',multi:true,opts:[{v:'all',t:'ทั้งหมด'},{v:'A',t:'A'},{v:'B',t:'B'},{v:'C',t:'C'},{v:'D',t:'D'},{v:'R',t:'R'}]}
+  ]);
+  const areaSel=st.area, isAllArea=areaSel.includes('all');
+  // ---- summary table (authoritative counts) ----
+  let hr=-1; for(let i=0;i<V.length;i++){ if((V[i][2]||'').trim()==='ลงทะเบียน'){hr=i;break;} }
+  const sumRows={}; let totRow=null;
+  if(hr>=0){ for(let i=hr+1;i<V.length;i++){ const mod=(V[i][1]||'').trim(); if(!mod)continue; const rec={mod,reg:intOf(V[i][2]),inter:intOf(V[i][3]),grow:intOf(V[i][4]),shrimp:intOf(V[i][5]),pct:(V[i][6]||'').trim(),row:i}; if(/total|รวม/i.test(mod)){totRow=rec;} else {sumRows[mod]=rec;} } }
+  const src = isAllArea ? (totRow||{reg:0,inter:0,grow:0,shrimp:0,pct:'0%'}) : (()=>{
+    const rows=areaSel.map(a=>sumRows[a]).filter(Boolean);
+    if(!rows.length)return {reg:0,inter:0,grow:0,shrimp:0,pct:'0%'};
+    const reg=rows.reduce((s,r)=>s+r.reg,0), inter=rows.reduce((s,r)=>s+r.inter,0), grow=rows.reduce((s,r)=>s+r.grow,0), shrimp=rows.reduce((s,r)=>s+r.shrimp,0);
+    return {reg,inter,grow,shrimp,pct:reg?Math.round(shrimp/reg*100)+'%':'0%'};
+  })();
+  const reg=src.reg, shrimp=src.shrimp, empty=Math.max(0,reg-shrimp), pct=src.pct||(reg?Math.round(shrimp/reg*100)+'%':'0%');
+  const kpis=`<div class="kpis">
+    <div class="kpi b"><div class="klabel">บ่อลงทะเบียน</div><div class="kval">${reg}</div><div class="ksub">Inter ${src.inter} · Growout ${src.grow}</div></div>
+    <div class="kpi g"><div class="klabel">บ่อเลี้ยง (มีกุ้ง)</div><div class="kval">${shrimp}</div><div class="ksub">บ่อ</div></div>
+    <div class="kpi dim"><div class="klabel">บ่อว่าง / ปิด</div><div class="kval">${empty}</div><div class="ksub">บ่อ</div></div>
+    <div class="kpi y"><div class="klabel">% บ่อมีกุ้ง</div><div class="kval">${pct}</div><div class="ksub">${shrimp}/${reg} บ่อ</div></div>
+  </div>`;
+  // ---- MAP ----
+  const re=/^[A-D][1-6][GI][0-9]{2}$/;
+  const match=(mod,type)=>{ if(!isAllArea&&!areaSel.includes(mod))return false; if(st.type!=='all'&&type!==st.type)return false; return true; };
+  const r0=2,r1=21,c0=0,c1=18;
+  // build cell grid from sheet
+  const cell={};
+  for(let i=r0;i<=r1;i++)for(let c=c0;c<=c1;c++){ const t=(V[i]&&V[i][c]||'').trim(); if(!t)continue; cell[i+','+c]={t,bg:(B[i]&&B[i][c])?B[i][c]:'#ffffff',pond:re.test(t)}; }
+  // inject RW ponds (New model) at real positions near their module blocks
+  const statColor={'Culture':'#00ff00','Close':'#a5a5a5','Water':'#9fc5e8'};
+  const rwPos={'RW-A501':[15,4],'RW-A201':[21,4],'RW-B301':[21,10],'RW-C501':[9,13],'RW-C502':[9,14],'RW-D201':[8,13],'RW-D202':[8,14],'RW-D203':[8,15]};
+  const rwStat={}; weeklyR.forEach(p=>{rwStat[p.pond]=p;});
+  Object.keys(rwPos).forEach(name=>{ const p=rwStat[name]; const pos=rwPos[name]; const bg=p?(statColor[p.status]||'#cccccc'):'#cccccc'; cell[pos[0]+','+pos[1]]={t:name,bg:bg,pond:true,rw:true,type:(p&&p.type==='Inter')?'I':'G'}; });
+  const NC=c1-c0+1;
+  let map='<div class="card mapcard"><h3><span class="dot"></span>ผังตำแหน่งบ่อ (Layout)</h3><div class="hint">สีตามสถานะในไฟล์ต้นทาง · บ่อ RW (New model) วางตามตำแหน่งจริง · ตัวกรองจะไฮไลต์เฉพาะบ่อที่เลือก</div><div class="maptbl-wrap"><div class="sitgrid" style="grid-template-columns:repeat('+NC+',var(--pw))">';
+  for(let i=r0;i<=r1;i++)for(let c=c0;c<=c1;c++){ const cc=cell[i+','+c]; if(!cc)continue; const pos='grid-row:'+((i-r0)+1)+';grid-column:'+((c-c0)+1); if(!cc.pond){ const tx=cc.t; if(/^(Culture|Close|Water)$/i.test(tx)){ const cbg={culture:'#00ff00',close:'#a5a5a5',water:'#9fc5e8'}[tx.toLowerCase()]; map+=`<div class="statcell" style="${pos}"><span class="statpill" style="background:${cbg}">${tx}</span></div>`; } else if(/module/i.test(tx)){ map+=`<div class="modcell" style="${pos}"><span>${tx}</span></div>`; } continue; } const mod=cc.rw?'R':cc.t[0]; const type=cc.rw?cc.type:cc.t[2]; const dim=match(mod,type)?'':' dim'; const style=(cc.bg&&cc.bg!=='#ffffff')?('background:'+cc.bg):''; map+=`<div class="gpond${cc.rw?' rw':''}${dim}" style="${pos};${style}" title="${cc.t}">${cc.t}</div>`; }
+  map+='</div></div>';
+  map+='<div class="legend"><span><b style="background:#00ff00"></b>เลี้ยง/มีกุ้ง</span><span><b style="background:#a5a5a5"></b>ปิดบ่อ</span><span><b style="background:#9fc5e8"></b>พักน้ำ</span><span><b style="background:#cccccc"></b>ว่าง</span><span><b class="rwswatch"></b>RW = New model</span></div></div>';
+  // ---- DOC/Size/Prepare table ----
+  let tbl='';
+  if(hr>=0){
+    const divL='border-left:2px solid #94a3b8';
+    tbl='<div class="tablecard"><h3 style="margin-bottom:4px"><span class="dot" style="background:#16a34a"></span>รายละเอียดจำนวนบ่อ — DOC · Size · Prepare (day)</h3><div class="hint">หน่วย DOC = วัน · Size = ตัว/กก. · Prepare = วันเตรียมบ่อ'+(!isAllArea?' · กำลังกรองเฉพาะ Module '+areaSel.join(', '):'')+'</div><table class="dtable stripe"><thead>'+
+      '<tr><th rowspan="2">Module</th><th rowspan="2">ลงทะเบียน</th><th rowspan="2">Inter</th><th rowspan="2">Growout</th><th rowspan="2">บ่อมีกุ้ง</th><th rowspan="2">% มีกุ้ง</th><th colspan="4" class="grp" style="'+divL+'">DOC (วัน)</th><th colspan="4" class="grp" style="'+divL+'">Size</th><th colspan="3" class="grp" style="'+divL+'">Prepare (day)</th></tr>'+
+      '<tr><th style="'+divL+'">1-30</th><th>31-60</th><th>61-90</th><th>&gt;90</th><th style="'+divL+'">&gt;90</th><th>90-60</th><th>59-30</th><th>&lt;30</th><th style="'+divL+'">1-20</th><th>21-30</th><th>&gt;30</th></tr></thead><tbody>';
+    for(let i=hr+1;i<V.length;i++){ const r=V[i]; const mod=(r[1]||'').trim(); if(!mod)continue; const isTot=/total|รวม/i.test(mod); if(!isTot&&!isAllArea&&!areaSel.includes(mod))continue; const hl=(!isTot&&!isAllArea&&areaSel.includes(mod)); const cells=[2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17].map(c=>(r[c]||'').trim()||'0'); tbl+=`<tr class="${isTot?'totrow':''}${hl?' hlrow':''}"><td class="l"><span class="mod-badge">${mod}</span></td>`+cells.map((x,ci)=>`<td style="${ci===5||ci===9||ci===13?divL+';':''}${ci===3?'font-weight:700;color:#0f766e':''}${ci===4?'font-weight:700':''}">${x}</td>`).join('')+'</tr>'; }
+    tbl+='</tbody></table></div>';
+  }
+  el('app').innerHTML=kpis+map+tbl;
+  decorateWidgets('situation');
+}
+
+/* =================== PERFORMANCE =================== */
+function perfBlocks(V){ const b=[]; for(let i=0;i<V.length;i++){ if((V[i][0]||'').trim()==='By Closed Date'){ let label=''; if(V[i-1])for(let c=0;c<V[i-1].length;c++){if((V[i-1][c]||'').trim()){label=V[i-1][c].trim();break;}} b.push({row:i,label}); } } return b; }
+function perfMetricMap(V,blockRow){ const m={}; for(let k=1;k<=28;k++){ const lab=(V[blockRow+k]?(V[blockRow+k][0]||'').trim():''); if(lab)m[lab]=blockRow+k; } return m; }
+function perfVal(V,mrow,col){ return num(V[mrow]?V[mrow][col]:NaN); }
+
+async function pagePerformance(){
+  el('subtitle').textContent='บทวิเคราะห์ประสิทธิภาพการเลี้ยง · จำแนกตามพื้นที่';
+  const d=await getTab('performance'); const V=d.values;
+  const blocks=perfBlocks(V);
+  const st=F.performance;
+  filterBar('performance',[
+    {label:'เดือน',key:'month',opts:[{v:'all',t:'ทั้งปี'}].concat(MONTHS.map((m,i)=>({v:String(i),t:MONTH_TH[i]})))},
+    {label:'พื้นที่ (Module)',key:'area',multi:true,opts:[{v:'all',t:'รวมทั้งฟาร์ม'},{v:'A',t:'A'},{v:'B',t:'B'},{v:'C',t:'C'},{v:'D',t:'D'},{v:'R',t:'R'}]}
+  ]);
+  const col = st.month==='all'?13:(1+parseInt(st.month)); // total col=13
+  const RATE_METRICS=new Set(['Yield (kg/rai)','%SR','FCR','AVG Size','DOC','Production Cost (B/kg)','ADG']);
+  function combineMetric(mods,name,c){
+    let sum=0,wsum=0,wtot=0,any=false;
+    mods.forEach(mc=>{
+      const b=blocks.find(bb=>bb.label.toUpperCase().indexOf('MODULE '+mc)>=0); if(!b)return;
+      const m2=perfMetricMap(V,b.row); const r=m2[name]; if(r==null)return;
+      const v=perfVal(V,r,c); if(isNaN(v))return; any=true; sum+=v;
+      const pr=m2['Production(ton)']; const w=pr!=null?perfVal(V,pr,c):NaN;
+      if(!isNaN(w)){ wsum+=v*w; wtot+=w; }
+    });
+    if(!any)return NaN;
+    return RATE_METRICS.has(name) ? (wtot?wsum/wtot:sum/mods.length) : sum;
+  }
+  // pick block(s): area includes 'all' -> Total block; single module -> that block; multiple modules -> combine (sum/weighted-avg)
+  const areaSel=st.area, isAllArea=areaSel.includes('all');
+  const selMods=isAllArea?[]:areaSel.filter(a=>a!=='R');
+  const hasR=!isAllArea&&areaSel.includes('R');
+  let blk=null, mm={}, g, combineNote='';
+  const noDataCard=(lbl)=>'<div class="card" style="border-left:5px solid #d97706"><h3><span class="dot" style="background:#d97706"></span>ไม่มีข้อมูล '+lbl+' ในชีต Performance</h3><div class="hint">ชีต Performance มีเฉพาะ Module A · B · C · D และค่ารวมทั้งฟาร์ม — ข้อมูลกลุ่ม R (New model) ดูได้ที่หน้า Weekly และ Order Harvest</div></div>';
+  if(isAllArea){
+    blk=blocks.find(b=>/total/i.test(b.label)); if(!blk)blk=blocks[blocks.length-1];
+    mm=perfMetricMap(V,blk.row);
+    g=(name)=>{ const r=mm[name]; return r!=null?perfVal(V,r,col):NaN; };
+  }else if(selMods.length===0){
+    el('app').innerHTML=noDataCard('Module R'); return;
+  }else if(selMods.length===1){
+    const mb=blocks.find(b=>b.label.toUpperCase().indexOf('MODULE '+selMods[0])>=0);
+    if(!mb){ el('app').innerHTML=noDataCard('Module '+selMods[0]); return; }
+    blk=mb; mm=perfMetricMap(V,blk.row);
+    g=(name)=>{ const r=mm[name]; return r!=null?perfVal(V,r,col):NaN; };
+  }else{
+    blk={label:'โมดูล '+selMods.join('+')};
+    g=(name)=>combineMetric(selMods,name,col);
+    if(hasR)combineNote='รวมค่าเฉพาะ Module '+selMods.join(', ')+' — ไม่รวม Module R เนื่องจากไม่มีข้อมูลในชีต Performance';
+  }
+  const metricAtCol=(name,c)=>{ if(isAllArea||selMods.length===1){ const r=mm[name]; return r!=null?perfVal(V,r,c):NaN; } return combineMetric(selMods,name,c); };
+  const KP=[
+    {l:'ปริมาณผลผลิต',v:g('Production(ton)'),u:'ตัน',c:'g',d:1},
+    {l:'ผลผลิตต่อไร่',v:g('Yield (kg/rai)'),u:'กก./ไร่',c:'b',d:0},
+    {l:'อัตราการรอด (Survival)',v:g('%SR'),u:'%',c:'g',d:0},
+    {l:'อัตราแลกเนื้อ (FCR)',v:g('FCR'),u:'',c:'y',d:2},
+    {l:'ขนาดเฉลี่ย',v:g('AVG Size'),u:'ตัว/กก.',c:'v',d:0},
+    {l:'อายุการเลี้ยง (DOC)',v:g('DOC'),u:'วัน',c:'dim',d:0}
+  ];
+  const kpis='<div class="kpis">'+KP.map(k=>`<div class="kpi ${k.c}"><div class="klabel">${k.l}</div><div class="kval">${fmt(k.v,k.d)}</div><div class="ksub">${k.u}</div></div>`).join('')+'</div>';
+  const P={teal:'#0d9488',emer:'#10b981',viol:'#8b5cf6',sky:'#0ea5e9',rose:'#f43f5e',amber:'#f59e0b',slate:'#94a3b8',mint:'#5eead4'};
+  const gfill=(cx,hex)=>{ const g2=cx.createLinearGradient(0,0,0,300); g2.addColorStop(0,hex+'44'); g2.addColorStop(1,hex+'03'); return g2; };
+  // ---- per-module statistics (annual, col 13) ----
+  const modBlocks=blocks.filter(b=>/module/i.test(b.label));
+  const ms=modBlocks.map(b=>{const m=perfMetricMap(V,b.row);const gg=n=>{const r=m[n];return r!=null?perfVal(V,r,13):NaN;};return {code:b.label.replace('Module ','').trim(),Pond:gg('Pond'),Prod:gg('Production(ton)'),Yield:gg('Yield (kg/rai)'),SR:gg('%SR'),FCR:gg('FCR'),ADG:gg('ADG'),Size:gg('AVG Size'),DOC:gg('DOC')};});
+  const totB=blocks.find(b=>/total/i.test(b.label)); const tmm=totB?perfMetricMap(V,totB.row):{}; const tg=n=>{const r=tmm[n];return r!=null?perfVal(V,r,13):NaN;};
+  const totStat={code:'รวม',Pond:tg('Pond'),Prod:tg('Production(ton)'),Yield:tg('Yield (kg/rai)'),SR:tg('%SR'),FCR:tg('FCR'),ADG:tg('ADG'),Size:tg('AVG Size'),DOC:tg('DOC')};
+  // ---- performance scorecard table ----
+  const cc=(v,d,cls)=>{ if(isNaN(v))return '<td>–</td>'; if(!cls)return `<td>${fmt(v,d)}</td>`; const bg={g:'#dcfce7',y:'#fef3c7',r:'#fee2e2'}[cls], tc={g:'#166534',y:'#92400e',r:'#991b1b'}[cls]; return `<td><span style="display:inline-block;padding:4px 12px;border-radius:7px;font-weight:800;background:${bg};color:${tc}">${fmt(v,d)}</span></td>`; };
+  const srC=v=>v>=80?'g':(v>=65?'y':'r'), fcrC=v=>v<=1.6?'g':(v<=1.9?'y':'r'), adgC=v=>v>=0.35?'g':(v>=0.30?'y':'r'), yC=v=>v>=8000?'g':(v>=6000?'y':'r');
+  const scRow=(x,tot)=>`<tr class="${tot?'totrow':''}"><td class="l"><span class="mod-badge">${tot?'รวมทั้งฟาร์ม':'โมดูล '+x.code}</span></td><td>${fmt(x.Pond,0)}</td><td>${fmt(x.Prod,0)}</td>${cc(x.Yield,0,tot?'':yC(x.Yield))}${cc(x.SR,0,tot?'':srC(x.SR))}${cc(x.FCR,2,tot?'':fcrC(x.FCR))}${cc(x.ADG,2,tot?'':adgC(x.ADG))}<td>${fmt(x.Size,0)}</td><td>${fmt(x.DOC,0)}</td></tr>`;
+  const scorecard=`<div class="tablecard"><h3 style="margin-bottom:4px"><span class="dot"></span>ตารางประเมินผลการเลี้ยงจำแนกตามพื้นที่ (Performance Scorecard)</h3><div class="hint">แถบสี: เขียว = ดี · เหลือง = เฝ้าระวัง · แดง = ต่ำกว่าเกณฑ์ · เกณฑ์: อัตรารอด ≥80% · FCR ≤1.6 · ADG ≥0.35 · ผลผลิต/ไร่ ≥8,000</div>
+    <table class="dtable"><thead><tr><th class="l" style="text-align:left">พื้นที่</th><th>จำนวนบ่อ</th><th>ผลผลิต (ตัน)</th><th>ผลผลิต/ไร่ (กก.)</th><th>อัตรารอด (%)</th><th>FCR</th><th>ADG (ก./วัน)</th><th>ขนาด (ตัว/กก.)</th><th>DOC (วัน)</th></tr></thead>
+    <tbody>${ms.map(x=>scRow(x,false)).join('')}${scRow(totStat,true)}</tbody></table></div>`;
+  // ---- charts (production+yield, efficiency, monthly trend) ----
+  const row1=`<div class="grid2">
+    <div class="card"><h3><span class="dot"></span>ปริมาณผลผลิตและผลผลิตต่อไร่ จำแนกตามพื้นที่</h3><div class="hint">แท่ง = ปริมาณผลผลิต (ตัน) · เส้น = ผลผลิตต่อไร่ (กก./ไร่)</div><canvas id="perfPY"></canvas></div>
+    <div class="card"><h3><span class="dot"></span>เปรียบเทียบประสิทธิภาพการเลี้ยง จำแนกตามพื้นที่</h3><div class="hint">แท่ง = อัตราการรอด (%) · เส้น = FCR (ยิ่งต่ำยิ่งดี)</div><canvas id="perfEff"></canvas></div>
+  </div>`;
+  const mprod=(()=>{ const a=[]; for(let c=1;c<=12;c++)a.push(metricAtCol('Production(ton)',c)||0); return a; })();
+  const mYield=(()=>{ const a=[]; for(let c=1;c<=12;c++)a.push(metricAtCol('Yield (kg/rai)',c)||0); return a; })();
+  const mYieldTon=mYield.map(v=>v/1000);
+  const mSize=(()=>{ const a=[]; for(let c=1;c<=12;c++)a.push(metricAtCol('AVG Size',c)||0); return a; })();
+  const blkTitle = blk.label==='Total Roiphet1'?'รวมทั้งฟาร์ม':blk.label;
+  const chartB=`<div class="card"><h3><span class="dot"></span>แนวโน้มปริมาณผลผลิตรายเดือน · ${blkTitle}</h3><div class="hint">ปริมาณผลผลิตที่จับได้ในแต่ละเดือน (ตัน)</div><canvas id="perfTrend"></canvas></div>`;
+  const rowYS=`<div class="grid2">
+    <div class="card"><h3><span class="dot"></span>แนวโน้มผลผลิตต่อไร่รายเดือน · ${blkTitle}</h3><div class="hint">ผลผลิตต่อไร่ในแต่ละเดือน (ตัน/ไร่)</div><canvas id="perfTrendYield"></canvas></div>
+    <div class="card"><h3><span class="dot"></span>แนวโน้มขนาดเฉลี่ยรายเดือน · ${blkTitle}</h3><div class="hint">ขนาดกุ้งเฉลี่ยในแต่ละเดือน (ตัว/กก.)</div><canvas id="perfTrendSize"></canvas></div>
+  </div>`;
+  // cost structure (formal)
+  const sales=g('Sales'), pcost=g('Production Cost (B/kg)'), DC=g('DC'),VC=g('VC'),FC=g('FC');
+  const costs=[
+    {l:'รายได้จากการขาย',v:sales,d:0,sub:null},
+    {l:'ต้นทุนการผลิต (บาท/กก.)',v:pcost,d:1,sub:null},
+    {l:'ต้นทุนทางตรง (Direct Cost)',v:DC,d:0,sub:[['พันธุ์ (Seed)',g('Seed')],['อาหาร (Feed)',g('Feed')],['โปรไบโอติก (Probiotic)',g('Probiotic')]]},
+    {l:'ต้นทุนผันแปร (Variable Cost)',v:VC,d:0,sub:[['พลังงาน (Energy)',g('Energy')],['เตรียมบ่อ (Prepare)',g('Prepare')],['ซ่อมบำรุง (Maintenance)',g('Maintainance')],['อื่น ๆ (Other)',g('Other')]]},
+    {l:'ต้นทุนคงที่ (Fixed Cost)',v:FC,d:0,sub:[['ค่าแรง (Wage)',g('Wage')],['ค่าเสื่อมราคา (Depreciation)',g('Depreciation')],['ค่าเช่า (Rent)',g('Rent')]]}
+  ];
+  window.__perfCosts=costs;
+  const costHtml='<div class="card"><h3><span class="dot"></span>โครงสร้างต้นทุนการผลิต — '+(blk.label==='Total Roiphet1'?'รวมทั้งฟาร์ม':blk.label)+' · '+(st.month==='all'?'ทั้งปี':MONTH_TH[parseInt(st.month)])+'</h3><div class="hint">คลิกกล่องที่มีเครื่องหมาย ▾ เพื่อแสดงรายละเอียดต้นทุนย่อย</div><div class="costgrid">'+
+    costs.map((c,i)=>`<div class="costbox" ${c.sub?`onclick="perfDrill(${i})"`:''}><div class="cl">${c.l}</div><div class="cv">${fmt(c.v,c.d)}</div>${c.sub?'<div class="cd">▾ แสดงรายละเอียด</div>':''}</div>`).join('')+'</div></div>';
+  const noteHtml = combineNote? `<div class="card" style="border-left:5px solid #d97706;padding:10px 16px;margin-bottom:10px"><div class="hint" style="margin:0;color:#92400e;font-weight:600">${combineNote}</div></div>` : '';
+  el('app').innerHTML=noteHtml+kpis+scorecard+row1+chartB+rowYS+costHtml;
+  const labs=ms.map(x=>'โมดูล '+x.code);
+  const cA=el('perfPY'); if(cA){ charts.push(new Chart(cA,{data:{labels:labs,datasets:[
+    {type:'bar',label:'ปริมาณผลผลิต (ตัน)',data:ms.map(x=>x.Prod),backgroundColor:P.teal,borderRadius:6,yAxisID:'y',order:2,datalabels:{display:true,anchor:'end',align:'top',color:'#0f766e',font:{weight:'700',size:11},formatter:v=>fmt(v,0)}},
+    {type:'line',label:'ผลผลิตต่อไร่ (กก./ไร่)',data:ms.map(x=>x.Yield),borderColor:P.amber,backgroundColor:P.amber,pointBackgroundColor:'#fff',pointBorderColor:P.amber,pointRadius:5,pointHoverRadius:7,borderWidth:3,tension:.3,yAxisID:'y1',order:1}
+  ]},options:{layout:{padding:{top:18}},interaction:{mode:'index',intersect:false},plugins:{legend:{labels:{usePointStyle:true,pointStyle:'circle',boxWidth:8,font:{size:12}}},datalabels:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'#eef2f4'},title:{display:true,text:'ตัน'}},y1:{position:'right',beginAtZero:true,grid:{drawOnChartArea:false},title:{display:true,text:'กก./ไร่'}},x:{grid:{display:false}}}}})); }
+  const cE=el('perfEff'); if(cE){ charts.push(new Chart(cE,{data:{labels:labs,datasets:[
+    {type:'bar',label:'อัตราการรอด (%)',data:ms.map(x=>x.SR),backgroundColor:ms.map(x=>x.SR>=80?P.emer:(x.SR>=65?P.amber:P.rose)),borderRadius:6,yAxisID:'y',order:2,datalabels:{display:true,anchor:'end',align:'top',color:'#334155',font:{weight:'700',size:11},formatter:v=>fmt(v,0)+'%'}},
+    {type:'line',label:'FCR',data:ms.map(x=>x.FCR),borderColor:P.viol,backgroundColor:P.viol,pointBackgroundColor:'#fff',pointBorderColor:P.viol,pointRadius:5,pointHoverRadius:7,borderWidth:3,tension:.3,yAxisID:'y1',order:1}
+  ]},options:{layout:{padding:{top:18}},interaction:{mode:'index',intersect:false},plugins:{legend:{labels:{usePointStyle:true,pointStyle:'circle',boxWidth:8,font:{size:12}}},datalabels:{display:false}},scales:{y:{beginAtZero:true,max:100,grid:{color:'#eef2f4'},title:{display:true,text:'อัตราการรอด (%)'}},y1:{position:'right',beginAtZero:true,grid:{drawOnChartArea:false},title:{display:true,text:'FCR'}},x:{grid:{display:false}}}}})); }
+  const cT=el('perfTrend'); if(cT){ charts.push(new Chart(cT,{type:'bar',data:{labels:MONTH_TH,datasets:[{label:'ปริมาณผลผลิต (ตัน)',data:mprod,backgroundColor:P.teal,borderRadius:6,datalabels:{display:true,anchor:'end',align:'top',color:'#0f766e',font:{weight:'700',size:11},formatter:v=>fmt(v,1)}}]},options:{layout:{padding:{top:18}},plugins:{legend:{display:false},datalabels:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'#eef2f4'},title:{display:true,text:'ตัน'}},x:{grid:{display:false}}}}})); }
+  const cY=el('perfTrendYield'); if(cY){ charts.push(new Chart(cY,{type:'bar',data:{labels:MONTH_TH,datasets:[{label:'ผลผลิตต่อไร่ (ตัน/ไร่)',data:mYieldTon,backgroundColor:P.amber,borderRadius:6,datalabels:{display:true,anchor:'end',align:'top',color:'#b45309',font:{weight:'700',size:11},formatter:v=>fmt(v,2)}}]},options:{layout:{padding:{top:18}},plugins:{legend:{display:false},datalabels:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'#eef2f4'},title:{display:true,text:'ตัน/ไร่'}},x:{grid:{display:false}}}}})); }
+  const cSz=el('perfTrendSize'); if(cSz){ charts.push(new Chart(cSz,{type:'bar',data:{labels:MONTH_TH,datasets:[{label:'ขนาดเฉลี่ย (ตัว/กก.)',data:mSize,backgroundColor:P.viol,borderRadius:6,datalabels:{display:true,anchor:'end',align:'top',color:'#6d28d9',font:{weight:'700',size:11},formatter:v=>fmt(v,0)}}]},options:{layout:{padding:{top:18}},plugins:{legend:{display:false},datalabels:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'#eef2f4'},title:{display:true,text:'ตัว/กก.'}},x:{grid:{display:false}}}}})); }
+  decorateWidgets('performance');
+}
+window.perfDrill=function(i){ const c=window.__perfCosts[i]; openModal(c.l,'<div class="mrow" style="background:#f0fdfa;border-color:#5eead4"><span class="mp">รวม</span><span class="mv">'+fmt(c.v,c.d)+'</span></div>'+c.sub.map(s=>`<div class="mrow"><span class="mp">${s[0]}</span><span class="mv">${fmt(s[1],0)}</span></div>`).join('')); };
+window.wkSort=function(k){ const st=F.weekly; if(st.sortKey===k){ st.sortDir=st.sortDir===1?-1:1; } else { st.sortKey=k; st.sortDir=1; } renderPage('weekly'); };
+
+/* =================== WEEKLY =================== */
+async function pageWeekly(){
+  el('subtitle').textContent='บทวิเคราะห์การเลี้ยงรายสัปดาห์ · การเจริญเติบโตและอัตราการรอด';
+  const d=await getTab('weekly'); const V=d.values; const H=V[0];
+  const idx=(name)=>H.findIndex(h=>(h||'').trim().toLowerCase()===name.toLowerCase());
+  const iMod=idx('Module'),iPond=idx('Pond'),iType=idx('Type'),iStat=idx('Status'),iPrep=idx('Prepare (day)'),iDOC=idx('DOC'),iMBW=idx('MBW (g,)'),iSize=idx('Size'),iBio=idx('BIomass (kg)'),iGain=idx('MBW Gain (g.)'),iADG=idx('ADG final'),iSR=idx('%SR'),iAcc=idx('Accum %SR'),iFCR=idx('FCR'),iTBio=idx('Total Biomass'),iYield=idx('Total Yield (kg/rai)'),iFeed=idx('Feed/day (KG.)');
+  // fallback: pond -> last known non-zero Feed (kg) + date, for ponds missing today's entry
+  const flMap={};
+  try{ const fl=await getTab('feedlog'); if(fl&&fl.values&&fl.values.length){ const FH=fl.values[0];
+    const fiPond=FH.findIndex(h=>(h||'').trim().toLowerCase()==='pond');
+    const fiFeed=FH.findIndex(h=>(h||'').trim().toLowerCase()==='lastfeed (kg)');
+    const fiDate=FH.findIndex(h=>(h||'').trim().toLowerCase()==='lastfeeddate');
+    for(let i=1;i<fl.values.length;i++){ const p=(fl.values[i][fiPond]||'').trim(); const fv=num(fl.values[i][fiFeed]); if(p&&!isNaN(fv)&&fv>0){ flMap[p]={feed:fv,date:(fl.values[i][fiDate]||'').trim()}; } }
+  } }catch(e){}
+  const std=[]; for(let i=1;i<=6;i++){ if(V[i]&&V[i][21]!=null&&String(V[i][21]).trim()){ std.push([num(V[i][21]),num(V[i][22])]); } }
+  const gainStd=(mbw)=>{ for(const [th,gn] of std){ if(mbw<th)return gn; } return std.length?std[std.length-1][1]:0; };
+  const st=F.weekly;
+  filterBar('weekly',[
+    {label:'ประเภทบ่อ',key:'type',opts:[{v:'all',t:'ทั้งหมด'},{v:'Inter',t:'Inter (I)'},{v:'Growout',t:'Growout (G)'}]},
+    {label:'สถานะ',key:'status',opts:[{v:'all',t:'ทั้งหมด'},{v:'Culture',t:'เลี้ยง'},{v:'Close',t:'ปิดบ่อ'}]},
+    {label:'พื้นที่ (Module)',key:'area',multi:true,opts:[{v:'all',t:'ทั้งหมด'},{v:'A',t:'A'},{v:'B',t:'B'},{v:'C',t:'C'},{v:'D',t:'D'},{v:'R',t:'R'}]}
+  ]);
+  const rows=[]; for(let i=1;i<V.length;i++){ const r=V[i]; const pond=(r[iPond]||'').trim(); if(!pond)continue; const status=(r[iStat]||'').trim(); const type=(r[iType]||'').trim(); const mod=(r[iMod]||'').trim(); if(st.type!=='all'&&type!==st.type)continue; if(st.status!=='all'&&!(status.toLowerCase().indexOf(st.status.toLowerCase())>=0))continue; if(!st.area.includes('all')&&!st.area.includes(mod))continue; rows.push(r); }
+  const culture=rows.filter(r=>(r[iStat]||'').toLowerCase().indexOf('close')<0);
+  const closed=rows.filter(r=>(r[iStat]||'').toLowerCase().indexOf('close')>=0);
+  const P={teal:'#0d9488',emer:'#10b981',viol:'#8b5cf6',sky:'#0ea5e9',rose:'#f43f5e',amber:'#f59e0b',slate:'#94a3b8',mint:'#5eead4'};
+  const gfill=(cx,hex)=>{ const g2=cx.createLinearGradient(0,0,0,300); g2.addColorStop(0,hex+'44'); g2.addColorStop(1,hex+'03'); return g2; };
+  // ---- aggregates ----
+  const modOrder=['A','B','C','D','R']; const magg={}; const bands={a:0,b:0,c:0,e:0}; let warnGrowth=0,warnSR=0,sumAcc=0,cntAcc=0,sumFcr=0,cntFcr=0,totBio=0,totFeed=0;
+  let totFeedEst=0;
+  culture.forEach(r=>{ const m=(r[iMod]||'').trim(); if(!magg[m])magg[m]={n:0,mbw:0,adg:0,sr:0,acc:0,fcr:0,bio:0,feed:0,cAdg:0,cSr:0,cAcc:0,cFcr:0}; const o=magg[m];
+    const mbw=num(r[iMBW]),gain=num(r[iGain]),acc=num(r[iAcc]),adg=num(r[iADG]),sr=num(r[iSR]),fcr=num(r[iFCR]),tb=num(r[iTBio]); let fdd=num(r[iFeed]); let fddEst=false;
+    if(isNaN(fdd)||fdd<=0){ const fb=flMap[(r[iPond]||'').trim()]; if(fb){ fdd=fb.feed; fddEst=true; } }
+    o.n++; if(!isNaN(mbw))o.mbw+=mbw; if(!isNaN(adg)){o.adg+=adg;o.cAdg++;} if(!isNaN(sr)){o.sr+=sr;o.cSr++;} if(!isNaN(acc)){o.acc+=acc;o.cAcc++;} if(!isNaN(fcr)){o.fcr+=fcr;o.cFcr++;} if(!isNaN(tb))o.bio+=tb; if(!isNaN(fdd)){o.feed+=fdd;totFeed+=fdd; if(fddEst)totFeedEst+=fdd;}
+    if(!isNaN(tb))totBio+=tb;
+    if(!isNaN(acc)){ sumAcc+=acc;cntAcc++; if(acc>90)bands.a++; else if(acc>=75)bands.b++; else if(acc>=60)bands.c++; else bands.e++; if(acc<75)warnSR++; }
+    if(!isNaN(fcr)){ sumFcr+=fcr;cntFcr++; }
+    if(!isNaN(gain)&&gain<gainStd(mbw))warnGrowth++;
+  });
+  const mods=modOrder.filter(m=>magg[m]).map(m=>{const o=magg[m];return {code:m,n:o.n,mbw:o.mbw/o.n,adg:o.cAdg?o.adg/o.cAdg:NaN,sr:o.cSr?o.sr/o.cSr:NaN,acc:o.cAcc?o.acc/o.cAcc:NaN,fcr:o.cFcr?o.fcr/o.cFcr:NaN,bio:o.bio,feed:o.feed};});
+  const avgAcc=cntAcc?sumAcc/cntAcc:NaN, avgFcr=cntFcr?sumFcr/cntFcr:NaN;
+  const totStat={code:'รวม',n:culture.length,mbw:mods.reduce((s,x)=>s+x.mbw*x.n,0)/(culture.length||1),adg:NaN,sr:NaN,acc:avgAcc,fcr:avgFcr,bio:totBio,feed:totFeed};
+  // ---- KPIs ----
+  const kpis=`<div class="kpis">
+    <div class="kpi g"><div class="klabel">บ่อเลี้ยง</div><div class="kval">${culture.length}</div><div class="ksub">บ่อ</div></div>
+    <div class="kpi b"><div class="klabel">ผลผลิตรวม (Biomass)</div><div class="kval">${fmt(totBio/1000,1)}</div><div class="ksub">ตัน</div></div>
+    <div class="kpi v"><div class="klabel">อาหารต่อวัน (รวม)</div><div class="kval">${fmt(totFeed,0)}</div><div class="ksub">กก./วัน${totFeedEst>0?' · รวมค่าประมาณ '+fmt(totFeedEst,0)+' กก.*':''}</div></div>
+    <div class="kpi g"><div class="klabel">อัตรารอดสะสมเฉลี่ย</div><div class="kval">${fmt(avgAcc,0)}</div><div class="ksub">%</div></div>
+    <div class="kpi y"><div class="klabel">FCR เฉลี่ย</div><div class="kval">${fmt(avgFcr,2)}</div><div class="ksub">อัตราแลกเนื้อ</div></div>
+    <div class="kpi r"><div class="klabel">บ่อโตช้ากว่าเกณฑ์</div><div class="kval">${warnGrowth}</div><div class="ksub">บ่อ</div></div>
+    <div class="kpi r"><div class="klabel">บ่อรอดต่ำ (&lt;75%)</div><div class="kval">${warnSR}</div><div class="ksub">บ่อ</div></div>
+  </div>`;
+  // ---- charts ----
+  const row1=`<div class="grid2">
+    <div class="card"><h3><span class="dot"></span>การกระจายอัตราการรอดสะสม (Accum %SR)</h3><div class="hint">จำนวนบ่อจำแนกตามช่วงอัตราการรอด · เกณฑ์เฝ้าระวังที่ &lt; 75%</div><canvas id="wkDist"></canvas></div>
+    <div class="card"><h3><span class="dot"></span>ผลผลิตสะสม (Biomass) จำแนกตามพื้นที่</h3><div class="hint">ปริมาณชีวมวลรวมของบ่อที่กำลังเลี้ยง (ตัน)</div><canvas id="wkBio"></canvas></div>
+  </div>`;
+  const chartEff=`<div class="card"><h3><span class="dot"></span>เปรียบเทียบประสิทธิภาพการเลี้ยงจำแนกตามพื้นที่</h3><div class="hint">แท่ง = อัตราการรอดสะสมเฉลี่ย (%) · เส้น = FCR เฉลี่ย (ยิ่งต่ำยิ่งดี)</div><canvas id="wkEff"></canvas></div>`;
+  // ---- module scorecard ----
+  const cc=(v,d,cls)=>{ if(isNaN(v))return '<td>–</td>'; if(!cls)return `<td>${fmt(v,d)}</td>`; const bg={g:'#dcfce7',y:'#fef3c7',r:'#fee2e2'}[cls],tc={g:'#166534',y:'#92400e',r:'#991b1b'}[cls]; return `<td><span style="display:inline-block;padding:4px 12px;border-radius:7px;font-weight:800;background:${bg};color:${tc}">${fmt(v,d)}</span></td>`; };
+  const accC=v=>v>=85?'g':(v>=75?'y':'r'), fcrC=v=>v<=1.5?'g':(v<=1.7?'y':'r'), adgC=v=>v>=0.30?'g':(v>=0.25?'y':'r');
+  const scRow=(x,tot)=>`<tr class="${tot?'totrow':''}"><td class="l"><span class="mod-badge">${tot?'รวม / เฉลี่ย':'โมดูล '+x.code}</span></td><td>${x.n}</td><td>${fmt(x.mbw,1)}</td>${cc(x.adg,2,tot?'':adgC(x.adg))}<td>${fmt(x.sr,0)}</td>${cc(x.acc,0,tot?'':accC(x.acc))}${cc(x.fcr,2,tot?'':fcrC(x.fcr))}<td>${fmt(x.bio/1000,1)}</td><td style="font-weight:${tot?800:600};color:#7c3aed">${fmt(x.feed,0)}</td></tr>`;
+  const scorecard=`<div class="tablecard"><h3 style="margin-bottom:4px"><span class="dot"></span>ตารางประเมินการเลี้ยงจำแนกตามพื้นที่ (Weekly Scorecard)</h3><div class="hint">แถบสี: เขียว = ดี · เหลือง = เฝ้าระวัง · แดง = ต่ำกว่าเกณฑ์ · เกณฑ์: อัตรารอดสะสม ≥85% · FCR ≤1.5 · ADG ≥0.30</div>
+    <table class="dtable"><thead><tr><th class="l" style="text-align:left">พื้นที่</th><th>จำนวนบ่อ</th><th>MBW (ก.)</th><th>ADG (ก./วัน)</th><th>%SR</th><th>อัตรารอดสะสม (%)</th><th>FCR</th><th>ผลผลิต (ตัน)</th><th>อาหาร/วัน (กก.)</th></tr></thead>
+    <tbody>${mods.map(x=>scRow(x,false)).join('')}${scRow(totStat,true)}</tbody></table></div>`;
+  // ---- detail table (culture) — sortable ----
+  const WCOLS=[
+    {k:'pond',l:'บ่อ',t:'s'},{k:'mod',l:'พื้นที่',t:'s'},{k:'type',l:'ประเภท',t:'s'},{k:'doc',l:'DOC',t:'n'},
+    {k:'mbw',l:'MBW (ก.)',t:'n'},{k:'size',l:'ขนาด',t:'n'},{k:'bio',l:'Biomass (กก.)',t:'n'},{k:'gain',l:'MBW Gain',t:'n'},
+    {k:'adg',l:'ADG',t:'n'},{k:'sr',l:'%SR',t:'n'},{k:'acc',l:'อัตรารอดสะสม',t:'n'},{k:'fcr',l:'FCR',t:'n'},
+    {k:'tbio',l:'ผลผลิตรวม',t:'n'},{k:'yieldv',l:'ผลผลิต/ไร่',t:'n'},{k:'feed',l:'อาหาร/วัน',t:'n'}
+  ];
+  let rowsD=culture.map(r=>{ const pond=(r[iPond]||'').trim(); const mbwV=num(r[iMBW]); const gainV=num(r[iGain]); const accV=num(r[iAcc]); const stdv=gainStd(mbwV); const slow=!isNaN(gainV)&&!isNaN(stdv)&&gainV<stdv; const lowSR=!isNaN(accV)&&accV<75; const bioV=num(r[iBio]),tbioV=num(r[iTBio]); let feedV=num(r[iFeed]); let feedEst=false, feedEstDate='';
+    if(isNaN(feedV)||feedV<=0){ const fb=flMap[pond]; if(fb){ feedV=fb.feed; feedEst=true; feedEstDate=fb.date; } }
+    return {pond,mod:(r[iMod]||'').trim(),type:(r[iType]||'').trim(),feedEst,feedEstDate,
+      doc:num(r[iDOC]),docT:(r[iDOC]||'').trim()||'–',
+      mbw:mbwV,mbwT:(r[iMBW]||'').trim()||'–',
+      size:num(r[iSize]),sizeT:(r[iSize]||'').trim()||'–',
+      bio:bioV,bioT:fmt(bioV,0),
+      gain:gainV,gainT:(r[iGain]||'').trim()||'–',
+      adg:num(r[iADG]),adgT:(r[iADG]||'').trim()||'–',
+      sr:num(r[iSR]),srT:(r[iSR]||'').trim()||'–',
+      acc:accV,accT:(r[iAcc]||'').trim()||'–',
+      fcr:num(r[iFCR]),fcrT:(r[iFCR]||'').trim()||'–',
+      tbio:tbioV,tbioT:fmt(tbioV,0),
+      yieldv:num(r[iYield]),yieldT:(r[iYield]||'').trim()||'–',
+      feed:feedV,feedT:fmt(feedV,0)+(feedEst?' *':''),
+      slow,lowSR}; });
+  const wsk=st.sortKey, wsd=st.sortDir===-1?-1:1;
+  if(wsk){ const wcol=WCOLS.find(c=>c.k===wsk); rowsD=rowsD.slice().sort((a,b)=>{ if(wcol.t==='s')return wsd*String(a[wsk]).localeCompare(String(b[wsk]),'th'); const av=a[wsk],bv=b[wsk],an=isNaN(av),bn=isNaN(bv); if(an&&bn)return 0; if(an)return 1; if(bn)return -1; return wsd*(av-bv); }); }
+  let body=''; rowsD.forEach(x=>{
+    const feedStyle=x.feedEst?'color:#d97706;font-weight:700;font-style:italic;cursor:help':'color:#7c3aed;font-weight:700';
+    const feedTitle=x.feedEst?` title="ยังไม่มีข้อมูลอาหารวันนี้ · แสดงค่าล่าสุดที่มี ณ ${x.feedEstDate}"`:'';
+    body+=`<tr data-pond-row="${x.pond}"><td class="l"><span class="pondtag ${x.slow?'bad':''}">${x.pond}</span></td><td><span class="mod-badge">${x.mod}</span></td><td>${x.type}</td><td>${x.docT}</td><td>${x.mbwT}</td><td>${x.sizeT}</td><td>${x.bioT}</td><td style="${x.slow?'color:#dc2626;font-weight:800':''}">${x.gainT}</td><td>${x.adgT}</td><td>${x.srT}</td><td style="${x.lowSR?'color:#dc2626;font-weight:800':''}">${x.accT}</td><td>${x.fcrT}</td><td>${x.tbioT}</td><td>${x.yieldT}</td><td style="${feedStyle}"${feedTitle}>${x.feedT}</td></tr>`; });
+  const wArrow=(k)=>wsk===k?(wsd===1?' ▲':' ▼'):'';
+  const wThead=WCOLS.map(c=>`<th onclick="wkSort('${c.k}')" style="cursor:pointer;user-select:none" title="คลิกเพื่อเรียงลำดับ">${c.l}${wArrow(c.k)}</th>`).join('');
+  const table=`<div class="tablecard"><h3 style="margin-bottom:6px"><span class="dot" style="background:#d97706"></span>รายละเอียดบ่อเลี้ยงรายบ่อ</h3><div class="hint">ชื่อบ่อสีแดง = อัตราการเจริญเติบโต (MBW Gain) ต่ำกว่าเกณฑ์ (${warnGrowth} บ่อ) · อัตรารอดสะสม &lt; 75% (${warnSR} บ่อ) · คลิกหัวตารางเพื่อเรียงจากน้อยไปมาก/มากไปน้อย · อาหาร/วัน ตัวเอียง* = ยังไม่มีข้อมูลวันนี้ แสดงค่าล่าสุดที่มี (ชี้เมาส์ดูวันที่)</div>
+    <table class="dtable"><thead><tr>${wThead}</tr></thead><tbody>${body}</tbody></table></div>`;
+  // ---- closed ponds ----
+  let cbody=closed.map(r=>`<tr data-pond-row="${(r[iPond]||'').trim()}"><td class="l"><span class="pondtag">${(r[iPond]||'').trim()}</span></td><td><span class="mod-badge">${(r[iMod]||'').trim()}</span></td><td>${(r[iType]||'').trim()}</td><td>${(r[iPrep]||'').trim()||'–'}</td></tr>`).join('');
+  const closedCard=`<div class="tablecard"><h3 style="margin-bottom:6px"><span class="dot" style="background:#94a3b8"></span>บ่อที่ปิดแล้ว (${closed.length} บ่อ) · จำนวนวันเตรียมบ่อ</h3>
+    <table class="dtable"><thead><tr><th>บ่อ</th><th>พื้นที่</th><th>ประเภท</th><th>วันเตรียมบ่อ (วัน)</th></tr></thead><tbody>${cbody||'<tr><td colspan="4">— ไม่มีบ่อปิดในตัวกรองนี้ —</td></tr>'}</tbody></table></div>`;
+  el('app').innerHTML=kpis+row1+chartEff+scorecard+table+closedCard;
+  if(spotlightTarget){
+    const tgt=spotlightTarget; spotlightTarget=null;
+    setTimeout(()=>{ const rowEl=document.querySelector('tr[data-pond-row="'+CSS.escape(tgt)+'"]'); if(rowEl){ const y=rowEl.getBoundingClientRect().top+window.scrollY-Math.max(80,window.innerHeight/2-100); window.scrollTo(0,y); rowEl.classList.add('spot-hl'); setTimeout(()=>rowEl.classList.remove('spot-hl'),2300); } },120);
+  }
+  // distribution chart
+  const cD=el('wkDist'); if(cD){ charts.push(new Chart(cD,{type:'bar',data:{labels:['> 90%','75–90%','60–75%','< 60%'],datasets:[{label:'จำนวนบ่อ',data:[bands.a,bands.b,bands.c,bands.e],backgroundColor:[P.emer,P.teal,P.amber,P.rose],borderRadius:6,datalabels:{display:true,anchor:'end',align:'top',color:'#334155',font:{weight:'700',size:12},formatter:v=>v>0?v:''}}]},options:{layout:{padding:{top:16}},plugins:{legend:{display:false},datalabels:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'#eef2f4'},title:{display:true,text:'จำนวนบ่อ'},ticks:{precision:0}},x:{grid:{display:false}}}}})); }
+  // biomass by module
+  const cB=el('wkBio'); if(cB){ charts.push(new Chart(cB,{type:'bar',data:{labels:mods.map(x=>'โมดูล '+x.code),datasets:[{label:'ผลผลิต (ตัน)',data:mods.map(x=>x.bio/1000),backgroundColor:P.teal,borderRadius:6,datalabels:{display:true,anchor:'end',align:'top',color:'#0f766e',font:{weight:'700',size:11},formatter:v=>fmt(v,1)}}]},options:{layout:{padding:{top:16}},plugins:{legend:{display:false},datalabels:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'#eef2f4'},title:{display:true,text:'ตัน'}},x:{grid:{display:false}}}}})); }
+  // efficiency by module
+  const cE=el('wkEff'); if(cE){ charts.push(new Chart(cE,{data:{labels:mods.map(x=>'โมดูล '+x.code),datasets:[
+    {type:'bar',label:'อัตราการรอดสะสม (%)',data:mods.map(x=>x.acc),backgroundColor:mods.map(x=>x.acc>=85?P.emer:(x.acc>=75?P.amber:P.rose)),borderRadius:6,yAxisID:'y',order:2,datalabels:{display:true,anchor:'end',align:'top',color:'#334155',font:{weight:'700',size:11},formatter:v=>fmt(v,0)+'%'}},
+    {type:'line',label:'FCR เฉลี่ย',data:mods.map(x=>x.fcr),borderColor:P.viol,backgroundColor:P.viol,pointBackgroundColor:'#fff',pointBorderColor:P.viol,pointRadius:5,pointHoverRadius:7,borderWidth:3,tension:.3,yAxisID:'y1',order:1}
+  ]},options:{layout:{padding:{top:18}},interaction:{mode:'index',intersect:false},plugins:{legend:{labels:{usePointStyle:true,pointStyle:'circle',boxWidth:8,font:{size:12}}},datalabels:{display:false}},scales:{y:{beginAtZero:true,max:100,grid:{color:'#eef2f4'},title:{display:true,text:'อัตราการรอดสะสม (%)'}},y1:{position:'right',beginAtZero:true,grid:{drawOnChartArea:false},title:{display:true,text:'FCR'}},x:{grid:{display:false}}}}})); }
+  decorateWidgets('weekly');
+}
+
+/* =================== FINANCIAL =================== */
+function finFindRow(V,label,from){ for(let i=(from||0);i<V.length;i++){ if((V[i][0]||'').trim().toLowerCase()===label.toLowerCase())return i; } return -1; }
+async function pageFinancial(){
+  el('subtitle').textContent='งบการเงินสำหรับผู้บริหาร · จำแนกตามพื้นที่ · หน่วย: ล้านบาท';
+  const d=await getTab('financial'); const V=d.values;
+  // detect module blocks (A/B/C/D) — header row 'ร้อยเพชร..' preceded by 'Module X' label
+  const fblocks={};
+  for(let i=0;i<V.length;i++){ if(/ร้อยเพชร/i.test((V[i][0]||'').trim())){ const lab=((V[i-2]&&V[i-2][1])||'').trim(); const mm=(lab.match(/Module\s+([A-Z])/i)||[])[1]; if(mm){ const mc={}; const H=V[i]; for(let c=0;c<H.length;c++){ const t=(H[c]||'').trim().toLowerCase(); const mi=MONTHS.indexOf(t); if(mi>=0)mc[mi]=c; } fblocks[mm.toUpperCase()]={start:i,mc}; } } }
+  const fr=(bs,label,from)=>{ for(let i=(from||bs);i<Math.min(bs+54,V.length);i++){ if((V[i][0]||'').trim().toLowerCase()===label.toLowerCase())return i; } return -1; };
+  const monListOf=(mc)=>Object.keys(mc).map(Number).sort((a,b)=>a-b);
+  const blkSeries=(mod)=>{ const b=fblocks[mod]; if(!b)return null; const ml=monListOf(b.mc); const S=(r)=>r<0?ml.map(()=>0):ml.map(mi=>num(V[r][b.mc[mi]])); const kg=fr(b.start,'Size');
+    const comp={Seed:S(fr(b.start,'Seed')),Feed:S(fr(b.start,'Feed')),Prob:S(fr(b.start,'Probiotic')),Wage:S(fr(b.start,'Wage')),Deprec:S(fr(b.start,'Depreciation')),Rent:S(fr(b.start,'Rent')),Energy:S(fr(b.start,'Energy')),Prepare:S(fr(b.start,'Prepare-Pond')),Maint:S(fr(b.start,'Maintenance')),Other:S(fr(b.start,'Other'))};
+    return {ml, Weight:S(fr(b.start,'Weight')),Sales:S(fr(b.start,'Sales')),Gross:S(fr(b.start,'GrossProfit')),Net:S(fr(b.start,'NetProfit')),ProdCostM:S(fr(b.start,'Production Cost')),AdminM:S(fr(b.start,'Admin')),IntM:S(fr(b.start,'Interest')),SizeAvg:S(kg),SalesKg:S(fr(b.start,'Sales',kg)),ProdKg:S(fr(b.start,'Production Cost',kg)),TotKg:S(fr(b.start,'Total Cost',kg)),NetKg:S(fr(b.start,'Net Profit',kg)),NoStk:S(fr(b.start,'No Stk & Damage')),PeriodCostRaw:S(fr(b.start,'Period Cost')),comp}; };
+  const sumAll=(mods)=>{ const parts=(mods&&mods.length?mods:['A','B','C','D']).map(blkSeries).filter(Boolean); if(!parts.length)return null; const ml=parts[0].ml; const add=(k)=>ml.map((_,x)=>parts.reduce((s,p)=>s+p[k][x],0)); const wavg=(k)=>ml.map((_,x)=>{let n2=0,dn=0;parts.forEach(p=>{n2+=p[k][x]*p.Weight[x];dn+=p.Weight[x];});return dn?n2/dn:0;}); const comp={}; ['Seed','Feed','Prob','Wage','Deprec','Rent','Energy','Prepare','Maint','Other'].forEach(k=>comp[k]=ml.map((_,x)=>parts.reduce((s,p)=>s+p.comp[k][x],0))); return {ml,Weight:add('Weight'),Sales:add('Sales'),Gross:add('Gross'),Net:add('Net'),ProdCostM:add('ProdCostM'),AdminM:add('AdminM'),IntM:add('IntM'),SizeAvg:wavg('SizeAvg'),SalesKg:wavg('SalesKg'),ProdKg:wavg('ProdKg'),TotKg:wavg('TotKg'),NetKg:wavg('NetKg'),NoStk:add('NoStk'),PeriodCostRaw:add('PeriodCostRaw'),comp}; };
+  const st=F.financial;
+  filterBar('financial',[
+    {label:'ช่วงเวลา',key:'month',opts:[{v:'all',t:'ทั้งปี'}].concat(MONTHS.map((m,i)=>({v:String(i),t:MONTH_TH[i]})))},
+    {label:'พื้นที่ (Module)',key:'area',multi:true,opts:[{v:'all',t:'รวมทั้งฟาร์ม'},{v:'A',t:'A'},{v:'B',t:'B'},{v:'C',t:'C'},{v:'D',t:'D'},{v:'R',t:'R'}]}
+  ]);
+  const areaSel=st.area, isAllArea=areaSel.includes('all');
+  const nonRAreas=areaSel.filter(a=>a!=='R'), hasR=areaSel.includes('R');
+  const areaTag = isAllArea?'รวมทั้งฟาร์ม (A+B+C+D)':('Module '+nonRAreas.join('+')+(hasR&&nonRAreas.length?' (ไม่รวม R)':''));
+  if(!isAllArea&&nonRAreas.length===0){ el('app').innerHTML='<div class="card" style="border-left:5px solid #d97706"><h3><span class="dot" style="background:#d97706"></span>ไม่มีข้อมูลการเงินของ Module R (New model)</h3><div class="hint">ชีต Financial มีเฉพาะ Module A · B · C · D และรวมทั้งฟาร์ม — ข้อมูลกลุ่ม R ดูได้ที่หน้า Weekly และ Order Harvest</div></div>'; return; }
+  const fd = isAllArea ? sumAll(['A','B','C','D']) : (nonRAreas.length===1 ? blkSeries(nonRAreas[0]) : sumAll(nonRAreas));
+  if(!fd){ el('app').innerHTML='<div class="card"><div class="hint">ไม่พบข้อมูลการเงิน</div></div>'; return; }
+  const labels=fd.ml.map(mi=>MONTH_TH[mi]);
+  const ysum=a=>a.reduce((s,x)=>s+(x||0),0);
+  const midx = st.month==='all'? -1 : fd.ml.indexOf(parseInt(st.month));
+  const pv=a=> midx<0? ysum(a) : (a[midx]||0);
+  // weighted (by monthly production weight) average for rate/per-kg series across the selected period — summing rates across months would be meaningless
+  const pvAvg=(a)=>{ if(!a)return NaN; if(midx>=0)return a[midx]||0; let n2=0,dn=0; fd.ml.forEach((mi,x)=>{ const w=fd.Weight[x]||0; n2+=(a[x]||0)*w; dn+=w; }); return dn? n2/dn : (a.length?a.reduce((s,x)=>s+x,0)/a.length:NaN); };
+  const S=pv(fd.Sales), PC=pv(fd.ProdCostM), G=pv(fd.Gross), AD=pv(fd.AdminM), IN=pv(fd.IntM), N=pv(fd.Net), W=pv(fd.Weight);
+  const DC=pv(fd.comp.Seed)+pv(fd.comp.Feed)+pv(fd.comp.Prob), VC=pv(fd.comp.Energy)+pv(fd.comp.Prepare)+pv(fd.comp.Maint)+pv(fd.comp.Other), FC=pv(fd.comp.Wage)+pv(fd.comp.Deprec)+pv(fd.comp.Rent), AI=Math.abs(AD)+Math.abs(IN);
+  const grossM=S?G/S*100:0, netM=S?N/S*100:0, prodKg=W?Math.abs(PC)/W:0, saleKg=W?S/W:0;
+  const totalCostKg=W?Math.abs(S-N)/W:0, netKg=W?N/W:0, aiKg=W?AI/W:0;
+  const avgSize=pvAvg(fd.SizeAvg);
+  const MB=1000, mS=S/MB,mPC=PC/MB,mG=G/MB,mAD=AD/MB,mIN=IN/MB,mN=N/MB,mDC=DC/MB,mVC=VC/MB,mFC=FC/MB,mAI=AI/MB,mTot=mDC+mVC+mFC+mAI;
+  const NoStkV=pv(fd.NoStk), PeriodCostV=pv(fd.PeriodCostRaw);
+  const NPV=NoStkV+PeriodCostV, mNP=NPV/MB, npKg=W?NPV/W:0;
+  const periodTag = st.month==='all'?'ทั้งปี':MONTH_TH[parseInt(st.month)];
+  const P={teal:'#0d9488',emer:'#10b981',viol:'#8b5cf6',sky:'#0ea5e9',rose:'#f43f5e',amber:'#f59e0b',slate:'#94a3b8',mint:'#5eead4'};
+  const gfill=(cx,hex)=>{ const g=cx.createLinearGradient(0,0,0,300); g.addColorStop(0,hex+'44'); g.addColorStop(1,hex+'03'); return g; };
+  const baseLine={tension:.42,borderWidth:3,pointRadius:3,pointHoverRadius:6,pointBackgroundColor:'#fff',pointBorderWidth:2};
+  // ---- financial KPIs ----
+  const FKP=[
+    {l:'ผลผลิต',v:W,u:'ตัน',c:'b',d:1},
+    {l:'Size เฉลี่ย',v:avgSize,u:'ตัว/กก.',c:'v',d:0},
+    {l:'ราคาขาย',v:saleKg,u:'บาท/กก.',c:'b',d:0},
+    {l:'ต้นทุนผลิต',v:prodKg,u:'บาท/กก.',c:'y',d:0},
+    {l:'ต้นทุนดอกเบี้ย/บริหาร',v:aiKg,u:'บาท/กก.',c:'y',d:0},
+    {l:'ต้นทุนสุทธิ',v:totalCostKg,u:'บาท/กก.',c:'y',d:0},
+    {l:'กำไร (ขาดทุน) สุทธิ',v:netKg,u:'บาท/กก.',c:netKg>=0?'g':'r',d:0},
+    {l:'กำไร (ขาดทุน) สุทธิ',v:mN,u:'ล้านบาท',c:mN>=0?'g':'r',d:2},
+    {l:'อัตรากำไรสุทธิ',v:netM,u:'%',c:netM>=0?'g':'r',d:1},
+    {l:'No Stk + Period Cost',v:mNP,u:'ล้านบาท',c:mNP>0?'r':'dim',d:2},
+    {l:'No Stk + Period Cost',v:npKg,u:'บาท/กก.',c:'y',d:2}
+  ];
+  const kpis='<div class="kpis">'+FKP.map(k=>`<div class="kpi ${k.c}"><div class="klabel">${k.l}</div><div class="kval">${fmt(k.v,k.d)}</div><div class="ksub">${k.u}</div></div>`).join('')+'</div>';
+  // ---- P&L statement table ----
+  const plr=(lab,val,o)=>{o=o||{};const col=o.strong?(val>=0?'#0f766e':'#dc2626'):(val<0?'#dc2626':'#0f172a');return `<tr style="${o.strong?'background:#f0fdfa;font-weight:800':''}"><td class="l" style="${o.pad?'padding-left:26px;color:#64748b':''}">${lab}</td><td style="text-align:right;font-weight:${o.strong?800:600};color:${col}">${fmt(val,2)}</td>${o.pct!=null?`<td style="text-align:right;color:#64748b">${fmt(o.pct,1)}%</td>`:'<td></td>'}</tr>`;};
+  const plCard=`<div class="tablecard"><h3 style="margin-bottom:4px"><span class="dot"></span>งบกำไรขาดทุน (Profit &amp; Loss) · ${areaTag} · ${periodTag}</h3><div class="hint">หน่วย: ล้านบาท</div>
+    <table class="dtable"><thead><tr><th class="l" style="text-align:left">รายการ</th><th style="text-align:right">จำนวน (ล้านบาท)</th><th style="text-align:right">ร้อยละของรายได้</th></tr></thead><tbody>
+    ${plr('รายได้จากการขาย (Sales)',mS,{pct:100})}
+    ${plr('หัก ต้นทุนการผลิต (Cost of Production)',mPC,{pad:1,pct:S?PC/S*100:0})}
+    ${plr('กำไรขั้นต้น (Gross Profit)',mG,{strong:1,pct:grossM})}
+    ${plr('หัก ค่าใช้จ่ายในการบริหาร (Administrative Expenses)',mAD,{pad:1,pct:S?AD/S*100:0})}
+    ${plr('หัก ดอกเบี้ยจ่าย (Interest Expense)',mIN,{pad:1,pct:S?IN/S*100:0})}
+    ${plr('กำไร (ขาดทุน) สุทธิ (Net Profit)',mN,{strong:1,pct:netM})}
+    </tbody></table></div>`;
+  // ---- layout ----
+  const row1=`<div class="grid2">
+    <div class="card"><h3><span class="dot"></span>โครงสร้างกำไร–ขาดทุน · ${periodTag}</h3><div class="hint">รายได้ → หักต้นทุนและค่าใช้จ่าย → กำไร (ขาดทุน) สุทธิ · หน่วย: ล้านบาท</div><canvas id="finWF"></canvas></div>
+    <div class="card"><h3><span class="dot"></span>สัดส่วนโครงสร้างต้นทุน</h3><div class="hint">ต้นทุนรวม ${fmt(mTot,2)} ล้านบาท · จำแนกตามประเภท</div><canvas id="finDN"></canvas></div>
+  </div>`;
+  const chart1=`<div class="card"><h3><span class="dot"></span>รายได้และกำไรรายเดือน · ${areaTag} (ล้านบาท) และปริมาณผลผลิต (ตัน)</h3><div class="hint">คลิกปุ่มด้านล่างเพื่อแสดงตัวเลขรายเดือน</div><canvas id="finChart1"></canvas><div style="text-align:center;margin-top:12px"><span class="chip" style="background:#0d9488;color:#fff;border:none" onclick="finTable()">▾ แสดงตัวเลขรายเดือน</span></div></div>`;
+  const chart3=`<div class="card"><h3><span class="dot"></span>การวิเคราะห์จุดคุ้มทุน — ราคาขายเทียบต้นทุนการผลิต ต่อกิโลกรัม (รายเดือน) · ${areaTag}</h3><div class="hint">พื้นที่สีเขียว = มีกำไรต่อกิโลกรัม · พื้นที่สีแดง = ขาดทุนต่อกิโลกรัม</div><canvas id="finBE"></canvas></div>`;
+  window.__finData={labels:labels,Weight:fd.Weight,Sales:fd.Sales.map(v=>v/MB),Gross:fd.Gross.map(v=>v/MB),Net:fd.Net.map(v=>v/MB)};
+  el('app').innerHTML=kpis+row1+plCard+chart1+chart3;
+  // waterfall
+  const cw=el('finWF'); if(cw){ const g=mG, ad=mG+mAD, en=mN; charts.push(new Chart(cw,{type:'bar',data:{labels:['รายได้จากการขาย','ต้นทุนการผลิต','กำไรขั้นต้น','ค่าใช้จ่ายบริหาร','ดอกเบี้ยจ่าย','กำไร (ขาดทุน) สุทธิ'],datasets:[{data:[[0,mS],[g,mS],[0,g],[ad,g],[en,ad],[Math.min(0,mN),Math.max(0,mN)]],backgroundColor:[P.teal,P.rose,P.emer,P.rose,P.amber,mN>=0?P.emer:P.rose],borderRadius:5,borderSkipped:false}]},options:{layout:{padding:{top:24}},plugins:{legend:{display:false},datalabels:{display:true,anchor:'end',align:'top',color:'#334155',font:{weight:'700',size:11},formatter:v=>fmt(Math.abs(v[1]-v[0]),1)},tooltip:{callbacks:{label:c=>fmt(Math.abs(c.raw[1]-c.raw[0]),2)+' ล้านบาท'}}},scales:{y:{grid:{color:'#eef2f4'},title:{display:true,text:'ล้านบาท'}},x:{grid:{display:false},ticks:{font:{size:11}}}}}})); }
+  // doughnut
+  const cd=el('finDN'); if(cd){ charts.push(new Chart(cd,{type:'doughnut',data:{labels:['ต้นทุนทางตรง (พันธุ์/อาหาร/โปรไบโอติก)','ต้นทุนผันแปร (พลังงาน/เตรียมบ่อ/ซ่อมบำรุง/อื่น ๆ)','ต้นทุนคงที่ (ค่าแรง/ค่าเสื่อมราคา/ค่าเช่า)','ค่าใช้จ่ายบริหารและดอกเบี้ย'],datasets:[{data:[mDC,mVC,mFC,mAI],backgroundColor:[P.teal,P.sky,P.amber,P.viol],borderColor:'#fff',borderWidth:3,hoverOffset:6}]},options:{cutout:'58%',plugins:{legend:{position:'bottom',labels:{usePointStyle:true,pointStyle:'circle',boxWidth:9,padding:10,font:{size:12}}},datalabels:{display:true,color:'#fff',font:{weight:'800',size:13},formatter:v=>{const p=Math.round(v/mTot*100);return p>=6?p+'%':'';}},tooltip:{callbacks:{label:c=>c.label.split(' (')[0]+': '+fmt(c.raw,2)+' ล้านบาท ('+fmt(c.raw/mTot*100,0)+'%)'}}}}})); }
+  // monthly trend
+  const c1=el('finChart1'); if(c1){ const cx=c1.getContext('2d'); charts.push(new Chart(c1,{data:{labels,datasets:[
+    {type:'bar',label:'ปริมาณผลผลิต (ตัน)',data:fd.Weight,backgroundColor:gfill(cx,P.mint),borderColor:P.mint,borderWidth:1,borderRadius:6,yAxisID:'y1',order:5,barPercentage:.6},
+    {type:'line',label:'รายได้จากการขาย',data:fd.Sales.map(v=>v/MB),borderColor:P.teal,backgroundColor:gfill(cx,P.teal),pointBorderColor:P.teal,fill:true,order:1,...baseLine},
+    {type:'line',label:'กำไรขั้นต้น',data:fd.Gross.map(v=>v/MB),borderColor:P.emer,pointBorderColor:P.emer,fill:false,order:2,...baseLine},
+    {type:'line',label:'กำไร (ขาดทุน) สุทธิ',data:fd.Net.map(v=>v/MB),borderColor:P.viol,pointBorderColor:P.viol,fill:false,order:3,...baseLine}
+  ]},options:{interaction:{mode:'index',intersect:false},plugins:{legend:{labels:{usePointStyle:true,pointStyle:'circle',boxWidth:8,font:{size:13}}}},scales:{y:{position:'left',grid:{color:'#eef2f4'},title:{display:true,text:'ล้านบาท'}},y1:{position:'right',grid:{drawOnChartArea:false},title:{display:true,text:'ตัน'}},x:{grid:{display:false}}}}})); }
+  // break-even
+  const cb=el('finBE'); if(cb){ const cx=cb.getContext('2d'); charts.push(new Chart(cb,{type:'line',data:{labels,datasets:[
+    {label:'ราคาขาย (บาท/กก.)',data:fd.SalesKg,borderColor:P.emer,backgroundColor:gfill(cx,P.emer),pointBorderColor:P.emer,fill:'+1',...baseLine},
+    {label:'ต้นทุนการผลิต (บาท/กก.)',data:fd.ProdKg,borderColor:P.rose,pointBorderColor:P.rose,fill:false,...baseLine}
+  ]},options:{interaction:{mode:'index',intersect:false},plugins:{legend:{labels:{usePointStyle:true,pointStyle:'circle',boxWidth:8,font:{size:13}}}},scales:{y:{grid:{color:'#eef2f4'},title:{display:true,text:'บาท/กก.'}},x:{grid:{display:false}}}}})); }
+  decorateWidgets('financial');
+}
+window.finTable=function(){ const d=window.__finData; let h='<div class="hint" style="margin-bottom:8px">หน่วยเงิน: ล้านบาท · ปริมาณผลผลิต: ตัน</div><table class="dtable"><thead><tr><th>เดือน</th><th>ปริมาณผลผลิต (ตัน)</th><th>รายได้จากการขาย</th><th>กำไรขั้นต้น</th><th>กำไร (ขาดทุน) สุทธิ</th></tr></thead><tbody>'; d.labels.forEach((l,i)=>{h+=`<tr><td>${l}</td><td>${fmt(d.Weight[i],1)}</td><td>${fmt(d.Sales[i],2)}</td><td style="color:${d.Gross[i]<0?'#dc2626':'#0f172a'}">${fmt(d.Gross[i],2)}</td><td style="color:${d.Net[i]<0?'#dc2626':'#0f172a'}">${fmt(d.Net[i],2)}</td></tr>`;}); h+='</tbody></table>'; openModal('ตัวเลขรายเดือน (ล้านบาท)',h); };
+
+/* =================== ORDER HARVEST =================== */
+async function pageOrder(){
+  el('subtitle').textContent='บทวิเคราะห์การเก็บเกี่ยวและการตลาด · แผน–ผลและโครงสร้างผลผลิต';
+  const d=await getTab('orderharvest'); const V=d.values; const H=V[0];
+  const idx=(name)=>H.findIndex(h=>(h||'').trim().toLowerCase()===name.toLowerCase());
+  const iMod=idx('Module'),iPond=idx('Pond'),iDate=idx('Date'),iMonth=idx('Month'),iSizeC=idx('Size Current'),iSizeP=idx('Size Plan'),iTon=idx('Ton'),iType=idx('Type'),iAcMon=idx('Ac.Month'),iAcSize=idx('Ac.Size'),iAcTon=idx('Ac.Ton'),iAcType=idx('Ac.Type');
+  const now=new Date(); const curMonth=now.getMonth()+1;
+  const st=F.orderharvest;
+  // collect data rows (year already 2026 only)
+  const data=[]; for(let i=1;i<V.length;i++){ const r=V[i]; if(!(r[iPond]||'').trim())continue; data.push(r); }
+  // size ranges filter (based on Size Plan/Current or Ac.Size)
+  const sizeBucket=(s)=>{ const n=num(s); if(isNaN(n))return null; if(n>=70)return 'big'; if(n>=50)return 'mid'; return 'small'; };
+  filterBar('orderharvest',[
+    {label:'ช่วง Size',key:'size',opts:[{v:'all',t:'ทั้งหมด'},{v:'big',t:'≥70'},{v:'mid',t:'50–69'},{v:'small',t:'<50'}]},
+    {label:'พื้นที่ (Module)',key:'area',multi:true,opts:[{v:'all',t:'ทั้งหมด'},{v:'A',t:'A'},{v:'B',t:'B'},{v:'C',t:'C'},{v:'D',t:'D'},{v:'RW',t:'R'}]}
+  ]);
+  const areaOk=(r)=>st.area.includes('all')||st.area.includes((r[iMod]||'').trim());
+  const sizeOk=(r,sizeCol)=>st.size==='all'||sizeBucket(r[sizeCol])===st.size;
+  // ---- month multi-select filter ----
+  if(!Array.isArray(st.months)||!st.months.length)st.months=[curMonth];
+  const selM=st.months; const monthOk=(m)=>selM.includes(m);
+  const ohPeriod = selM.length>=12?'ทั้งปี':('เดือน '+selM.slice().sort((a,b)=>a-b).map(m=>MONTH_TH[m-1]).join(', '));
+  el('filterbar').insertAdjacentHTML('beforeend',`<div class="filters" style="margin-top:10px"><div class="fgroup"><div class="flabel">เดือน (เลือกได้หลายเดือน)</div><div class="chips"><span class="chip ${selM.length>=12?'on':''}" onclick="ohAllMonths()">ทั้งปี</span>${MONTHS.map((m,i)=>`<span class="chip ${selM.includes(i+1)?'on':''}" onclick="ohToggleMonth(${i+1})">${MONTH_TH[i]}</span>`).join('')}</div></div></div>`);
+  // ---- marketing aggregates (area + month filtered) ----
+  const P={teal:'#0d9488',emer:'#10b981',viol:'#8b5cf6',sky:'#0ea5e9',rose:'#f43f5e',amber:'#f59e0b',slate:'#94a3b8',mint:'#5eead4'};
+  let planTonY=0,actTonY=0,sizeSumW=0,sizeW=0,bigTon=0; const pondsSet=new Set();
+  const planByMonth=Array(12).fill(0), actByMonth=Array(12).fill(0), sizeBands=[0,0,0,0]; const typeTon={};
+  data.forEach(r=>{ if(!areaOk(r))return; const p=(r[iPond]||'').trim();
+    const pm=num(r[iMonth]),pt=num(r[iTon]); if(!isNaN(pm)&&pm>=1&&pm<=12&&!isNaN(pt)){ planByMonth[pm-1]+=pt; if(monthOk(pm)){planTonY+=pt; if(p)pondsSet.add(p);} }
+    const am=num(r[iAcMon]),at=num(r[iAcTon]),asz=num(r[iAcSize]); if(!isNaN(am)&&am>=1&&am<=12&&!isNaN(at)){ actByMonth[am-1]+=at; if(monthOk(am)){ actTonY+=at;
+      if(!isNaN(asz)){ sizeSumW+=asz*at; sizeW+=at; if(asz<=40){sizeBands[0]+=at;bigTon+=at;} else if(asz<=60)sizeBands[1]+=at; else if(asz<=80)sizeBands[2]+=at; else sizeBands[3]+=at; }
+      const ty=(r[iAcType]||'').trim(); if(ty)typeTon[ty]=(typeTon[ty]||0)+at; } }
+  });
+  const achieve=planTonY?actTonY/planTonY*100:0, avgSizeY=sizeW?sizeSumW/sizeW:NaN, pctBig=actTonY?bigTon/actTonY*100:0;
+  const kpis=`<div class="kpis">
+    <div class="kpi dim"><div class="klabel">ปริมาณตามแผน</div><div class="kval">${fmt(planTonY,0)}</div><div class="ksub">ตัน</div></div>
+    <div class="kpi g"><div class="klabel">ปริมาณจับจริง</div><div class="kval">${fmt(actTonY,0)}</div><div class="ksub">ตัน</div></div>
+    <div class="kpi ${achieve>=90?'g':(achieve>=70?'y':'r')}"><div class="klabel">อัตราความสำเร็จตามแผน</div><div class="kval">${fmt(achieve,0)}</div><div class="ksub">%</div></div>
+    <div class="kpi v"><div class="klabel">ขนาดเฉลี่ย</div><div class="kval">${fmt(avgSizeY,0)}</div><div class="ksub">ตัว/กก.</div></div>
+    <div class="kpi b"><div class="klabel">จำนวนบ่อ</div><div class="kval">${pondsSet.size}</div><div class="ksub">บ่อ</div></div>
+    <div class="kpi g"><div class="klabel">สัดส่วนไซซ์ใหญ่ (≤40)</div><div class="kval">${fmt(pctBig,0)}</div><div class="ksub">%</div></div>
+  </div>`;
+  // Type summary helper
+  const TYPES=['Close','Partial 1','Partial 2','Partial 3','Partial 4'];
+  function typeSummary(rows,tonCol,sizeCol,typeCol){
+    const map={}; TYPES.forEach(t=>map[t]={n:0,ton:0,sizes:[]});
+    let tot={n:0,ton:0,sizes:[]};
+    rows.forEach(r=>{ let t=(r[typeCol]||'').trim(); const key=TYPES.find(x=>t.toLowerCase()===x.toLowerCase())|| (t?t:null); if(!key)return; if(!map[key])map[key]={n:0,ton:0,sizes:[]}; const ton=num(r[tonCol])||0; const sz=num(r[sizeCol]); map[key].n++; map[key].ton+=ton; if(!isNaN(sz))map[key].sizes.push(sz); tot.n++; tot.ton+=ton; if(!isNaN(sz))tot.sizes.push(sz); });
+    return {map,tot};
+  }
+  function avg(a){return a.length?a.reduce((s,x)=>s+x,0)/a.length:NaN;}
+  function typeTable(title,color,rows,tonCol,sizeCol,typeCol,showSize){
+    const {map,tot}=typeSummary(rows,tonCol,sizeCol,typeCol);
+    const keys=TYPES.filter(t=>map[t]&&map[t].n>0);
+    const sz=(s)=>showSize?`<td>${fmt(avg(s),0)}</td>`:'';
+    let body=keys.map(t=>`<tr><td class="l"><span class="pill ${t==='Close'?'b':'dim'}">${t}</span></td><td>${map[t].n}</td><td>${fmt(map[t].ton,2)}</td>${sz(map[t].sizes)}</tr>`).join('');
+    if(!body)body=`<tr><td colspan="${showSize?4:3}">— ไม่มีข้อมูลในเดือนนี้ —</td></tr>`;
+    return `<div class="tablecard"><h3 style="margin-bottom:6px"><span class="dot" style="background:${color}"></span>${title} — ${ohPeriod}</h3>
+      <table class="dtable"><thead><tr><th>Type</th><th>จำนวนบ่อ</th><th>น้ำหนัก (ตัน)</th>${showSize?'<th>Size เฉลี่ย</th>':''}</tr></thead>
+      <tbody>${body}</tbody><tfoot><tr><td class="l">Total</td><td>${tot.n}</td><td>${fmt(tot.ton,2)}</td>${sz(tot.sizes)}</tr></tfoot></table></div>`;
+  }
+  // plan/actual filtered by selected months
+  const planCur=data.filter(r=>areaOk(r)&&monthOk(num(r[iMonth])));
+  const actCur=data.filter(r=>areaOk(r)&&monthOk(num(r[iAcMon])));
+  const planTbl=typeTable('แผนการจับ (Plan)','#d97706',planCur,iTon,iAcSize,iType,true);
+  const actTbl=typeTable('ผลการจับจริง (Actual)','#16a34a',actCur,iAcTon,iAcSize,iAcType,true);
+  // ---- IN Stock breakdown by factory size bands (from source left summary tables) ----
+  const extractStock=(lbl)=>{ let hr=-1; for(let i=0;i<V.length;i++){ if((V[i][1]||'').toString().trim()===lbl){ hr=i+1; break; } } if(hr<0)return null;
+    const bands=[]; for(let c=1;c<=7;c++){ const b=(V[hr][c]||'').toString().trim(); if(b)bands.push({c,label:b}); }
+    const rows=[]; for(let i=hr+1;i<V.length;i++){ const first=(V[i][0]||'').toString().trim(); if(!first)break; if(/total/i.test(first))break; rows.push(V[i]); }
+    return {bands,rows}; };
+  const stockCardTbl=(title,accent,lbl,dec)=>{ const t=extractStock(lbl); if(!t)return '';
+    const th=(txt,first)=>`<th style="background:${accent}18;color:${accent};border-bottom:2px solid ${accent}66${first?';text-align:left':''}">${txt}</th>`;
+    const colTot=t.bands.map(()=>0); let grand=0;
+    const body=t.rows.map(r=>{ const mod=(r[0]||'').toString().trim(); let rowTot=0;
+      const cells=t.bands.map((b,bi)=>{ const v=num(r[b.c]); const val=isNaN(v)?0:v; rowTot+=val; colTot[bi]+=val; return val>0?`<td onmousemove="ohTipCell(event,'${mod}',${bi})" onmouseleave="ohHide()" style="cursor:help">${fmt(val,dec)}</td>`:`<td style="color:#cbd5e1">${fmt(0,dec)}</td>`; }).join('');
+      grand+=rowTot; return `<tr class="stkrow"><td class="l" onmousemove="ohTip(event,'${mod}')" onmouseleave="ohHide()" style="cursor:help"><span class="mod-badge">${mod}</span></td>${cells}<td style="font-weight:800;color:${accent};cursor:help" onmousemove="ohTip(event,'${mod}')" onmouseleave="ohHide()">${fmt(rowTot,dec)}</td></tr>`; }).join('');
+    return `<div class="tablecard"><h3 style="margin-bottom:6px"><span class="dot" style="background:${accent}"></span>${title}</h3><div class="hint">คงคลังกุ้งรอจับ จำแนกตามขนาด (ตัว/กก.) ตามเกณฑ์ที่โรงงานกำหนด · หน่วย: ${dec?'ตัน':'บ่อ'} · ชี้เมาส์ที่ตัวเลขในตารางเพื่อดูรายชื่อบ่อเฉพาะจุดนั้น (ชี้ Module/รวม เพื่อดูทั้งหมด)</div>
+      <table class="dtable stripe"><thead><tr>${th('Module',true)}${t.bands.map(b=>th(b.label)).join('')}${th('รวม')}</tr></thead>
+      <tbody>${body}</tbody><tfoot><tr><td class="l">รวมทั้งหมด</td>${colTot.map(v=>`<td>${fmt(v,dec)}</td>`).join('')}<td>${fmt(grand,dec)}</td></tr></tfoot></table></div>`; };
+  // in-stock ponds per module (from harvest plan: planned but not yet harvested), deduped per pond
+  const pondPending={}; data.forEach(r=>{ const at=num(r[iAcTon]); if(!isNaN(at)&&at>0)return; const pt=num(r[iTon]); if(isNaN(pt)||pt<=0)return; let m=(r[iMod]||'').trim(); if(m==='RW')m='R'; const pond=(r[iPond]||'').trim(); if(!m||!pond)return; if(!pondPending[pond])pondPending[pond]={mod:m,ton:0}; pondPending[pond].ton+=pt; });
+  const ohStock={}; Object.entries(pondPending).forEach(([pond,o])=>{ if(!ohStock[o.mod])ohStock[o.mod]={}; ohStock[o.mod][pond]=o.ton; });
+  window.__ohStock=ohStock;
+  // precise per-cell (module + size band) pond lists — join each pond's CURRENT size from Weekly against the same size bands the source table uses
+  let wkSizeMap={};
+  try{ const wk=await getTab('weekly'); const W=wk.values; const WH=W[0];
+    const widx=(name)=>WH.findIndex(h=>(h||'').trim().toLowerCase()===name.toLowerCase());
+    const wiPond=widx('Pond'), wiSize=widx('Size');
+    for(let i=1;i<W.length;i++){ const p=(W[i][wiPond]||'').trim(); if(p)wkSizeMap[p]=num(W[i][wiSize]); }
+  }catch(e){}
+  const parseBandRange=(label)=>{ label=String(label).trim(); let m=label.match(/^(\d+(?:\.\d+)?)\s*-\s*(\d+(?:\.\d+)?)$/); if(m)return [parseFloat(m[1]),parseFloat(m[2])]; m=label.match(/^>\s*=?\s*(\d+(?:\.\d+)?)$/); if(m)return [parseFloat(m[1])+(label.indexOf('=')>=0?0:0.0001),Infinity]; m=label.match(/^<\s*=?\s*(\d+(?:\.\d+)?)$/); if(m)return [-Infinity,parseFloat(m[1])-(label.indexOf('=')>=0?0:0.0001)]; return null; };
+  const stockNoT=extractStock('IN Stock (No.)');
+  const bandLabels = stockNoT? stockNoT.bands.map(b=>b.label) : [];
+  const bandRanges = stockNoT? stockNoT.bands.map(b=>parseBandRange(b.label)) : [];
+  const bucketBand=(sz)=>{ if(isNaN(sz))return -1; for(let i=0;i<bandRanges.length;i++){ const r=bandRanges[i]; if(r && sz>=r[0]&&sz<=r[1])return i; } return -1; };
+  const ohStockBand={};
+  Object.entries(pondPending).forEach(([pond,o])=>{ const bi=bucketBand(wkSizeMap[pond]); if(bi<0)return; if(!ohStockBand[o.mod])ohStockBand[o.mod]={}; if(!ohStockBand[o.mod][bi])ohStockBand[o.mod][bi]={}; ohStockBand[o.mod][bi][pond]=o.ton; });
+  window.__ohStockBand=ohStockBand; window.__ohBandLabels=bandLabels;
+  const stockCard=stockCardTbl('IN Stock — จำนวนบ่อ (No.) จำแนกตามขนาด','#16a34a','IN Stock (No.)',0)+stockCardTbl('IN Stock — น้ำหนัก (ตัน) จำแนกตามขนาด','#2563eb','IN Stock (Ton)',1);
+  const row1=`<div class="grid2">
+    <div class="card"><h3><span class="dot"></span>สัดส่วนผลผลิตจำแนกตามขนาด (Product Size Mix)</h3><div class="hint">แบ่งตามขนาด (ตัว/กก.) — ตัวเลขยิ่งน้อย ยิ่งไซซ์ใหญ่/มูลค่าสูง · หน่วย: ตัน</div><canvas id="ohSize"></canvas></div>
+    <div class="card"><h3><span class="dot"></span>โครงสร้างการจับจำแนกตามประเภท</h3><div class="hint">สัดส่วนปริมาณจับจริงตามรูปแบบการจับ · หน่วย: ตัน</div><canvas id="ohType"></canvas></div>
+  </div>`;
+  const chartMonthly=`<div class="card"><h3><span class="dot"></span>แผนการจับเทียบผลจับจริงรายเดือน (ตัน)</h3><div class="hint">เปรียบเทียบปริมาณตามแผน (Plan) กับปริมาณจับจริง (Actual) รายเดือนตลอดปี</div><canvas id="ohMonthly"></canvas></div>`;
+  el('app').innerHTML=kpis+row1+chartMonthly+stockCard+'<div class="grid2">'+planTbl+actTbl+'</div>';
+  const cS=el('ohSize'); if(cS){ const total=sizeBands.reduce((a,b)=>a+b,0)||1; charts.push(new Chart(cS,{type:'doughnut',data:{labels:['ไซซ์ใหญ่ (≤40 ตัว/กก.)','ไซซ์กลาง (41–60)','ไซซ์เล็ก (61–80)','ไซซ์เล็กมาก (>80)'],datasets:[{data:sizeBands,backgroundColor:[P.teal,P.sky,P.amber,P.rose],borderColor:'#fff',borderWidth:3,hoverOffset:6}]},options:{cutout:'58%',plugins:{legend:{position:'bottom',labels:{usePointStyle:true,pointStyle:'circle',boxWidth:9,padding:10,font:{size:12}}},datalabels:{display:true,color:'#fff',font:{weight:'800',size:13},formatter:v=>{const p=Math.round(v/total*100);return p>=6?p+'%':'';}},tooltip:{callbacks:{label:c=>c.label.split(' (')[0]+': '+fmt(c.raw,1)+' ตัน ('+fmt(c.raw/total*100,0)+'%)'}}}}})); }
+  const cT=el('ohType'); if(cT){ const tk=Object.keys(typeTon); const tv=tk.map(k=>typeTon[k]); const total=tv.reduce((a,b)=>a+b,0)||1; const cols={'Close':P.teal,'Partial 1':P.sky,'Partial 2':P.amber,'Partial 3':P.viol,'Partial 4':P.rose}; charts.push(new Chart(cT,{type:'doughnut',data:{labels:tk,datasets:[{data:tv,backgroundColor:tk.map(k=>cols[k]||P.slate),borderColor:'#fff',borderWidth:3,hoverOffset:6}]},options:{cutout:'58%',plugins:{legend:{position:'bottom',labels:{usePointStyle:true,pointStyle:'circle',boxWidth:9,padding:10,font:{size:12}}},datalabels:{display:true,color:'#fff',font:{weight:'800',size:13},formatter:v=>{const p=Math.round(v/total*100);return p>=6?p+'%':'';}},tooltip:{callbacks:{label:c=>c.label+': '+fmt(c.raw,1)+' ตัน ('+fmt(c.raw/total*100,0)+'%)'}}}}})); }
+  const cM=el('ohMonthly'); if(cM){ charts.push(new Chart(cM,{type:'bar',data:{labels:MONTH_TH,datasets:[
+    {label:'แผน (Plan)',data:planByMonth,backgroundColor:P.amber,borderRadius:5,datalabels:{display:false}},
+    {label:'จับจริง (Actual)',data:actByMonth,backgroundColor:P.teal,borderRadius:5,datalabels:{display:false}}
+  ]},options:{interaction:{mode:'index',intersect:false},plugins:{legend:{labels:{usePointStyle:true,pointStyle:'circle',boxWidth:8,font:{size:12}}},datalabels:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'#eef2f4'},title:{display:true,text:'ตัน'}},x:{grid:{display:false}}}}})); }
+  decorateWidgets('orderharvest');
+}
+window.ohToggleMonth=function(m){ let a=(F.orderharvest.months||[]).slice(); if(a.includes(m))a=a.filter(x=>x!==m); else a.push(m); if(!a.length)a=[m]; F.orderharvest.months=a; renderPage('orderharvest'); };
+window.ohAllMonths=function(){ F.orderharvest.months=(F.orderharvest.months&&F.orderharvest.months.length>=12)?[new Date().getMonth()+1]:[1,2,3,4,5,6,7,8,9,10,11,12]; renderPage('orderharvest'); };
+window.ohTip=function(e,mod){ const s=(window.__ohStock||{})[mod]; let tip=document.getElementById('ohtip'); if(!tip){tip=document.createElement('div');tip.id='ohtip';tip.className='ohtip';document.body.appendChild(tip);} const ponds=s?Object.keys(s):[]; if(!ponds.length){tip.style.display='none';return;} tip.innerHTML='<div class="ohtip-h">บ่อคงคลัง Module '+mod+' (ทุกขนาด) · '+ponds.length+' บ่อ</div>'+ponds.sort().map(p=>'<div class="ohtip-r"><span>'+p+'</span><b>'+fmt(s[p],1)+' ต.</b></div>').join(''); tip.style.display='block'; const pad=14,w=tip.offsetWidth,h=tip.offsetHeight; let x=e.clientX+pad,y=e.clientY+pad; if(x+w>window.innerWidth)x=e.clientX-w-pad; if(y+h>window.innerHeight)y=Math.max(6,window.innerHeight-h-6); tip.style.left=x+'px'; tip.style.top=y+'px'; };
+window.ohTipCell=function(e,mod,bi){ const s=((window.__ohStockBand||{})[mod]||{})[bi]; let tip=document.getElementById('ohtip'); if(!tip){tip=document.createElement('div');tip.id='ohtip';tip.className='ohtip';document.body.appendChild(tip);} const ponds=s?Object.keys(s):[]; if(!ponds.length){tip.style.display='none';return;} const bl=(window.__ohBandLabels||[])[bi]||''; tip.innerHTML='<div class="ohtip-h">Module '+mod+' · ไซซ์ '+bl+' · '+ponds.length+' บ่อ</div>'+ponds.sort().map(p=>'<div class="ohtip-r"><span>'+p+'</span><b>'+fmt(s[p],1)+' ต.</b></div>').join(''); tip.style.display='block'; const pad=14,w=tip.offsetWidth,h=tip.offsetHeight; let x=e.clientX+pad,y=e.clientY+pad; if(x+w>window.innerWidth)x=e.clientX-w-pad; if(y+h>window.innerHeight)y=Math.max(6,window.innerHeight-h-6); tip.style.left=x+'px'; tip.style.top=y+'px'; };
+window.ohHide=function(){ const t=document.getElementById('ohtip'); if(t)t.style.display='none'; };
+
+/* ---------- INIT ---------- */
+route();
+</script>
+</body>
+</html>
