@@ -769,17 +769,17 @@ async function pageWeekly(){
       fcr:num(r[iFCR]),fcrT:(r[iFCR]||'').trim()||'–',
       tbio:tbioV,tbioT:fmt(tbioV,0),
       yieldv:num(r[iYield]),yieldT:(r[iYield]||'').trim()||'–',
-      feed:feedV,feedT:fmt(feedV,0)+(feedEst?' *':''),
+      feed:feedV,feedT:fmt(feedV,0),
       slow,lowSR}; });
   const wsk=st.sortKey, wsd=st.sortDir===-1?-1:1;
   if(wsk){ const wcol=WCOLS.find(c=>c.k===wsk); rowsD=rowsD.slice().sort((a,b)=>{ if(wcol.t==='s')return wsd*String(a[wsk]).localeCompare(String(b[wsk]),'th'); const av=a[wsk],bv=b[wsk],an=isNaN(av),bn=isNaN(bv); if(an&&bn)return 0; if(an)return 1; if(bn)return -1; return wsd*(av-bv); }); }
   let body=''; rowsD.forEach(x=>{
-    const feedStyle=x.feedEst?'color:#d97706;font-weight:700;font-style:italic;cursor:help':'color:#7c3aed;font-weight:700';
+    const feedStyle=x.feedEst?'color:#7c3aed;font-weight:700;cursor:help':'color:#7c3aed;font-weight:700';
     const feedTitle=x.feedEst?` title="ยังไม่มีข้อมูลอาหารวันนี้ · แสดงค่าล่าสุดที่มี ณ ${x.feedEstDate}"`:'';
     body+=`<tr data-pond-row="${x.pond}"><td class="l"><span class="pondtag ${x.slow?'bad':''}">${x.pond}</span></td><td><span class="mod-badge">${x.mod}</span></td><td>${x.type}</td><td>${x.docT}</td><td>${x.mbwT}</td><td>${x.sizeT}</td><td>${x.bioT}</td><td style="${x.slow?'color:#dc2626;font-weight:800':''}">${x.gainT}</td><td>${x.adgT}</td><td>${x.srT}</td><td style="${x.lowSR?'color:#dc2626;font-weight:800':''}">${x.accT}</td><td>${x.fcrT}</td><td>${x.tbioT}</td><td>${x.yieldT}</td><td style="${feedStyle}"${feedTitle}>${x.feedT}</td></tr>`; });
   const wArrow=(k)=>wsk===k?(wsd===1?' ▲':' ▼'):'';
   const wThead=WCOLS.map(c=>`<th onclick="wkSort('${c.k}')" style="cursor:pointer;user-select:none" title="คลิกเพื่อเรียงลำดับ">${c.l}${wArrow(c.k)}</th>`).join('');
-  const table=`<div class="tablecard"><h3 style="margin-bottom:6px"><span class="dot" style="background:#d97706"></span>รายละเอียดบ่อเลี้ยงรายบ่อ</h3><div class="hint">ชื่อบ่อสีแดง = อัตราการเจริญเติบโต (MBW Gain) ต่ำกว่าเกณฑ์ (${warnGrowth} บ่อ) · อัตรารอดสะสม &lt; 75% (${warnSR} บ่อ) · คลิกหัวตารางเพื่อเรียงจากน้อยไปมาก/มากไปน้อย · อาหาร/วัน ตัวเอียง* = ยังไม่มีข้อมูลวันนี้ แสดงค่าล่าสุดที่มี (ชี้เมาส์ดูวันที่)</div>
+  const table=`<div class="tablecard"><h3 style="margin-bottom:6px"><span class="dot" style="background:#d97706"></span>รายละเอียดบ่อเลี้ยงรายบ่อ</h3><div class="hint">ชื่อบ่อสีแดง = อัตราการเจริญเติบโต (MBW Gain) ต่ำกว่าเกณฑ์ (${warnGrowth} บ่อ) · อัตรารอดสะสม &lt; 75% (${warnSR} บ่อ) · คลิกหัวตารางเพื่อเรียงจากน้อยไปมาก/มากไปน้อย · อาหาร/วัน — ชี้เมาส์ที่ตัวเลขเพื่อดูว่าเป็นข้อมูลวันนี้หรือค่าล่าสุดที่มี</div>
     <table class="dtable"><thead><tr>${wThead}</tr></thead><tbody>${body}</tbody></table></div>`;
   // ---- closed ponds ----
   let cbody=closed.map(r=>`<tr data-pond-row="${(r[iPond]||'').trim()}"><td class="l"><span class="pondtag">${(r[iPond]||'').trim()}</span></td><td><span class="mod-badge">${(r[iMod]||'').trim()}</span></td><td>${(r[iType]||'').trim()}</td><td>${(r[iPrep]||'').trim()||'–'}</td></tr>`).join('');
