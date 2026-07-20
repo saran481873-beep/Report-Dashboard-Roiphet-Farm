@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Roiphet Farm — Daily Report Dashboard 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1"></script>
+<style>
+:root{
+  --green:#16a34a; --green-bg:#dcfce7; --green-line:#86efac;
+  --yellow:#d97706; --yellow-bg:#fef3c7; --yellow-line:#fcd34d;
+  --red:#dc2626; --red-bg:#fee2e2; --red-line:#fca5a5;
+  --ink:#0f172a; --muted:#64748b; --line:#e2e8f0; --card:#ffffff;
+  --bg:#f1f5f9; --head1:#0f766e; --head2:#134e4a; --accent:#0d9488;
+  --radius:14px; --gap:16px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Sans Thai',system-ui,sans-serif;background:var(--bg);color:var(--ink);line-height:1.45;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1360px;margin:0 auto;padding:20px}
+/* Header */
+.head{background:linear-gradient(135deg,var(--head1),var(--head2));color:#fff;border-radius:var(--radius);padding:22px 26px;margin-bottom:var(--gap);box-shadow:0 6px 20px rgba(15,118,110,.25)}
+.head-top{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px}
+.head h1{font-size:22px;font-weight:800;letter-spacing:-.3px}
+.head .sub{font-size:13px;opacity:.85;margin-top:3px}
+.head .asof{font-size:12px;opacity:.8;text-align:right}
+.head .asof b{font-size:14px}
+.live-badge{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;margin-top:6px;justify-content:flex-end}
+.live-dot{width:9px;height:9px;border-radius:50%;background:#f87171}
+.live-dot.on{background:#4ade80;box-shadow:0 0 0 0 rgba(74,222,128,.6);animation:lp 2s infinite}
+@keyframes lp{0%{box-shadow:0 0 0 0 rgba(74,222,128,.5)}70%{box-shadow:0 0 0 7px rgba(74,222,128,0)}100%{box-shadow:0 0 0 0 rgba(74,222,128,0)}}
+.refresh-btn{cursor:pointer;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.1);color:#fff;border-radius:8px;padding:4px 9px;font-size:13px;margin-left:8px}
+.refresh-btn:hover{background:rgba(255,255,255,.22)}
+/* Filters */
+.filters{margin-top:18px;display:flex;flex-wrap:wrap;gap:18px}
+.fgroup{display:flex;flex-direction:column;gap:6px}
+.fgroup .flabel{font-size:11px;text-transform:uppercase;letter-spacing:.6px;opacity:.8;font-weight:600}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{cursor:pointer;user-select:none;font-size:13px;font-weight:600;padding:6px 13px;border-radius:999px;border:1.5px solid rgba(255,255,255,.35);background:rgba(255,255,255,.08);color:#fff;transition:.15s}
+.chip:hover{background:rgba(255,255,255,.2)}
+.chip.on{background:#fff;color:var(--head2);border-color:#fff}
+.chip.on.g{color:var(--green)} .chip.on.y{color:var(--yellow)} .chip.on.r{color:var(--red)}
+.reset{cursor:pointer;font-size:12px;font-weight:600;color:#fff;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.3);padding:6px 12px;border-radius:8px;align-self:flex-end}
+.reset:hover{background:rgba(255,255,255,.22)}
+/* KPI */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:var(--gap);margin-bottom:var(--gap)}
+.kpi{background:var(--card);border-radius:var(--radius);padding:18px 20px;box-shadow:0 1px 3px rgba(0,0,0,.07);border-left:5px solid var(--accent);position:relative}
+.kpi.g{border-left-color:var(--green)} .kpi.y{border-left-color:var(--yellow)} .kpi.r{border-left-color:var(--red)} .kpi.dim{border-left-color:#94a3b8}
+.kpi .klabel{font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px}
+.kpi .kval{font-size:34px;font-weight:800;margin-top:6px;line-height:1}
+.kpi.g .kval{color:var(--green)} .kpi.y .kval{color:var(--yellow)} .kpi.r .kval{color:var(--red)}
+.kpi .kpct{font-size:14px;font-weight:700;margin-top:4px;color:var(--muted)}
+.kpi .kbar{height:6px;border-radius:4px;background:var(--line);margin-top:10px;overflow:hidden}
+.kpi .kbar>span{display:block;height:100%;border-radius:4px}
+/* Section */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:var(--gap);margin-bottom:var(--gap)}
+.grid2.wide{grid-template-columns:1.1fr .9fr}
+.card{background:var(--card);border-radius:var(--radius);padding:20px 22px;box-shadow:0 1px 3px rgba(0,0,0,.07)}
+.card h3{font-size:15px;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:8px}
+.card .hint{font-size:12px;color:var(--muted);margin-bottom:14px}
+.card h3 .dot{width:9px;height:9px;border-radius:50%;background:var(--accent)}
+canvas{max-height:260px}
+/* Parameter breakdown */
+.param-row{display:grid;grid-template-columns:120px 1fr;align-items:center;gap:12px;margin-bottom:12px}
+.param-name{font-size:13px;font-weight:600}
+.param-name small{display:block;color:var(--muted);font-weight:400;font-size:11px}
+.pbar{display:flex;height:30px;border-radius:8px;overflow:hidden;background:var(--line)}
+.pseg{display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700;cursor:pointer;transition:.15s;min-width:0}
+.pseg:hover{filter:brightness(1.08);outline:2px solid rgba(0,0,0,.15);outline-offset:-2px}
+.pseg.g{background:var(--green)} .pseg.y{background:var(--yellow)} .pseg.r{background:var(--red)}
+.pseg span{padding:0 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.plegend{display:flex;gap:16px;font-size:12px;color:var(--muted);margin-top:6px}
+.plegend b{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:middle}
+/* Top 10 */
+.urg-table{width:100%;border-collapse:collapse;font-size:13px}
+.urg-table th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);padding:8px 10px;border-bottom:2px solid var(--line);white-space:nowrap}
+.urg-table td{padding:9px 10px;border-bottom:1px solid #f1f5f9}
+.urg-table tr:hover td{background:#f8fafc}
+.rank{width:26px;height:26px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;color:#fff;background:var(--muted)}
+.rank.top{background:var(--red)}
+.pondtag{font-weight:700;font-family:ui-monospace,monospace}
+.mod-badge{display:inline-block;font-size:11px;font-weight:700;padding:2px 7px;border-radius:6px;background:#e0f2fe;color:#0369a1}
+.uscore{font-weight:800}
+.mini{display:inline-flex;align-items:center;gap:5px}
+.pill{font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px}
+.pill.g{background:var(--green-bg);color:var(--green)} .pill.y{background:var(--yellow-bg);color:var(--yellow)} .pill.r{background:var(--red-bg);color:var(--red)}
+/* Detail table */
+.tablecard{background:var(--card);border-radius:var(--radius);padding:20px 22px;box-shadow:0 1px 3px rgba(0,0,0,.07);margin-bottom:var(--gap);overflow-x:auto}
+.dtable{width:100%;border-collapse:collapse;font-size:12.5px;white-space:nowrap}
+.dtable th{position:sticky;top:0;background:#f8fafc;text-align:center;font-size:11px;text-transform:uppercase;letter-spacing:.3px;color:var(--muted);padding:9px 8px;border-bottom:2px solid var(--line);cursor:pointer;user-select:none}
+.dtable th:hover{color:var(--ink)}
+.dtable td{padding:7px 8px;border-bottom:1px solid #f1f5f9;text-align:center}
+.dtable td.l{text-align:left}
+.dtable tr:hover td{background:#f8fafc}
+.cell{display:inline-block;min-width:44px;padding:2px 6px;border-radius:6px;font-weight:600}
+.cell.g{background:var(--green-bg);color:#166534} .cell.y{background:var(--yellow-bg);color:#92400e} .cell.r{background:var(--red-bg);color:#991b1b}
+.st{font-weight:800;font-size:11px;padding:3px 9px;border-radius:999px}
+.st.Green{background:var(--green-bg);color:var(--green)} .st.Yellow{background:var(--yellow-bg);color:var(--yellow)} .st.Red{background:var(--red-bg);color:var(--red)} .st.Close{background:#e2e8f0;color:#475569}
+.closerow td{opacity:.6}
+/* Modal */
+.overlay{position:fixed;inset:0;background:rgba(15,23,42,.55);display:none;align-items:center;justify-content:center;z-index:50;padding:20px}
+.overlay.show{display:flex}
+.modal{background:#fff;border-radius:16px;max-width:640px;width:100%;max-height:82vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.modal-h{padding:18px 22px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:#fff}
+.modal-h h4{font-size:16px;font-weight:700}
+.modal-h .x{cursor:pointer;font-size:22px;color:var(--muted);line-height:1;border:none;background:none}
+.modal-b{padding:16px 22px}
+.mrow{display:flex;justify-content:space-between;align-items:center;padding:11px 12px;border-radius:10px;margin-bottom:8px;border:1px solid var(--line)}
+.mrow .mp{font-weight:700;font-family:ui-monospace,monospace}
+.mrow .mv{font-weight:800;font-size:15px}
+.mrow small{color:var(--muted);font-weight:400;display:block;font-size:11px}
+.footnote{font-size:12px;color:var(--muted);text-align:center;padding:14px}
+.section-title{font-size:13px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin:4px 4px 10px}
+@media(max-width:920px){.grid2,.grid2.wide{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <div class="head-top">
+      <div>
+        <h1>🦐 Roiphet Farm — Daily Report Dashboard</h1>
+        <div class="sub">สรุปสถานะรายวัน · Module A · B · C · D · เทียบค่ามาตรฐานการเลี้ยง</div>
+      </div>
+      <div class="asof">ข้อมูล ณ วันที่<br><b id="asof">กำลังโหลด…</b>
+        <div class="live-badge"><span class="live-dot" id="livedot"></span><span id="livetext">กำลังเชื่อมต่อ…</span><button class="refresh-btn" id="refresh" title="รีเฟรช">↻</button></div>
+      </div>
+    </div>
+    <div class="filters">
+      <div class="fgroup">
+        <div class="flabel">พื้นที่ (Module)</div>
+        <div class="chips" id="f-mod"></div>
+      </div>
+      <div class="fgroup">
+        <div class="flabel">สถานะรวม</div>
+        <div class="chips" id="f-st"></div>
+      </div>
+      <div class="fgroup">
+        <div class="flabel">สถานะบ่อ</div>
+        <div class="chips" id="f-pond"></div>
+      </div>
+      <div class="fgroup" style="justify-content:flex-end">
+        <div class="flabel">&nbsp;</div>
+        <div class="reset" id="reset">↺ ล้างตัวกรอง</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 1 -->
+  <div class="section-title">1 · สรุปสถานะรวม (เฉพาะบ่อที่เลี้ยงอยู่ · ไม่รวมบ่อปิด)</div>
+  <div class="kpis" id="kpis"></div>
+
+  <div class="grid2 wide">
+    <div class="card">
+      <h3><span class="dot"></span>สัดส่วนสถานะบ่อ</h3>
+      <div class="hint">จำนวนบ่อ เขียว / เหลือง / แดง ในกลุ่มที่เลือก</div>
+      <canvas id="donut"></canvas>
+    </div>
+    <div class="card">
+      <h3><span class="dot"></span>สถานะแยกตาม Module</h3>
+      <div class="hint">เปรียบเทียบจำนวนบ่อแต่ละสถานะในแต่ละพื้นที่</div>
+      <canvas id="modbar"></canvas>
+    </div>
+  </div>
+
+  <!-- SECTION 2 -->
+  <div class="section-title">2 · สถานะรายพารามิเตอร์ — คลิกที่แถบสีเพื่อดูบ่อและค่าที่ผิดเกณฑ์</div>
+  <div class="card" style="margin-bottom:var(--gap)">
+    <div class="hint">แต่ละแถบแสดงจำนวนบ่อในสถานะ เขียว/เหลือง/แดง ของพารามิเตอร์นั้น · <b>คลิกช่วงสีเหลืองหรือแดงเพื่อเจาะดูรายบ่อ</b></div>
+    <div id="params"></div>
+    <div class="plegend">
+      <span><b style="background:var(--green)"></b>ปกติ (Green)</span>
+      <span><b style="background:var(--yellow)"></b>เฝ้าระวัง (Yellow)</span>
+      <span><b style="background:var(--red)"></b>ผิดเกณฑ์ (Red)</span>
+    </div>
+  </div>
+
+  <!-- SECTION 3 -->
+  <div class="section-title">3 · Top 10 บ่อที่ต้องแก้ไขด่วนที่สุด</div>
+  <div class="card" style="margin-bottom:var(--gap)">
+    <div class="hint">จัดอันดับจาก<b>ความรุนแรงรวมทุกพารามิเตอร์</b> (อาหาร · pH · Alk · TAN · NO₂-N · ตัวตาย) — บ่อที่ผิดเกณฑ์หลายค่าพร้อมกันจะอยู่บนสุด</div>
+    <div style="overflow-x:auto"><table class="urg-table" id="urg"></table></div>
+  </div>
+
+  <!-- DETAIL -->
+  <div class="section-title">รายละเอียดรายบ่อ (คลิกหัวคอลัมน์เพื่อเรียงลำดับ)</div>
+  <div class="tablecard">
+    <table class="dtable" id="detail"></table>
+  </div>
+
+  <div class="footnote">
+    เกณฑ์มาตรฐาน: pH 7.0–9.0 (เป้า 8.0) · T.Alk 120–180 ppm (เป้า 150) · TAN เป้า 0 (≤3) · NO₂-N เป้า 0.5 (≤3) · อาหารเทียบ STD Feed ตาม DOC · ตัวตายยิ่งต่ำยิ่งดี<br>
+    ที่มา: Google Sheet "2026 Daily Report" — ข้อมูลสดผ่าน Apps Script API · อัปเดตอัตโนมัติทุกเช้า 7:30 น.
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <div class="modal-h"><h4 id="mtitle"></h4><button class="x" id="mclose">×</button></div>
+    <div class="modal-b" id="mbody"></div>
+  </div>
+</div>
+
+<script>
+/* ================= LIVE DATA SOURCE ================= */
+const DATA_URL = "https://script.google.com/macros/s/AKfycbyNznon22ahA9zsdkxSM4D8CthhsrC2yMlWITm_1lP65ay8qKKGZ-9Ar58RtF2GeeEN/exec";
+
+/* RAW format (เดิม): keys ตาม KEYS ด้านล่าง
+   c=[feed,ph,alk,tan,no2,mort] colors G/Y/R,  s=[...] scores,  overall, total */
+let RAW = [];
+
+const KEYS=["module","pond","type","unit","status","mbw","biomass","feed","sal","ph","alk","tan","no2","mort","stdFeed","diffKg","diffPct","cstr","s","overall","total"];
+let DATA = [];
+function buildData(){
+  DATA = RAW.map(r=>{const o={};KEYS.forEach((k,i)=>o[k]=r[i]);
+    const cc=String(o.cstr||"").split("");o.c={feed:cc[0]||"",ph:cc[1]||"",alk:cc[2]||"",tan:cc[3]||"",no2:cc[4]||"",mort:cc[5]||""};
+    if(typeof o.mort==="number")o.mort=Math.round(o.mort);
+    return o;});
+  // รายชื่อ Module ดึงจากข้อมูลจริงอัตโนมัติ (รองรับ Module ใหม่ เช่น R)
+  const present=[...new Set(DATA.map(d=>d.module).filter(m=>m!==""&&m!=null))].sort();
+  if(present.length) MODS=present;
+}
+
+/* ---- แปลงแถวจาก API -> RAW format ----
+   API columns (index):
+   0 module,1 pond,2 type,3 unit,4 status,
+   5 mbw,6 biomass,7 feed,8 sal,9 ph,10 alk,11 tan,12 no2,13 mort,
+   14 stdFeed,15 diffKg,16 diffPct,
+   17-22 colors[feed,ph,alk,tan,no2,mort],
+   23-28 scores[feed,ph,alk,tan,no2,mort],
+   29 overall(Red/Yellow/Green) */
+function colorLetter(x){x=String(x==null?"":x).trim().toLowerCase();return x==="green"?"G":x==="yellow"?"Y":x==="red"?"R":"-";}
+function overallWord(x){x=String(x==null?"":x).trim().toLowerCase();return x==="green"?"Green":x==="yellow"?"Yellow":x==="red"?"Red":"";}
+function apiRowToRaw(r){
+  const isCulture=String(r[4]).trim().toLowerCase()==="culture";
+  const cstr=isCulture?[r[17],r[18],r[19],r[20],r[21],r[22]].map(colorLetter).join(""):"";
+  const scores=isCulture?[r[23],r[24],r[25],r[26],r[27],r[28]].map(x=>{const n=Number(x);return isNaN(n)?0:n;}):[];
+  const overall=isCulture?overallWord(r[29]):"";
+  const total=scores.reduce((a,b)=>a+b,0);
+  return [r[0],r[1],r[2],r[3],r[4],r[5],r[6],r[7],r[8],r[9],r[10],r[11],r[12],r[13],r[14],r[15],r[16],cstr,scores,overall,total];
+}
+
+const PARAMS=[
+  {key:"feed",name:"อาหาร/วัน",sub:"Feed vs STD",unit:"kg",val:d=>d.feed,ref:d=>"STD "+fmt(d.stdFeed)+" ("+(d.diffPct>0?"+":"")+d.diffPct+"%)"},
+  {key:"ph",name:"pH เฉลี่ย",sub:"เช้า-บ่าย",unit:"",val:d=>d.ph,ref:d=>"เป้า 8.0 (7.0–9.0)"},
+  {key:"alk",name:"T.Alk",sub:"ppm",unit:"ppm",val:d=>d.alk,ref:d=>"เป้า 150 (120–180)"},
+  {key:"tan",name:"TAN",sub:"ppm",unit:"ppm",val:d=>d.tan,ref:d=>"เป้า 0 (≤3)"},
+  {key:"no2",name:"NO₂-N",sub:"ppm",unit:"ppm",val:d=>d.no2,ref:d=>"เป้า 0.5 (≤3)"},
+  {key:"mort",name:"ตัวตาย/วัน",sub:"pcs/day",unit:"pcs",val:d=>d.mort,ref:d=>"ยิ่งต่ำยิ่งดี"}
+];
+const CMAP={G:"var(--green)",Y:"var(--yellow)",R:"var(--red)"};
+const CNAME={G:"ปกติ",Y:"เฝ้าระวัง",R:"ผิดเกณฑ์"};
+const CCLASS={G:"g",Y:"y",R:"r"};
+
+/* ---------- STATE ---------- */
+const state={mod:new Set(),st:new Set(),pond:new Set(["Culture"])};
+let MODS=["A","B","C","D"];
+const STS=["Red","Yellow","Green"], PONDS=["Culture","Close"];
+
+function fmt(n){if(n===null||n===undefined||n==="")return "–";return (typeof n==="number")?(Number.isInteger(n)?n.toLocaleString():n.toLocaleString(undefined,{maximumFractionDigits:2})):n;}
+
+/* filtered full set (respects pond-status filter, includes Close if chosen) */
+function filteredAll(){
+  return DATA.filter(d=>{
+    if(state.mod.size && !state.mod.has(d.module))return false;
+    if(state.pond.size && !state.pond.has(d.status))return false;
+    if(state.st.size){ if(d.status!=="Culture")return false; if(!state.st.has(d.overall))return false; }
+    return true;
+  });
+}
+/* analysis set = culture only (for KPIs/charts/params/top10) */
+function analysisSet(){ return filteredAll().filter(d=>d.status==="Culture"); }
+
+/* ---------- FILTER UI ---------- */
+function chip(txt,on,cls){return `<div class="chip ${on?"on "+(cls||""):""}" data-v="${txt}">${txt}</div>`;}
+function buildFilters(){
+  document.getElementById("f-mod").innerHTML=MODS.map(m=>chip(m,state.mod.has(m))).join("");
+  document.getElementById("f-st").innerHTML=STS.map(s=>{const c=s==="Red"?"r":s==="Yellow"?"y":"g";const lbl=s==="Red"?"แดง":s==="Yellow"?"เหลือง":"เขียว";return `<div class="chip ${state.st.has(s)?"on "+c:""}" data-v="${s}">${lbl}</div>`;}).join("");
+  document.getElementById("f-pond").innerHTML=PONDS.map(p=>{const lbl=p==="Culture"?"เลี้ยงอยู่":"ปิดบ่อ";return `<div class="chip ${state.pond.has(p)?"on":""}" data-v="${p}">${lbl}</div>`;}).join("");
+  bindChips("f-mod",state.mod);bindChips("f-st",state.st);bindChips("f-pond",state.pond);
+}
+function bindChips(id,set){
+  document.getElementById(id).querySelectorAll(".chip").forEach(c=>{
+    c.onclick=()=>{const v=c.dataset.v;set.has(v)?set.delete(v):set.add(v);render();};
+  });
+}
+document.getElementById("reset").onclick=()=>{state.mod.clear();state.st.clear();state.pond=new Set(["Culture"]);render();};
+
+/* ---------- SECTION 1: KPIs + charts ---------- */
+let donutChart,modChart;
+function renderKPIs(){
+  const set=analysisSet();
+  const g=set.filter(d=>d.overall==="Green").length;
+  const y=set.filter(d=>d.overall==="Yellow").length;
+  const r=set.filter(d=>d.overall==="Red").length;
+  const tot=set.length;
+  const closed=DATA.filter(d=>d.status==="Close" && (!state.mod.size||state.mod.has(d.module))).length;
+  const pct=n=>tot?Math.round(n/tot*100):0;
+  document.getElementById("kpis").innerHTML=`
+    <div class="kpi"><div class="klabel">บ่อที่เลี้ยงอยู่</div><div class="kval">${tot}</div><div class="kpct">บ่อ (ไม่รวมปิด)</div></div>
+    <div class="kpi dim"><div class="klabel">⚪ บ่อปิด (Close)</div><div class="kval" style="color:#64748b">${closed}</div><div class="kpct">ไม่นำมาคิดสถานะ</div></div>
+    <div class="kpi g"><div class="klabel">🟢 เขียว · ปกติ</div><div class="kval">${g}</div><div class="kpct">${pct(g)}%</div><div class="kbar"><span style="width:${pct(g)}%;background:var(--green)"></span></div></div>
+    <div class="kpi y"><div class="klabel">🟡 เหลือง · เฝ้าระวัง</div><div class="kval">${y}</div><div class="kpct">${pct(y)}%</div><div class="kbar"><span style="width:${pct(y)}%;background:var(--yellow)"></span></div></div>
+    <div class="kpi r"><div class="klabel">🔴 แดง · ต้องแก้ไข</div><div class="kval">${r}</div><div class="kpct">${pct(r)}%</div><div class="kbar"><span style="width:${pct(r)}%;background:var(--red)"></span></div></div>`;
+  return {g,y,r,tot};
+}
+function renderDonut(c){
+  const ctx=document.getElementById("donut");
+  const data=[c.g,c.y,c.r];
+  if(donutChart)donutChart.destroy();
+  donutChart=new Chart(ctx,{type:"doughnut",
+    data:{labels:["เขียว","เหลือง","แดง"],datasets:[{data,backgroundColor:["#16a34a","#d97706","#dc2626"],borderWidth:2,borderColor:"#fff"}]},
+    options:{cutout:"62%",plugins:{legend:{position:"bottom",labels:{font:{family:"Noto Sans Thai",size:13},padding:14,usePointStyle:true}},
+      tooltip:{callbacks:{label:x=>` ${x.label}: ${x.raw} บ่อ (${c.tot?Math.round(x.raw/c.tot*100):0}%)`}}}}});
+}
+function renderModBar(){
+  const ctx=document.getElementById("modbar");
+  const mods=state.mod.size?[...state.mod]:MODS;
+  const set=analysisSet();
+  const g=mods.map(m=>set.filter(d=>d.module===m&&d.overall==="Green").length);
+  const y=mods.map(m=>set.filter(d=>d.module===m&&d.overall==="Yellow").length);
+  const r=mods.map(m=>set.filter(d=>d.module===m&&d.overall==="Red").length);
+  if(modChart)modChart.destroy();
+  modChart=new Chart(ctx,{type:"bar",
+    data:{labels:mods.map(m=>"Module "+m),datasets:[
+      {label:"เขียว",data:g,backgroundColor:"#16a34a"},
+      {label:"เหลือง",data:y,backgroundColor:"#d97706"},
+      {label:"แดง",data:r,backgroundColor:"#dc2626"}]},
+    options:{responsive:true,scales:{x:{stacked:true,grid:{display:false}},y:{stacked:true,ticks:{precision:0},grid:{color:"#f1f5f9"}}},
+      plugins:{legend:{position:"bottom",labels:{font:{family:"Noto Sans Thai"},usePointStyle:true,padding:12}}}}});
+}
+
+/* ---------- SECTION 2: parameter breakdown ---------- */
+function renderParams(){
+  const set=analysisSet();
+  const wrap=document.getElementById("params");
+  wrap.innerHTML=PARAMS.map(p=>{
+    const g=set.filter(d=>d.c[p.key]==="G").length;
+    const y=set.filter(d=>d.c[p.key]==="Y").length;
+    const r=set.filter(d=>d.c[p.key]==="R").length;
+    const tot=g+y+r||1;
+    const seg=(n,cls,letter)=>n?`<div class="pseg ${cls}" style="flex:${n}" data-p="${p.key}" data-c="${letter}"><span>${n}</span></div>`:"";
+    return `<div class="param-row">
+      <div class="param-name">${p.name}<small>${p.sub}</small></div>
+      <div class="pbar">${seg(g,"g","G")}${seg(y,"y","Y")}${seg(r,"r","R")}</div>
+    </div>`;
+  }).join("");
+  wrap.querySelectorAll(".pseg").forEach(s=>{
+    s.onclick=()=>{ if(s.dataset.c==="G")return; openDrill(s.dataset.p,s.dataset.c); };
+  });
+}
+
+/* Drill-down modal */
+function openDrill(pkey,color){
+  const p=PARAMS.find(x=>x.key===pkey);
+  const set=analysisSet().filter(d=>d.c[pkey]===color).sort((a,b)=>(p.val(b)??-1)-(p.val(a)??-1));
+  document.getElementById("mtitle").innerHTML=`${p.name} — สถานะ<span class="pill ${CCLASS[color]}" style="margin-left:8px">${CNAME[color]}</span> · ${set.length} บ่อ`;
+  document.getElementById("mbody").innerHTML= set.length? set.map(d=>`
+    <div class="mrow" style="border-left:5px solid ${CMAP[color]}">
+      <div><span class="mp">${d.pond}</span> <span class="mod-badge">Module ${d.module}</span><small>${p.ref(d)}</small></div>
+      <div style="text-align:right"><span class="mv" style="color:${CMAP[color]}">${fmt(p.val(d))} ${p.unit}</span></div>
+    </div>`).join("") : `<p style="color:var(--muted);text-align:center;padding:20px">ไม่มีบ่อในสถานะนี้</p>`;
+  document.getElementById("overlay").classList.add("show");
+}
+document.getElementById("mclose").onclick=()=>document.getElementById("overlay").classList.remove("show");
+document.getElementById("overlay").onclick=e=>{if(e.target.id==="overlay")e.currentTarget.classList.remove("show");};
+
+/* ---------- SECTION 3: Top 10 urgent ---------- */
+function renderUrgent(){
+  const set=analysisSet();
+  // จัดอันดับจากความรุนแรงรวมทุกพารามิเตอร์ (total risk score) แล้ว tie-break ด้วยตัวตาย
+  const scored=set.slice().sort((a,b)=>(b.total-a.total)||((b.mort||0)-(a.mort||0))).slice(0,10);
+  const cchip=(d,k)=>`<span class="pill ${CCLASS[d.c[k]]||"g"}">${fmt(PARAMS.find(p=>p.key===k).val(d))}</span>`;
+  document.getElementById("urg").innerHTML=`
+    <thead><tr><th>#</th><th>บ่อ</th><th>Module</th><th>สถานะ</th><th>อาหาร</th><th>pH</th><th>Alk</th><th>TAN</th><th>NO₂-N</th><th>ตัวตาย/วัน</th></tr></thead>
+    <tbody>${scored.map((d,i)=>`<tr>
+      <td><span class="rank ${i<3?"top":""}">${i+1}</span></td>
+      <td><span class="pondtag">${d.pond}</span></td>
+      <td><span class="mod-badge">${d.module}</span></td>
+      <td><span class="st ${d.overall}">${d.overall==="Red"?"แดง":d.overall==="Yellow"?"เหลือง":"เขียว"}</span></td>
+      <td>${cchip(d,"feed")}</td><td>${cchip(d,"ph")}</td><td>${cchip(d,"alk")}</td>
+      <td>${cchip(d,"tan")}</td><td>${cchip(d,"no2")}</td><td>${cchip(d,"mort")}</td>
+    </tr>`).join("")}</tbody>`;
+}
+
+/* ---------- DETAIL TABLE ---------- */
+let sortKey="total",sortDir=-1;
+const COLS=[
+  {k:"module",t:"Mod",l:true},{k:"pond",t:"บ่อ",l:true},{k:"type",t:"ชนิด",l:true},{k:"status",t:"สถานะบ่อ",l:true},
+  {k:"feed",t:"อาหาร",c:"feed"},{k:"ph",t:"pH",c:"ph"},{k:"alk",t:"Alk",c:"alk"},
+  {k:"tan",t:"TAN",c:"tan"},{k:"no2",t:"NO₂",c:"no2"},{k:"mort",t:"ตัวตาย",c:"mort"},
+  {k:"overall",t:"รวม"},{k:"total",t:"คะแนน"}
+];
+function renderDetail(){
+  let rows=filteredAll().slice().sort((a,b)=>{
+    let va=a[sortKey],vb=b[sortKey];
+    if(va===null||va===undefined)va=-Infinity; if(vb===null||vb===undefined)vb=-Infinity;
+    if(typeof va==="string")return sortDir*va.localeCompare(vb);
+    return sortDir*(va-vb);
+  });
+  const head=COLS.map(c=>`<th data-k="${c.k}">${c.t}${sortKey===c.k?(sortDir<0?" ▾":" ▴"):""}</th>`).join("");
+  const body=rows.map(d=>{
+    const isClose=d.status==="Close";
+    const cell=(c)=>{
+      const v=fmt(d[c.k]);
+      if(c.c && !isClose){const col=d.c[c.c];return `<td><span class="cell ${CCLASS[col]||""}">${v}</span></td>`;}
+      if(c.k==="overall"){return isClose?`<td><span class="st Close">ปิด</span></td>`:`<td><span class="st ${d.overall}">${d.overall==="Red"?"แดง":d.overall==="Yellow"?"เหลือง":"เขียว"}</span></td>`;}
+      if(c.k==="status"){return `<td class="l"><span class="st ${isClose?"Close":""}">${isClose?"ปิดบ่อ":"เลี้ยงอยู่"}</span></td>`;}
+      return `<td class="${c.l?"l":""}">${v}</td>`;
+    };
+    return `<tr class="${isClose?"closerow":""}">${COLS.map(cell).join("")}</tr>`;
+  }).join("");
+  document.getElementById("detail").innerHTML=`<thead><tr>${head}</tr></thead><tbody>${body}</tbody>`;
+  document.getElementById("detail").querySelectorAll("th").forEach(th=>{
+    th.onclick=()=>{const k=th.dataset.k;if(sortKey===k)sortDir*=-1;else{sortKey=k;sortDir=(k==="pond"||k==="module")?1:-1;}renderDetail();};
+  });
+}
+
+/* ---------- RENDER ALL ---------- */
+function render(){
+  if(!DATA.length){return;}
+  buildFilters();
+  const c=renderKPIs();
+  renderDonut(c);
+  renderModBar();
+  renderParams();
+  renderUrgent();
+  renderDetail();
+}
+
+/* ---------- LIVE LOAD ---------- */
+function setLive(on,txt){
+  document.getElementById("livedot").classList.toggle("on",!!on);
+  document.getElementById("livetext").textContent=txt;
+}
+function fmtThai(iso){
+  const d=new Date(iso); if(isNaN(d))return iso||"–";
+  return d.toLocaleString("th-TH",{dateStyle:"medium",timeStyle:"short"});
+}
+async function loadLive(){
+  setLive(false,"กำลังโหลด…");
+  try{
+    const res=await fetch(DATA_URL,{cache:"no-store"});
+    if(!res.ok)throw new Error("HTTP "+res.status);
+    const j=await res.json();
+    if(j.error)throw new Error(j.error);
+    RAW=(j.rows||[]).map(apiRowToRaw);
+    buildData();
+    document.getElementById("asof").textContent=fmtThai(j.updated);
+    render();
+    setLive(true,"ข้อมูลสด");
+  }catch(e){
+    setLive(false,"เชื่อมต่อไม่ได้");
+    document.getElementById("asof").textContent="โหลดข้อมูลไม่สำเร็จ";
+    if(!DATA.length){
+      document.getElementById("kpis").innerHTML='<div class="kpi r" style="grid-column:1/-1"><div class="klabel">ข้อผิดพลาด</div><div class="kpct">ดึงข้อมูลจาก API ไม่ได้: '+(e.message||e)+'</div></div>';
+    }
+  }
+}
+document.getElementById("refresh").onclick=loadLive;
+loadLive();
+setInterval(loadLive,5*60*1000);
+</script>
+</body>
+</html>
