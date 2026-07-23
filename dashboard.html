@@ -711,23 +711,25 @@ async function pageWeekly(){
   const P={teal:'#0d9488',emer:'#10b981',viol:'#8b5cf6',sky:'#0ea5e9',rose:'#f43f5e',amber:'#f59e0b',slate:'#94a3b8',mint:'#5eead4'};
   const gfill=(cx,hex)=>{ const g2=cx.createLinearGradient(0,0,0,300); g2.addColorStop(0,hex+'44'); g2.addColorStop(1,hex+'03'); return g2; };
   // ---- aggregates ----
-  const modOrder=['A','B','C','D','R']; const magg={}; const bands={a:0,b:0,c:0,e:0}; let warnGrowth=0,warnSR=0,sumAcc=0,cntAcc=0,sumFcr=0,cntFcr=0,totBio=0,totFeed=0;
+  const modOrder=['A','B','C','D','R']; const magg={}; const bands={a:0,b:0,c:0,e:0}; let warnGrowth=0,warnSR=0,sumAcc=0,cntAcc=0,sumFcr=0,cntFcr=0,totBio=0,totFeed=0,sumDoc=0,cntDoc=0;
   let totFeedEst=0;
-  culture.forEach(r=>{ const m=(r[iMod]||'').trim(); if(!magg[m])magg[m]={n:0,mbw:0,adg:0,sr:0,acc:0,fcr:0,bio:0,feed:0,cAdg:0,cSr:0,cAcc:0,cFcr:0}; const o=magg[m];
-    const mbw=num(r[iMBW]),gain=num(r[iGain]),acc=num(r[iAcc]),adg=num(r[iADG]),sr=num(r[iSR]),fcr=num(r[iFCR]),tb=num(r[iTBio]); let fdd=num(r[iFeed]); let fddEst=false;
+  culture.forEach(r=>{ const m=(r[iMod]||'').trim(); if(!magg[m])magg[m]={n:0,mbw:0,adg:0,sr:0,acc:0,fcr:0,bio:0,feed:0,doc:0,cAdg:0,cSr:0,cAcc:0,cFcr:0,cDoc:0}; const o=magg[m];
+    const mbw=num(r[iMBW]),gain=num(r[iGain]),acc=num(r[iAcc]),adg=num(r[iADG]),sr=num(r[iSR]),fcr=num(r[iFCR]),tb=num(r[iTBio]),docV=num(r[iDOC]); let fdd=num(r[iFeed]); let fddEst=false;
     if(isNaN(fdd)||fdd<=0){ const fb=flMap[(r[iPond]||'').trim()]; if(fb){ fdd=fb.feed; fddEst=true; } }
-    o.n++; if(!isNaN(mbw))o.mbw+=mbw; if(!isNaN(adg)){o.adg+=adg;o.cAdg++;} if(!isNaN(sr)){o.sr+=sr;o.cSr++;} if(!isNaN(acc)){o.acc+=acc;o.cAcc++;} if(!isNaN(fcr)){o.fcr+=fcr;o.cFcr++;} if(!isNaN(tb))o.bio+=tb; if(!isNaN(fdd)){o.feed+=fdd;totFeed+=fdd; if(fddEst)totFeedEst+=fdd;}
+    o.n++; if(!isNaN(mbw))o.mbw+=mbw; if(!isNaN(adg)){o.adg+=adg;o.cAdg++;} if(!isNaN(sr)){o.sr+=sr;o.cSr++;} if(!isNaN(acc)){o.acc+=acc;o.cAcc++;} if(!isNaN(fcr)){o.fcr+=fcr;o.cFcr++;} if(!isNaN(tb))o.bio+=tb; if(!isNaN(fdd)){o.feed+=fdd;totFeed+=fdd; if(fddEst)totFeedEst+=fdd;} if(!isNaN(docV)){o.doc+=docV;o.cDoc++;}
     if(!isNaN(tb))totBio+=tb;
     if(!isNaN(acc)){ sumAcc+=acc;cntAcc++; if(acc>90)bands.a++; else if(acc>=75)bands.b++; else if(acc>=60)bands.c++; else bands.e++; if(acc<75)warnSR++; }
     if(!isNaN(fcr)){ sumFcr+=fcr;cntFcr++; }
+    if(!isNaN(docV)){ sumDoc+=docV;cntDoc++; }
     if(!isNaN(gain)&&gain<gainStd(mbw))warnGrowth++;
   });
-  const mods=modOrder.filter(m=>magg[m]).map(m=>{const o=magg[m];return {code:m,n:o.n,mbw:o.mbw/o.n,adg:o.cAdg?o.adg/o.cAdg:NaN,sr:o.cSr?o.sr/o.cSr:NaN,acc:o.cAcc?o.acc/o.cAcc:NaN,fcr:o.cFcr?o.fcr/o.cFcr:NaN,bio:o.bio,feed:o.feed};});
-  const avgAcc=cntAcc?sumAcc/cntAcc:NaN, avgFcr=cntFcr?sumFcr/cntFcr:NaN;
-  const totStat={code:'รวม',n:culture.length,mbw:mods.reduce((s,x)=>s+x.mbw*x.n,0)/(culture.length||1),adg:NaN,sr:NaN,acc:avgAcc,fcr:avgFcr,bio:totBio,feed:totFeed};
+  const mods=modOrder.filter(m=>magg[m]).map(m=>{const o=magg[m];return {code:m,n:o.n,mbw:o.mbw/o.n,adg:o.cAdg?o.adg/o.cAdg:NaN,sr:o.cSr?o.sr/o.cSr:NaN,acc:o.cAcc?o.acc/o.cAcc:NaN,fcr:o.cFcr?o.fcr/o.cFcr:NaN,bio:o.bio,feed:o.feed,doc:o.cDoc?o.doc/o.cDoc:NaN};});
+  const avgAcc=cntAcc?sumAcc/cntAcc:NaN, avgFcr=cntFcr?sumFcr/cntFcr:NaN, avgDoc=cntDoc?sumDoc/cntDoc:NaN;
+  const totStat={code:'รวม',n:culture.length,mbw:mods.reduce((s,x)=>s+x.mbw*x.n,0)/(culture.length||1),adg:NaN,sr:NaN,acc:avgAcc,fcr:avgFcr,bio:totBio,feed:totFeed,doc:avgDoc};
   // ---- KPIs ----
   const kpis=`<div class="kpis">
     <div class="kpi g"><div class="klabel">บ่อเลี้ยง</div><div class="kval">${culture.length}</div><div class="ksub">บ่อ</div></div>
+    <div class="kpi v"><div class="klabel">DOC เฉลี่ย</div><div class="kval">${fmt(avgDoc,0)}</div><div class="ksub">วัน</div></div>
     <div class="kpi b"><div class="klabel">ผลผลิตรวม (Biomass)</div><div class="kval">${fmt(totBio/1000,1)}</div><div class="ksub">ตัน</div></div>
     <div class="kpi v"><div class="klabel">อาหารต่อวัน (รวม)</div><div class="kval">${fmt(totFeed,0)}</div><div class="ksub">กก./วัน${totFeedEst>0?' · รวมค่าประมาณ '+fmt(totFeedEst,0)+' กก.*':''}</div></div>
     <div class="kpi g"><div class="klabel">อัตรารอดสะสมเฉลี่ย</div><div class="kval">${fmt(avgAcc,0)}</div><div class="ksub">%</div></div>
@@ -744,9 +746,9 @@ async function pageWeekly(){
   // ---- module scorecard ----
   const cc=(v,d,cls)=>{ if(isNaN(v))return '<td>–</td>'; if(!cls)return `<td>${fmt(v,d)}</td>`; const bg={g:'#dcfce7',y:'#fef3c7',r:'#fee2e2'}[cls],tc={g:'#166534',y:'#92400e',r:'#991b1b'}[cls]; return `<td><span style="display:inline-block;padding:4px 12px;border-radius:7px;font-weight:800;background:${bg};color:${tc}">${fmt(v,d)}</span></td>`; };
   const accC=v=>v>=85?'g':(v>=75?'y':'r'), fcrC=v=>v<=1.5?'g':(v<=1.7?'y':'r'), adgC=v=>v>=0.30?'g':(v>=0.25?'y':'r');
-  const scRow=(x,tot)=>`<tr class="${tot?'totrow':''}"><td class="l"><span class="mod-badge">${tot?'รวม / เฉลี่ย':'โมดูล '+x.code}</span></td><td>${x.n}</td><td>${fmt(x.mbw,1)}</td>${cc(x.adg,2,tot?'':adgC(x.adg))}<td>${fmt(x.sr,0)}</td>${cc(x.acc,0,tot?'':accC(x.acc))}${cc(x.fcr,2,tot?'':fcrC(x.fcr))}<td>${fmt(x.bio/1000,1)}</td><td style="font-weight:${tot?800:600};color:#7c3aed">${fmt(x.feed,0)}</td></tr>`;
+  const scRow=(x,tot)=>`<tr class="${tot?'totrow':''}"><td class="l"><span class="mod-badge">${tot?'รวม / เฉลี่ย':'โมดูล '+x.code}</span></td><td>${x.n}</td><td>${fmt(x.doc,0)}</td><td>${fmt(x.mbw,1)}</td>${cc(x.adg,2,tot?'':adgC(x.adg))}<td>${fmt(x.sr,0)}</td>${cc(x.acc,0,tot?'':accC(x.acc))}${cc(x.fcr,2,tot?'':fcrC(x.fcr))}<td>${fmt(x.bio/1000,1)}</td><td style="font-weight:${tot?800:600};color:#7c3aed">${fmt(x.feed,0)}</td></tr>`;
   const scorecard=`<div class="tablecard"><h3 style="margin-bottom:4px"><span class="dot"></span>ตารางประเมินการเลี้ยงจำแนกตามพื้นที่ (Weekly Scorecard)</h3><div class="hint">แถบสี: เขียว = ดี · เหลือง = เฝ้าระวัง · แดง = ต่ำกว่าเกณฑ์ · เกณฑ์: อัตรารอดสะสม ≥85% · FCR ≤1.5 · ADG ≥0.30</div>
-    <table class="dtable"><thead><tr><th class="l" style="text-align:left">พื้นที่</th><th>จำนวนบ่อ</th><th>MBW (ก.)</th><th>ADG (ก./วัน)</th><th>%SR</th><th>อัตรารอดสะสม (%)</th><th>FCR</th><th>ผลผลิต (ตัน)</th><th>อาหาร/วัน (กก.)</th></tr></thead>
+    <table class="dtable"><thead><tr><th class="l" style="text-align:left">พื้นที่</th><th>จำนวนบ่อ</th><th>DOC เฉลี่ย (วัน)</th><th>MBW (ก.)</th><th>ADG (ก./วัน)</th><th>%SR</th><th>อัตรารอดสะสม (%)</th><th>FCR</th><th>ผลผลิต (ตัน)</th><th>อาหาร/วัน (กก.)</th></tr></thead>
     <tbody>${mods.map(x=>scRow(x,false)).join('')}${scRow(totStat,true)}</tbody></table></div>`;
   // ---- detail table (culture) — sortable ----
   const WCOLS=[
