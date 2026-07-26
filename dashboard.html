@@ -127,19 +127,19 @@ canvas{max-height:300px}
 .kpi .ksic{position:absolute;top:14px;right:16px;font-size:20px;opacity:.55}
 .mapcard{background:linear-gradient(180deg,#ffffff,#f8fafb)}
 .maptbl-wrap{overflow-x:auto;padding:4px 2px 8px;border-radius:12px}
-.sitgrid{display:grid;grid-auto-rows:46px;gap:5px;width:max-content;margin:8px auto;padding-right:92px;--pw:59px}
+.sitgrid{display:grid;grid-auto-rows:30px;gap:3px;width:max-content;margin:6px auto;padding-right:36px;--pw:38px}
 .modcell{justify-content:flex-start}
 .modcell.right span{margin-left:-2px}
-.sitgrid .gpond{border-radius:10px;font:700 11px/1 ui-monospace,monospace;display:flex;align-items:center;justify-content:center;text-align:center;color:#0f172a;box-shadow:inset 0 0 0 1px rgba(255,255,255,.5),0 1px 2px rgba(0,0,0,.1);transition:.12s;overflow:hidden}
+.sitgrid .gpond{border-radius:10px;font:700 10px/1 ui-monospace,monospace;display:flex;align-items:center;justify-content:center;text-align:center;color:#0f172a;box-shadow:inset 0 0 0 1px rgba(255,255,255,.5),0 1px 2px rgba(0,0,0,.1);transition:.12s;overflow:hidden}
 .sitgrid .gpond:hover{transform:scale(1.14);z-index:5;box-shadow:0 6px 16px rgba(0,0,0,.28)}
 .sitgrid .gpond.dim{opacity:.15}
-.sitgrid .gpond.rw{font-size:9px;box-shadow:inset 0 0 0 2px #0f766e,0 1px 3px rgba(0,0,0,.18)}
+.sitgrid .gpond.rw{font-size:8px;box-shadow:inset 0 0 0 2px #0f766e,0 1px 3px rgba(0,0,0,.18)}
 .sitgrid .statcell,.sitgrid .modcell{overflow:visible;white-space:nowrap;z-index:3}
 .sitgrid .statcell{display:flex;align-items:center}
 .sitgrid .modcell{display:flex;align-items:center}
 .statpill{display:inline-block;padding:9px 20px;border-radius:999px;font-size:14px;font-weight:800;color:#0f172a;box-shadow:inset 0 0 0 1px rgba(0,0,0,.14),0 2px 6px rgba(0,0,0,.16);white-space:nowrap}
 .modcell span{font-size:15.5px;font-weight:800;color:#0f766e;letter-spacing:.3px;padding:7px 16px;border-radius:10px;background:#ecfdf5;box-shadow:inset 0 0 0 1.5px #99f6e4;white-space:nowrap}
-.rwswatch{width:14px;height:14px;border-radius:4px;background:#00ff00;box-shadow:inset 0 0 0 2px #0f766e;display:inline-block}
+.rwswatch{width:14px;height:14px;border-radius:4px;background:#4ade80;box-shadow:inset 0 0 0 2px #0f766e;display:inline-block}
 .sit-blocklabel{font-size:13px;font-weight:800;color:#134e4a;margin:20px 0 10px;padding-left:10px;border-left:4px solid #0d9488}
 .rgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:9px;max-width:660px}
 .rpond{font-family:ui-monospace,monospace;font-weight:700;font-size:11.5px;text-align:center;padding:12px 6px;border-radius:10px;color:#0f172a;box-shadow:inset 0 0 0 1px rgba(255,255,255,.5),0 1px 2px rgba(0,0,0,.08);transition:.12s}
@@ -518,19 +518,20 @@ async function pageSituation(){
   // ---- summary table (authoritative counts) ----
   let hr=-1; for(let i=0;i<V.length;i++){ if((V[i][2]||'').trim()==='ลงทะเบียน'){hr=i;break;} }
   const sumRows={}; let totRow=null;
-  if(hr>=0){ for(let i=hr+1;i<V.length;i++){ const mod=(V[i][1]||'').trim(); if(!mod)continue; const rec={mod,reg:intOf(V[i][2]),inter:intOf(V[i][3]),grow:intOf(V[i][4]),shrimp:intOf(V[i][5]),pct:(V[i][6]||'').trim(),row:i}; if(/total|รวม/i.test(mod)){totRow=rec;} else {sumRows[mod]=rec;} } }
-  const src = isAllArea ? (totRow||{reg:0,inter:0,grow:0,shrimp:0,pct:'0%'}) : (()=>{
+  if(hr>=0){ for(let i=hr+1;i<V.length;i++){ const mod=(V[i][1]||'').trim(); if(!mod)continue; const rec={mod,reg:intOf(V[i][2]),inter:intOf(V[i][3]),grow:intOf(V[i][4]),shrimp:intOf(V[i][5]),pct:(V[i][6]||'').trim(),eom:intOf(V[i][7]),eomPct:(V[i][8]||'').trim(),row:i}; if(/total|รวม/i.test(mod)){totRow=rec;} else {sumRows[mod]=rec;} } }
+  const src = isAllArea ? (totRow||{reg:0,inter:0,grow:0,shrimp:0,pct:'0%',eom:0,eomPct:'0%'}) : (()=>{
     const rows=areaSel.map(a=>sumRows[a]).filter(Boolean);
-    if(!rows.length)return {reg:0,inter:0,grow:0,shrimp:0,pct:'0%'};
-    const reg=rows.reduce((s,r)=>s+r.reg,0), inter=rows.reduce((s,r)=>s+r.inter,0), grow=rows.reduce((s,r)=>s+r.grow,0), shrimp=rows.reduce((s,r)=>s+r.shrimp,0);
-    return {reg,inter,grow,shrimp,pct:reg?Math.round(shrimp/reg*100)+'%':'0%'};
+    if(!rows.length)return {reg:0,inter:0,grow:0,shrimp:0,pct:'0%',eom:0,eomPct:'0%'};
+    const reg=rows.reduce((s,r)=>s+r.reg,0), inter=rows.reduce((s,r)=>s+r.inter,0), grow=rows.reduce((s,r)=>s+r.grow,0), shrimp=rows.reduce((s,r)=>s+r.shrimp,0), eom=rows.reduce((s,r)=>s+(r.eom||0),0);
+    return {reg,inter,grow,shrimp,pct:reg?Math.round(shrimp/reg*100)+'%':'0%',eom,eomPct:reg?Math.round(eom/reg*100)+'%':'0%'};
   })();
-  const reg=src.reg, shrimp=src.shrimp, empty=Math.max(0,reg-shrimp), pct=src.pct||(reg?Math.round(shrimp/reg*100)+'%':'0%');
+  const reg=src.reg, shrimp=src.shrimp, empty=Math.max(0,reg-shrimp), pct=src.pct||(reg?Math.round(shrimp/reg*100)+'%':'0%'), eom=src.eom||0, eomPct=src.eomPct||(reg?Math.round(eom/reg*100)+'%':'0%');
   const kpis=`<div class="kpis">
     <div class="kpi b"><div class="klabel">บ่อลงทะเบียน</div><div class="kval">${reg}</div><div class="ksub">Inter ${src.inter} · Growout ${src.grow}</div></div>
     <div class="kpi g"><div class="klabel">บ่อเลี้ยง (มีกุ้ง)</div><div class="kval">${shrimp}</div><div class="ksub">บ่อ</div></div>
     <div class="kpi dim"><div class="klabel">บ่อว่าง / ปิด</div><div class="kval">${empty}</div><div class="ksub">บ่อ</div></div>
     <div class="kpi y"><div class="klabel">% บ่อมีกุ้ง</div><div class="kval">${pct}</div><div class="ksub">${shrimp}/${reg} บ่อ</div></div>
+    <div class="kpi v"><div class="klabel">% มีกุ้งสิ้นเดือน</div><div class="kval">${eomPct}</div><div class="ksub">${eom}/${reg} บ่อ</div></div>
   </div>`;
   // ---- MAP ----
   const re=/^[A-D][1-6][GI][0-9]{2}$/;
@@ -540,15 +541,15 @@ async function pageSituation(){
   const cell={};
   for(let i=r0;i<=r1;i++)for(let c=c0;c<=c1;c++){ const t=(V[i]&&V[i][c]||'').trim(); if(!t)continue; cell[i+','+c]={t,bg:(B[i]&&B[i][c])?B[i][c]:'#ffffff',pond:re.test(t)}; }
   // inject RW ponds (New model) at real positions near their module blocks
-  const statColor={'Culture':'#00ff00','Close':'#a5a5a5','Water':'#9fc5e8'};
+  const statColor={'Culture':'#4ade80','Close':'#94a3b8','Water':'#7dd3fc'};
   const rwPos={'RW-A501':[15,4],'RW-A201':[21,4],'RW-B301':[21,10],'RW-C501':[9,13],'RW-C502':[9,14],'RW-D201':[8,13],'RW-D202':[8,14],'RW-D203':[8,15]};
   const rwStat={}; weeklyR.forEach(p=>{rwStat[p.pond]=p;});
-  Object.keys(rwPos).forEach(name=>{ const p=rwStat[name]; const pos=rwPos[name]; const bg=p?(statColor[p.status]||'#cccccc'):'#cccccc'; cell[pos[0]+','+pos[1]]={t:name,bg:bg,pond:true,rw:true,type:(p&&p.type==='Inter')?'I':'G'}; });
+  Object.keys(rwPos).forEach(name=>{ const p=rwStat[name]; const pos=rwPos[name]; const bg=p?(statColor[p.status]||'#e2e8f0'):'#e2e8f0'; cell[pos[0]+','+pos[1]]={t:name,bg:bg,pond:true,rw:true,type:(p&&p.type==='Inter')?'I':'G'}; });
   const NC=c1-c0+1;
   let map='<div class="card mapcard"><h3><span class="dot"></span>ผังตำแหน่งบ่อ (Layout)</h3><div class="hint">สีตามสถานะในไฟล์ต้นทาง · บ่อ RW (New model) วางตามตำแหน่งจริง · ตัวกรองจะไฮไลต์เฉพาะบ่อที่เลือก</div><div class="maptbl-wrap"><div class="sitgrid" style="grid-template-columns:repeat('+NC+',var(--pw))">';
-  for(let i=r0;i<=r1;i++)for(let c=c0;c<=c1;c++){ const cc=cell[i+','+c]; if(!cc)continue; const pos='grid-row:'+((i-r0)+1)+';grid-column:'+((c-c0)+1); if(!cc.pond){ const tx=cc.t; if(/^(Culture|Close|Water)$/i.test(tx)){ const cbg={culture:'#00ff00',close:'#a5a5a5',water:'#9fc5e8'}[tx.toLowerCase()]; map+=`<div class="statcell" style="${pos}"><span class="statpill" style="background:${cbg}">${tx}</span></div>`; } else if(/module/i.test(tx)){ map+=`<div class="modcell" style="${pos}"><span>${tx}</span></div>`; } continue; } const mod=cc.rw?'R':cc.t[0]; const type=cc.rw?cc.type:cc.t[2]; const dim=match(mod,type)?'':' dim'; const style=(cc.bg&&cc.bg!=='#ffffff')?('background:'+cc.bg):''; map+=`<div class="gpond${cc.rw?' rw':''}${dim}" style="${pos};${style}" title="${cc.t}">${cc.t}</div>`; }
+  for(let i=r0;i<=r1;i++)for(let c=c0;c<=c1;c++){ const cc=cell[i+','+c]; if(!cc)continue; const pos='grid-row:'+((i-r0)+1)+';grid-column:'+((c-c0)+1); if(!cc.pond){ const tx=cc.t; if(/^(Culture|Close|Water)$/i.test(tx)){ const cbg={culture:'#4ade80',close:'#94a3b8',water:'#7dd3fc'}[tx.toLowerCase()]; map+=`<div class="statcell" style="${pos}"><span class="statpill" style="background:${cbg}">${tx}</span></div>`; } else if(/module/i.test(tx)){ map+=`<div class="modcell" style="${pos}"><span>${tx}</span></div>`; } continue; } const mod=cc.rw?'R':cc.t[0]; const type=cc.rw?cc.type:cc.t[2]; const dim=match(mod,type)?'':' dim'; const style=(cc.bg&&cc.bg!=='#ffffff')?('background:'+cc.bg):''; map+=`<div class="gpond${cc.rw?' rw':''}${dim}" style="${pos};${style}" title="${cc.t}">${cc.t}</div>`; }
   map+='</div></div>';
-  map+='<div class="legend"><span><b style="background:#00ff00"></b>เลี้ยง/มีกุ้ง</span><span><b style="background:#a5a5a5"></b>ปิดบ่อ</span><span><b style="background:#9fc5e8"></b>พักน้ำ</span><span><b style="background:#cccccc"></b>ว่าง</span><span><b class="rwswatch"></b>RW = New model</span></div></div>';
+  map+='<div class="legend"><span><b style="background:#4ade80"></b>เลี้ยง/มีกุ้ง</span><span><b style="background:#94a3b8"></b>ปิดบ่อ</span><span><b style="background:#7dd3fc"></b>พักน้ำ</span><span><b style="background:#e2e8f0"></b>ว่าง</span><span><b class="rwswatch"></b>RW = New model</span></div></div>';
   // ---- DOC/Size/Prepare table ----
   let tbl='';
   if(hr>=0){
