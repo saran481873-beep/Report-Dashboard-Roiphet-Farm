@@ -442,7 +442,7 @@ window.showAllWidgets=function(page){
 };
 
 /* filter state per page */
-const F={situation:{type:'all',area:['all']},performance:{month:'all',area:['all']},weekly:{type:'all',status:'all',area:['all'],sortKey:null,sortDir:1},financial:{month:['all'],area:['all']},orderharvest:{size:'all',area:['all']},stocking:{area:['all'],month:['all'],type:['all']}};
+const F={situation:{type:'all',area:['all']},performance:{month:['all'],area:['all']},weekly:{type:'all',status:'all',area:['all'],sortKey:null,sortDir:1},financial:{month:['all'],area:['all']},orderharvest:{size:'all',area:['all']},stocking:{area:['all'],month:['all'],type:['all']}};
 
 /* ---------- PAGE DISPATCH ---------- */
 async function renderPage(id){
@@ -579,22 +579,37 @@ async function pagePerformance(){
   const blocks=perfBlocks(V);
   const st=F.performance;
   filterBar('performance',[
-    {label:'เดือน',key:'month',opts:[{v:'all',t:'ทั้งปี'}].concat(MONTHS.map((m,i)=>({v:String(i),t:MONTH_TH[i]})))},
+    {label:'เดือน',key:'month',multi:true,hint:'เลือกได้หลายเดือน',opts:[{v:'all',t:'ทั้งปี'}].concat(MONTHS.map((m,i)=>({v:String(i),t:MONTH_TH[i]})))},
     {label:'พื้นที่ (Module)',key:'area',multi:true,opts:[{v:'all',t:'รวมทั้งฟาร์ม'},{v:'A',t:'A'},{v:'B',t:'B'},{v:'C',t:'C'},{v:'D',t:'D'},{v:'R',t:'R'}]}
   ]);
-  const col = st.month==='all'?13:(1+parseInt(st.month)); // total col=13
+  const monthSel = Array.isArray(st.month)?st.month:[st.month]; const isAllMonth = monthSel.includes('all'); const cols = isAllMonth?[13]:monthSel.map(m=>1+parseInt(m)); // total col=13
   const RATE_METRICS=new Set(['Yield (kg/rai)','%SR','FCR','AVG Size','DOC','Production Cost (B/kg)','ADG']);
-  function combineMetric(mods,name,c){
+  function combineColsOnly(mm2,name,cols){
+    const r=mm2[name]; if(r==null)return NaN;
+    const pr=mm2['Production(ton)'];
+    let sum=0,wsum=0,wtot=0,any=false;
+    cols.forEach(c=>{
+      const v=perfVal(V,r,c); if(isNaN(v))return; any=true; sum+=v;
+      const w=pr!=null?perfVal(V,pr,c):NaN;
+      if(!isNaN(w)){ wsum+=v*w; wtot+=w; }
+    });
+    if(!any)return NaN;
+    return RATE_METRICS.has(name) ? (wtot?wsum/wtot:sum/cols.length) : sum;
+  }
+  function combineMetric(mods,name,cols){
     let sum=0,wsum=0,wtot=0,any=false;
     mods.forEach(mc=>{
       const b=blocks.find(bb=>bb.label.toUpperCase().indexOf('MODULE '+mc)>=0); if(!b)return;
       const m2=perfMetricMap(V,b.row); const r=m2[name]; if(r==null)return;
-      const v=perfVal(V,r,c); if(isNaN(v))return; any=true; sum+=v;
-      const pr=m2['Production(ton)']; const w=pr!=null?perfVal(V,pr,c):NaN;
-      if(!isNaN(w)){ wsum+=v*w; wtot+=w; }
+      const pr=m2['Production(ton)'];
+      cols.forEach(c=>{
+        const v=perfVal(V,r,c); if(isNaN(v))return; any=true; sum+=v;
+        const w=pr!=null?perfVal(V,pr,c):NaN;
+        if(!isNaN(w)){ wsum+=v*w; wtot+=w; }
+      });
     });
     if(!any)return NaN;
-    return RATE_METRICS.has(name) ? (wtot?wsum/wtot:sum/mods.length) : sum;
+    return RATE_METRICS.has(name) ? (wtot?wsum/wtot:sum/(mods.length*cols.length)) : sum;
   }
   // pick block(s): area includes 'all' -> Total block; single module -> that block; multiple modules -> combine (sum/weighted-avg)
   const areaSel=st.area, isAllArea=areaSel.includes('all');
@@ -605,20 +620,20 @@ async function pagePerformance(){
   if(isAllArea){
     blk=blocks.find(b=>/total/i.test(b.label)); if(!blk)blk=blocks[blocks.length-1];
     mm=perfMetricMap(V,blk.row);
-    g=(name)=>{ const r=mm[name]; return r!=null?perfVal(V,r,col):NaN; };
+    g=(name)=>combineColsOnly(mm,name,cols);
   }else if(selMods.length===0){
     el('app').innerHTML=noDataCard('Module R'); return;
   }else if(selMods.length===1){
     const mb=blocks.find(b=>b.label.toUpperCase().indexOf('MODULE '+selMods[0])>=0);
     if(!mb){ el('app').innerHTML=noDataCard('Module '+selMods[0]); return; }
     blk=mb; mm=perfMetricMap(V,blk.row);
-    g=(name)=>{ const r=mm[name]; return r!=null?perfVal(V,r,col):NaN; };
+    g=(name)=>combineColsOnly(mm,name,cols);
   }else{
     blk={label:'โมดูล '+selMods.join('+')};
-    g=(name)=>combineMetric(selMods,name,col);
+    g=(name)=>combineMetric(selMods,name,cols);
     if(hasR)combineNote='รวมค่าเฉพาะ Module '+selMods.join(', ')+' — ไม่รวม Module R เนื่องจากไม่มีข้อมูลในชีต Performance';
   }
-  const metricAtCol=(name,c)=>{ if(isAllArea||selMods.length===1){ const r=mm[name]; return r!=null?perfVal(V,r,c):NaN; } return combineMetric(selMods,name,c); };
+  const metricAtCol=(name,c)=>{ if(isAllArea||selMods.length===1){ const r=mm[name]; return r!=null?perfVal(V,r,c):NaN; } return combineMetric(selMods,name,[c]); };
   const KP=[
     {l:'ปริมาณผลผลิต',v:g('Production(ton)'),u:'ตัน',c:'g',d:1},
     {l:'ผลผลิตต่อไร่',v:g('Yield (kg/rai)'),u:'กก./ไร่',c:'b',d:0},
@@ -667,7 +682,7 @@ async function pagePerformance(){
     {l:'ต้นทุนคงที่ (Fixed Cost)',v:FC,d:0,sub:[['ค่าแรง (Wage)',g('Wage')],['ค่าเสื่อมราคา (Depreciation)',g('Depreciation')],['ค่าเช่า (Rent)',g('Rent')]]}
   ];
   window.__perfCosts=costs;
-  const costHtml='<div class="card"><h3><span class="dot"></span>โครงสร้างต้นทุนการผลิต — '+(blk.label==='Total Roiphet1'?'รวมทั้งฟาร์ม':blk.label)+' · '+(st.month==='all'?'ทั้งปี':MONTH_TH[parseInt(st.month)])+'</h3><div class="hint">คลิกกล่องที่มีเครื่องหมาย ▾ เพื่อแสดงรายละเอียดต้นทุนย่อย</div><div class="costgrid">'+
+  const costHtml='<div class="card"><h3><span class="dot"></span>โครงสร้างต้นทุนการผลิต — '+(blk.label==='Total Roiphet1'?'รวมทั้งฟาร์ม':blk.label)+' · '+(isAllMonth?'ทั้งปี':monthSel.map(m=>MONTH_TH[parseInt(m)]).join('+'))+'</h3><div class="hint">คลิกกล่องที่มีเครื่องหมาย ▾ เพื่อแสดงรายละเอียดต้นทุนย่อย</div><div class="costgrid">'+
     costs.map((c,i)=>`<div class="costbox" ${c.sub?`onclick="perfDrill(${i})"`:''}><div class="cl">${c.l}</div><div class="cv">${fmt(c.v,c.d)}</div>${c.sub?'<div class="cd">▾ แสดงรายละเอียด</div>':''}</div>`).join('')+'</div></div>';
   const noteHtml = combineNote? `<div class="card" style="border-left:5px solid #d97706;padding:10px 16px;margin-bottom:10px"><div class="hint" style="margin:0;color:#92400e;font-weight:600">${combineNote}</div></div>` : '';
   el('app').innerHTML=noteHtml+kpis+scorecard+row1+chartB+rowYS+costHtml;
