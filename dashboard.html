@@ -139,7 +139,7 @@ canvas{max-height:300px}
 .sitgrid .modcell{display:flex;align-items:center}
 .statpill{display:inline-block;padding:9px 20px;border-radius:999px;font-size:14px;font-weight:800;color:#0f172a;box-shadow:inset 0 0 0 1px rgba(0,0,0,.14),0 2px 6px rgba(0,0,0,.16);white-space:nowrap}
 .modcell span{font-size:15.5px;font-weight:800;color:#0f766e;letter-spacing:.3px;padding:7px 16px;border-radius:10px;background:#ecfdf5;box-shadow:inset 0 0 0 1.5px #99f6e4;white-space:nowrap}
-.rwswatch{width:14px;height:14px;border-radius:4px;background:#4ade80;box-shadow:inset 0 0 0 2px #0f766e;display:inline-block}
+.rwswatch{width:14px;height:14px;border-radius:4px;background:#ccffff;box-shadow:inset 0 0 0 2px #0f766e;display:inline-block}
 .sit-blocklabel{font-size:13px;font-weight:800;color:#134e4a;margin:20px 0 10px;padding-left:10px;border-left:4px solid #0d9488}
 .rgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:9px;max-width:660px}
 .rpond{font-family:ui-monospace,monospace;font-weight:700;font-size:11.5px;text-align:center;padding:12px 6px;border-radius:10px;color:#0f172a;box-shadow:inset 0 0 0 1px rgba(255,255,255,.5),0 1px 2px rgba(0,0,0,.08);transition:.12s}
@@ -541,15 +541,15 @@ async function pageSituation(){
   const cell={};
   for(let i=r0;i<=r1;i++)for(let c=c0;c<=c1;c++){ const t=(V[i]&&V[i][c]||'').trim(); if(!t)continue; cell[i+','+c]={t,bg:(B[i]&&B[i][c])?B[i][c]:'#ffffff',pond:re.test(t)}; }
   // inject RW ponds (New model) at real positions near their module blocks
-  const statColor={'Culture':'#4ade80','Close':'#94a3b8','Water':'#7dd3fc'};
+  const statColor={'Culture':'#ccffff','Close':'#b7b7b7','Water':'#fe99fd'};
   const rwPos={'RW-A501':[15,4],'RW-A201':[21,4],'RW-B301':[21,10],'RW-C501':[9,13],'RW-C502':[9,14],'RW-D201':[8,13],'RW-D202':[8,14],'RW-D203':[8,15]};
   const rwStat={}; weeklyR.forEach(p=>{rwStat[p.pond]=p;});
-  Object.keys(rwPos).forEach(name=>{ const p=rwStat[name]; const pos=rwPos[name]; const bg=p?(statColor[p.status]||'#e2e8f0'):'#e2e8f0'; cell[pos[0]+','+pos[1]]={t:name,bg:bg,pond:true,rw:true,type:(p&&p.type==='Inter')?'I':'G'}; });
+  Object.keys(rwPos).forEach(name=>{ const p=rwStat[name]; const pos=rwPos[name]; const bg=p?(statColor[p.status]||'#cccccc'):'#cccccc'; cell[pos[0]+','+pos[1]]={t:name,bg:bg,pond:true,rw:true,type:(p&&p.type==='Inter')?'I':'G'}; });
   const NC=c1-c0+1;
   let map='<div class="card mapcard"><h3><span class="dot"></span>ผังตำแหน่งบ่อ (Layout)</h3><div class="hint">สีตามสถานะในไฟล์ต้นทาง · บ่อ RW (New model) วางตามตำแหน่งจริง · ตัวกรองจะไฮไลต์เฉพาะบ่อที่เลือก</div><div class="maptbl-wrap"><div class="sitgrid" style="grid-template-columns:repeat('+NC+',var(--pw))">';
-  for(let i=r0;i<=r1;i++)for(let c=c0;c<=c1;c++){ const cc=cell[i+','+c]; if(!cc)continue; const pos='grid-row:'+((i-r0)+1)+';grid-column:'+((c-c0)+1); if(!cc.pond){ const tx=cc.t; if(/^(Culture|Close|Water)$/i.test(tx)){ const cbg={culture:'#4ade80',close:'#94a3b8',water:'#7dd3fc'}[tx.toLowerCase()]; map+=`<div class="statcell" style="${pos}"><span class="statpill" style="background:${cbg}">${tx}</span></div>`; } else if(/module/i.test(tx)){ map+=`<div class="modcell" style="${pos}"><span>${tx}</span></div>`; } continue; } const mod=cc.rw?'R':cc.t[0]; const type=cc.rw?cc.type:cc.t[2]; const dim=match(mod,type)?'':' dim'; const style=(cc.bg&&cc.bg!=='#ffffff')?('background:'+cc.bg):''; map+=`<div class="gpond${cc.rw?' rw':''}${dim}" style="${pos};${style}" title="${cc.t}">${cc.t}</div>`; }
+  for(let i=r0;i<=r1;i++)for(let c=c0;c<=c1;c++){ const cc=cell[i+','+c]; if(!cc)continue; const pos='grid-row:'+((i-r0)+1)+';grid-column:'+((c-c0)+1); if(!cc.pond){ const tx=cc.t; if(/^(Culture|Close|Water)$/i.test(tx)){ const cbg={culture:'#ccffff',close:'#b7b7b7',water:'#fe99fd'}[tx.toLowerCase()]; map+=`<div class="statcell" style="${pos}"><span class="statpill" style="background:${cbg}">${tx}</span></div>`; } else if(/module/i.test(tx)){ map+=`<div class="modcell" style="${pos}"><span>${tx}</span></div>`; } continue; } const mod=cc.rw?'R':cc.t[0]; const type=cc.rw?cc.type:cc.t[2]; const dim=match(mod,type)?'':' dim'; const style=(cc.bg&&cc.bg!=='#ffffff')?('background:'+cc.bg):''; map+=`<div class="gpond${cc.rw?' rw':''}${dim}" style="${pos};${style}" title="${cc.t}">${cc.t}</div>`; }
   map+='</div></div>';
-  map+='<div class="legend"><span><b style="background:#4ade80"></b>เลี้ยง/มีกุ้ง</span><span><b style="background:#94a3b8"></b>ปิดบ่อ</span><span><b style="background:#7dd3fc"></b>พักน้ำ</span><span><b style="background:#e2e8f0"></b>ว่าง</span><span><b class="rwswatch"></b>RW = New model</span></div></div>';
+  map+='<div class="legend"><span><b style="background:#ccffff"></b>เลี้ยง/มีกุ้ง</span><span><b style="background:#b7b7b7"></b>ปิดบ่อ</span><span><b style="background:#fe99fd"></b>พักน้ำ</span><span><b style="background:#cccccc"></b>ว่าง</span><span><b class="rwswatch"></b>RW = New model</span></div></div>';
   // ---- DOC/Size/Prepare table ----
   let tbl='';
   if(hr>=0){
