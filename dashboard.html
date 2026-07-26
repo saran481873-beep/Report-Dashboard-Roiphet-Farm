@@ -60,6 +60,7 @@ a{color:inherit;text-decoration:none}
 .mcard.ext{border-top-color:#6366f1}
 .mcard.c-sit{border-top-color:#16a34a}.mcard.c-perf{border-top-color:#0d9488}.mcard.c-week{border-top-color:#d97706}
 .mcard.c-fin{border-top-color:#7c3aed}.mcard.c-order{border-top-color:#dc2626}
+.mcard.c-stock{border-top-color:#2563eb}
 /* KPI */
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:var(--gap);margin-bottom:var(--gap)}
 .kpi{background:var(--card);border-radius:var(--radius);padding:16px 18px;box-shadow:0 1px 3px rgba(0,0,0,.07);border-left:5px solid var(--accent)}
@@ -280,7 +281,8 @@ const PAGES=[
   {id:'weekly',label:'3 · Weekly'},
   {id:'daily',label:'4 · Daily ↗',ext:DAILY_URL},
   {id:'financial',label:'5 · Financial'},
-  {id:'orderharvest',label:'6 · Order Harvest'}
+  {id:'orderharvest',label:'6 · Order Harvest'},
+  {id:'stocking',label:'7 · Stocking'}
 ];
 const cache={};
 let charts=[];
@@ -440,7 +442,7 @@ window.showAllWidgets=function(page){
 };
 
 /* filter state per page */
-const F={situation:{type:'all',area:['all']},performance:{month:'all',area:['all']},weekly:{type:'all',status:'all',area:['all'],sortKey:null,sortDir:1},financial:{month:['all'],area:['all']},orderharvest:{size:'all',area:['all']}};
+const F={situation:{type:'all',area:['all']},performance:{month:'all',area:['all']},weekly:{type:'all',status:'all',area:['all'],sortKey:null,sortDir:1},financial:{month:['all'],area:['all']},orderharvest:{size:'all',area:['all']},stocking:{area:['all'],month:['all'],type:['all']}};
 
 /* ---------- PAGE DISPATCH ---------- */
 async function renderPage(id){
@@ -453,6 +455,7 @@ async function renderPage(id){
     else if(id==='weekly')await pageWeekly();
     else if(id==='financial')await pageFinancial();
     else if(id==='orderharvest')await pageOrder();
+    else if(id==='stocking')await pageStocking();
     setLive(true,'ออนไลน์');
     el('asof').textContent=new Date().toLocaleString('th-TH',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
   }catch(e){ el('app').innerHTML='<div class="loading">โหลดข้อมูลไม่สำเร็จ: '+e.message+'</div>'; setLive(false,'ออฟไลน์'); }
@@ -466,7 +469,8 @@ function renderHome(){
     {id:'weekly',cls:'c-week',ic:'📅',t:'3 · Weekly',d:'รายละเอียดบ่อเลี้ยงรายสัปดาห์ MBW, ADG, %SR, FCR เตือนบ่อโตช้า/รอดต่ำ'},
     {id:'daily',cls:'ext',ic:'📊',t:'4 · Daily ↗',d:'แดชบอร์ดรายวันเดิม (เปิดหน้าใหม่)',ext:DAILY_URL},
     {id:'financial',cls:'c-fin',ic:'💰',t:'5 · Financial',d:'รายรับ–กำไรรายเดือนทั้งปี และต้นทุนต่อกิโลกรัม Production/Total/Net Profit'},
-    {id:'orderharvest',cls:'c-order',ic:'🚚',t:'6 · Order Harvest',d:'สรุปแผน–ผลจับจริงเดือนปัจจุบัน แยกตาม Type และ IN Stock'}
+    {id:'orderharvest',cls:'c-order',ic:'🚚',t:'6 · Order Harvest',d:'สรุปแผน–ผลจับจริงเดือนปัจจุบัน แยกตาม Type และ IN Stock'},
+    {id:'stocking',cls:'c-stock',ic:'🌱',t:'7 · Stocking',d:'สรุปการลงกุ้งแยกตามพื้นที่ เดือน และประเภท พร้อมตารางลงกุ้งเดือนปัจจุบัน'}
   ];
   el('app').innerHTML=`<div class="home-grid">`+cards.map(c=>{
     const click=c.ext?`onclick="window.open('${c.ext}','_blank')"`:`onclick="location.hash='#${c.id}'"`;
@@ -1024,6 +1028,42 @@ window.ohAllMonths=function(){ F.orderharvest.months=(F.orderharvest.months&&F.o
 window.ohTip=function(e,mod){ const s=(window.__ohStock||{})[mod]; let tip=document.getElementById('ohtip'); if(!tip){tip=document.createElement('div');tip.id='ohtip';tip.className='ohtip';document.body.appendChild(tip);} const ponds=s?Object.keys(s):[]; if(!ponds.length){tip.style.display='none';return;} tip.innerHTML='<div class="ohtip-h">บ่อคงคลัง Module '+mod+' (ทุกขนาด) · '+ponds.length+' บ่อ</div>'+ponds.sort().map(p=>'<div class="ohtip-r"><span>'+p+'</span><b>'+fmt(s[p],1)+' ต.</b></div>').join(''); tip.style.display='block'; const pad=14,w=tip.offsetWidth,h=tip.offsetHeight; let x=e.clientX+pad,y=e.clientY+pad; if(x+w>window.innerWidth)x=e.clientX-w-pad; if(y+h>window.innerHeight)y=Math.max(6,window.innerHeight-h-6); tip.style.left=x+'px'; tip.style.top=y+'px'; };
 window.ohTipCell=function(e,mod,bi){ const s=((window.__ohStockBand||{})[mod]||{})[bi]; let tip=document.getElementById('ohtip'); if(!tip){tip=document.createElement('div');tip.id='ohtip';tip.className='ohtip';document.body.appendChild(tip);} const ponds=s?Object.keys(s):[]; if(!ponds.length){tip.style.display='none';return;} const bl=(window.__ohBandLabels||[])[bi]||''; tip.innerHTML='<div class="ohtip-h">Module '+mod+' · ไซซ์ '+bl+' · '+ponds.length+' บ่อ</div>'+ponds.sort().map(p=>'<div class="ohtip-r"><span>'+p+'</span><b>'+fmt(s[p],1)+' ต.</b></div>').join(''); tip.style.display='block'; const pad=14,w=tip.offsetWidth,h=tip.offsetHeight; let x=e.clientX+pad,y=e.clientY+pad; if(x+w>window.innerWidth)x=e.clientX-w-pad; if(y+h>window.innerHeight)y=Math.max(6,window.innerHeight-h-6); tip.style.left=x+'px'; tip.style.top=y+'px'; };
 window.ohHide=function(){ const t=document.getElementById('ohtip'); if(t)t.style.display='none'; };
+
+async function pageStocking(){
+  el('subtitle').textContent='สรุปการลงกุ้ง (Stocking) · จำนวนบ่อและจำนวนตัวแยกตามพื้นที่ เดือน และประเภท';
+  const d=await getTab('stocking'); const V=d.values;
+  const rows=[]; for(let i=1;i<V.length;i++){ const r=V[i]; if(!(r[1]||'').trim())continue; rows.push({mod:(r[0]||'').trim(),pond:(r[1]||'').trim(),date:(r[2]||'').trim(),month:parseInt(r[3])||0,year:parseInt(r[4])||0,pcs:num(r[5]),type:(r[6]||'').trim()}); }
+  const mods=[...new Set(rows.map(r=>r.mod))].filter(Boolean).sort();
+  const months=[...new Set(rows.map(r=>r.month))].filter(Boolean).sort((a,b)=>a-b);
+  const types=[...new Set(rows.map(r=>r.type))].filter(Boolean).sort();
+  const st=F.stocking;
+  filterBar('stocking',[
+    {label:'พื้นที่ (Module)',key:'area',multi:true,opts:[{v:'all',t:'ทั้งหมด'},...mods.map(m=>({v:m,t:m}))]},
+    {label:'เดือน',key:'month',multi:true,hint:'เลือกได้หลายเดือน',opts:[{v:'all',t:'ทั้งหมด'},...months.map(m=>({v:String(m),t:MONTH_TH[m-1]||('เดือน '+m)}))]},
+    {label:'ประเภทกุ้ง',key:'type',multi:true,hint:'เลือกได้หลายประเภท',opts:[{v:'all',t:'ทั้งหมด'},...types.map(t=>({v:t,t:t}))]}
+  ]);
+  const areaSel=st.area, isAllArea=areaSel.includes('all');
+  const monthSel=st.month, isAllMonth=monthSel.includes('all');
+  const typeSel=st.type, isAllType=typeSel.includes('all');
+  const filtered=rows.filter(r=>(isAllArea||areaSel.includes(r.mod))&&(isAllMonth||monthSel.includes(String(r.month)))&&(isAllType||typeSel.includes(r.type)));
+  const totalPonds=new Set(filtered.map(r=>r.pond)).size;
+  const totalPcs=filtered.reduce((s,r)=>s+(r.pcs||0),0);
+  const kpis=`<div class='kpis'>
+    <div class='kpi b'><div class='klabel'>จำนวนบ่อที่ลงกุ้ง</div><div class='kval'>${fmt(totalPonds)}</div><div class='ksub'>บ่อ</div></div>
+    <div class='kpi g'><div class='klabel'>จำนวนตัวที่ลงกุ้ง</div><div class='kval'>${fmt(totalPcs)}</div><div class='ksub'>ตัว</div></div>
+  </div>`;
+  const byMod={}; filtered.forEach(r=>{ if(!byMod[r.mod])byMod[r.mod]={ponds:new Set(),pcs:0}; byMod[r.mod].ponds.add(r.pond); byMod[r.mod].pcs+=r.pcs||0; });
+  const modKeys=Object.keys(byMod).sort();
+  const modRows=modKeys.map(m=>`<tr><td class='l'><span class='mod-badge'>${m}</span></td><td>${fmt(byMod[m].ponds.size)}</td><td>${fmt(byMod[m].pcs)}</td></tr>`).join('');
+  const modTable=`<div class='card'><h3><span class='dot'></span>สรุปตามพื้นที่ (Module)</h3><div class='hint'>ตามตัวกรองที่เลือกด้านบน</div><table class='dtable stripe'><thead><tr><th>Module</th><th>จำนวนบ่อ</th><th>จำนวนตัว</th></tr></thead><tbody>${modRows||`<tr><td colspan='3'>ไม่พบข้อมูล</td></tr>`}</tbody><tfoot><tr><td class='l'>รวม</td><td>${fmt(totalPonds)}</td><td>${fmt(totalPcs)}</td></tr></tfoot></table></div>`;
+  const now=new Date(); const curMonth=now.getMonth()+1, curYear=now.getFullYear();
+  const curRows=rows.filter(r=>r.month===curMonth&&r.year===curYear).sort((a,b)=>a.mod.localeCompare(b.mod)||a.pond.localeCompare(b.pond));
+  const curTotalPcs=curRows.reduce((s,r)=>s+(r.pcs||0),0);
+  const curBody=curRows.map(r=>`<tr><td class='l'><span class='pondtag'>${r.pond}</span></td><td class='l'>${r.type}</td><td><span class='mod-badge'>${r.mod}</span></td><td>${fmt(r.pcs)}</td></tr>`).join('');
+  const tbl=`<div class='card'><h3><span class='dot'></span>ตารางลงกุ้งเดือนปัจจุบัน (${MONTH_TH[curMonth-1]} ${curYear})</h3><div class='hint'>รายการลงกุ้งทั้งหมดในเดือนปัจจุบัน</div><div class='maptbl-wrap'><table class='dtable stripe'><thead><tr><th>ชื่อบ่อ</th><th>ประเภท</th><th>Module</th><th>จำนวน (ตัว)</th></tr></thead><tbody>${curBody||`<tr><td colspan='4'>ไม่มีการลงกุ้งในเดือนนี้</td></tr>`}</tbody><tfoot><tr><td class='l' colspan='3'>รวม</td><td>${fmt(curTotalPcs)}</td></tr></tfoot></table></div></div>`;
+  el('app').innerHTML=kpis+modTable+tbl;
+  decorateWidgets('stocking');
+}
 
 /* ---------- INIT ---------- */
 route();
