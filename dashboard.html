@@ -1048,14 +1048,20 @@ async function pageStocking(){
   const filtered=rows.filter(r=>(isAllArea||areaSel.includes(r.mod))&&(isAllMonth||monthSel.includes(String(r.month)))&&(isAllType||typeSel.includes(r.type)));
   const totalPonds=new Set(filtered.map(r=>r.pond)).size;
   const totalPcs=filtered.reduce((s,r)=>s+(r.pcs||0),0);
+  const byType={}; filtered.forEach(r=>{ if(!r.type)return; if(!byType[r.type])byType[r.type]={ponds:new Set(),pcs:0}; byType[r.type].ponds.add(r.pond); byType[r.type].pcs+=r.pcs||0; });
+  const typeKeys=Object.keys(byType).sort();
+  const accents=['y','v','r','dim'];
+  const typeCards=typeKeys.map((t,i)=>`<div class='kpi ${accents[i%accents.length]}'><div class='klabel'>${t}</div><div class='kval'>${fmt(byType[t].pcs/1e6,2)}</div><div class='ksub'>ล้านตัว · ${fmt(byType[t].ponds.size)} บ่อ</div></div>`).join('');
   const kpis=`<div class='kpis'>
     <div class='kpi b'><div class='klabel'>จำนวนบ่อที่ลงกุ้ง</div><div class='kval'>${fmt(totalPonds)}</div><div class='ksub'>บ่อ</div></div>
-    <div class='kpi g'><div class='klabel'>จำนวนตัวที่ลงกุ้ง</div><div class='kval'>${fmt(totalPcs)}</div><div class='ksub'>ตัว</div></div>
+    <div class='kpi g'><div class='klabel'>จำนวนตัวที่ลงกุ้ง (รวม)</div><div class='kval'>${fmt(totalPcs/1e6,2)}</div><div class='ksub'>ล้านตัว</div></div>
+    ${typeCards}
   </div>`;
-  const byMod={}; filtered.forEach(r=>{ if(!byMod[r.mod])byMod[r.mod]={ponds:new Set(),pcs:0}; byMod[r.mod].ponds.add(r.pond); byMod[r.mod].pcs+=r.pcs||0; });
+  const byMod={}; filtered.forEach(r=>{ if(!byMod[r.mod])byMod[r.mod]={ponds:new Set(),pcs:0,pondPcs:{}}; byMod[r.mod].ponds.add(r.pond); byMod[r.mod].pcs+=r.pcs||0; byMod[r.mod].pondPcs[r.pond]=(byMod[r.mod].pondPcs[r.pond]||0)+(r.pcs||0); });
+  window.__stkPonds=byMod;
   const modKeys=Object.keys(byMod).sort();
-  const modRows=modKeys.map(m=>`<tr><td class='l'><span class='mod-badge'>${m}</span></td><td>${fmt(byMod[m].ponds.size)}</td><td>${fmt(byMod[m].pcs)}</td></tr>`).join('');
-  const modTable=`<div class='card'><h3><span class='dot'></span>สรุปตามพื้นที่ (Module)</h3><div class='hint'>ตามตัวกรองที่เลือกด้านบน</div><table class='dtable stripe'><thead><tr><th>Module</th><th>จำนวนบ่อ</th><th>จำนวนตัว</th></tr></thead><tbody>${modRows||`<tr><td colspan='3'>ไม่พบข้อมูล</td></tr>`}</tbody><tfoot><tr><td class='l'>รวม</td><td>${fmt(totalPonds)}</td><td>${fmt(totalPcs)}</td></tr></tfoot></table></div>`;
+  const modRows=modKeys.map(m=>`<tr><td class='l'><span class='mod-badge'>${m}</span></td><td data-mod='${m}' onmousemove='stkTip(event)' onmouseleave='stkHide()' style='cursor:help'>${fmt(byMod[m].ponds.size)}</td><td>${fmt(byMod[m].pcs/1e6,2)}</td></tr>`).join('');
+  const modTable=`<div class='card'><h3><span class='dot'></span>สรุปตามพื้นที่ (Module)</h3><div class='hint'>ตามตัวกรองที่เลือกด้านบน · ชี้เมาส์ที่จำนวนบ่อเพื่อดูรายชื่อบ่อ</div><table class='dtable stripe'><thead><tr><th>Module</th><th>จำนวนบ่อ</th><th>จำนวนตัว (ล้านตัว)</th></tr></thead><tbody>${modRows||`<tr><td colspan='3'>ไม่พบข้อมูล</td></tr>`}</tbody><tfoot><tr><td class='l'>รวม</td><td>${fmt(totalPonds)}</td><td>${fmt(totalPcs/1e6,2)}</td></tr></tfoot></table></div>`;
   const now=new Date(); const curMonth=now.getMonth()+1, curYear=now.getFullYear();
   const curRows=rows.filter(r=>r.month===curMonth&&r.year===curYear).sort((a,b)=>a.mod.localeCompare(b.mod)||a.pond.localeCompare(b.pond));
   const curTotalPcs=curRows.reduce((s,r)=>s+(r.pcs||0),0);
@@ -1064,6 +1070,8 @@ async function pageStocking(){
   el('app').innerHTML=kpis+modTable+tbl;
   decorateWidgets('stocking');
 }
+window.stkTip=function(e){ const mod=e.target.getAttribute('data-mod'); const s=((window.__stkPonds||{})[mod]||{}).pondPcs||{}; let tip=document.getElementById('ohtip'); if(!tip){tip=document.createElement('div');tip.id='ohtip';tip.className='ohtip';document.body.appendChild(tip);} const ponds=Object.keys(s); if(!ponds.length){tip.style.display='none';return;} tip.innerHTML=`<div class='ohtip-h'>รายชื่อบ่อ Module ${mod} · ${ponds.length} บ่อ</div>`+ponds.sort().map(p=>`<div class='ohtip-r'><span>${p}</span><b>${fmt(s[p])} ตัว</b></div>`).join(''); tip.style.display='block'; const pad=14,w=tip.offsetWidth,h=tip.offsetHeight; let x=e.clientX+pad,y=e.clientY+pad; if(x+w>window.innerWidth)x=e.clientX-w-pad; if(y+h>window.innerHeight)y=Math.max(6,window.innerHeight-h-6); tip.style.left=x+'px'; tip.style.top=y+'px'; };
+window.stkHide=function(){ const t=document.getElementById('ohtip'); if(t)t.style.display='none'; };
 
 /* ---------- INIT ---------- */
 route();
