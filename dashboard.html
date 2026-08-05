@@ -708,7 +708,7 @@ async function pageWeekly(){
   el('subtitle').textContent='บทวิเคราะห์การเลี้ยงรายสัปดาห์ · การเจริญเติบโตและอัตราการรอด';
   const d=await getTab('weekly'); const V=d.values; const H=V[0];
   const idx=(name)=>H.findIndex(h=>(h||'').trim().toLowerCase()===name.toLowerCase());
-  const iMod=idx('Module'),iPond=idx('Pond'),iType=idx('Type'),iStat=idx('Status'),iPrep=idx('Prepare (day)'),iDOC=idx('DOC'),iMBW=idx('MBW (g,)'),iSize=idx('Size'),iBio=idx('BIomass (kg)'),iGain=idx('MBW Gain (g.)'),iADG=idx('ADG final'),iSR=idx('%SR'),iAcc=idx('Accum %SR'),iFCR=idx('FCR'),iTBio=idx('Total Biomass'),iYield=idx('Total Yield (kg/rai)'),iFeed=idx('Feed/day (KG.)');
+  const iMod=idx('Module'),iPond=idx('Pond'),iType=idx('Type'),iStat=idx('Status'),iPrep=idx('Prepare (day)'),iDOC=idx('DOC'),iMBW=idx('MBW (g,)'),iSize=idx('Size'),iBio=idx('BIomass (kg)'),iGain=idx('MBW Gain (g.)'),iADG=idx('ADG final'),iSR=idx('%SR'),iAcc=idx('Accum %SR'),iFCR=idx('FCR'),iTBio=idx('Total Biomass'),iYield=idx('Total Yield (kg/rai)'),iFeed=idx('Feed/day (KG.)'),iPrepStatus=idx('สถานะเตรียมบ่อ');
   // fallback: pond -> last known non-zero Feed (kg) + date, for ponds missing today's entry
   const flMap={};
   try{ const fl=await getTab('feedlog'); if(fl&&fl.values&&fl.values.length){ const FH=fl.values[0];
@@ -804,9 +804,9 @@ async function pageWeekly(){
   const table=`<div class="tablecard"><h3 style="margin-bottom:6px"><span class="dot" style="background:#d97706"></span>รายละเอียดบ่อเลี้ยงรายบ่อ</h3><div class="hint">ชื่อบ่อสีแดง = อัตราการเจริญเติบโต (MBW Gain) ต่ำกว่าเกณฑ์ (${warnGrowth} บ่อ) · อัตรารอดสะสม &lt; 75% (${warnSR} บ่อ) · คลิกหัวตารางเพื่อเรียงจากน้อยไปมาก/มากไปน้อย · อาหาร/วัน — ชี้เมาส์ที่ตัวเลขเพื่อดูว่าเป็นข้อมูลวันนี้หรือค่าล่าสุดที่มี</div>
     <table class="dtable"><thead><tr>${wThead}</tr></thead><tbody>${body}</tbody></table></div>`;
   // ---- closed ponds ----
-  let cbody=closed.map(r=>`<tr data-pond-row="${(r[iPond]||'').trim()}"><td class="l"><span class="pondtag">${(r[iPond]||'').trim()}</span></td><td><span class="mod-badge">${(r[iMod]||'').trim()}</span></td><td>${(r[iType]||'').trim()}</td><td>${(r[iPrep]||'').trim()||'–'}</td></tr>`).join('');
+  let cbody=closed.map(r=>{ const pd=parseFloat((r[iPrep]||'').toString().trim()); let pdStyle=''; if(!isNaN(pd)){ if(pd<=20) pdStyle='background:#dcfce7;color:#16a34a'; else if(pd<=25) pdStyle='background:#fef3c7;color:#d97706'; else pdStyle='background:#fee2e2;color:#dc2626'; } const pdCell=isNaN(pd)?'–':`<span class="pill" style="${pdStyle}">${(r[iPrep]||'').trim()}</span>`; return `<tr data-pond-row="${(r[iPond]||'').trim()}"><td class="l"><span class="pondtag">${(r[iPond]||'').trim()}</span></td><td><span class="mod-badge">${(r[iMod]||'').trim()}</span></td><td>${(r[iType]||'').trim()}</td><td>${pdCell}</td><td>${(r[iPrepStatus]||'').trim()||'–'}</td></tr>`; }).join('');
   const closedCard=`<div class="tablecard"><h3 style="margin-bottom:6px"><span class="dot" style="background:#94a3b8"></span>บ่อที่ปิดแล้ว (${closed.length} บ่อ) · จำนวนวันเตรียมบ่อ</h3>
-    <table class="dtable"><thead><tr><th>บ่อ</th><th>พื้นที่</th><th>ประเภท</th><th>วันเตรียมบ่อ (วัน)</th></tr></thead><tbody>${cbody||'<tr><td colspan="4">— ไม่มีบ่อปิดในตัวกรองนี้ —</td></tr>'}</tbody></table></div>`;
+    <table class="dtable"><thead><tr><th>บ่อ</th><th>พื้นที่</th><th>ประเภท</th><th>วันเตรียมบ่อ (วัน)</th><th>สถานะเตรียมบ่อ</th></tr></thead><tbody>${cbody||'<tr><td colspan="5">— ไม่มีบ่อปิดในตัวกรองนี้ —</td></tr>'}</tbody></table></div>`;
   el('app').innerHTML=kpis+row1+chartEff+scorecard+table+closedCard;
   if(spotlightTarget){
     const tgt=spotlightTarget; spotlightTarget=null;
