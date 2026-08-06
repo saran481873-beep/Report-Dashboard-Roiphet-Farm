@@ -988,7 +988,7 @@ async function pageOrder(){
   // plan/actual filtered by selected months
   const planCur=data.filter(r=>areaOk(r)&&monthOk(num(r[iMonth])));
   const actCur=data.filter(r=>areaOk(r)&&monthOk(num(r[iAcMon])));
-  const planTbl=typeTable('แผนการจับ (Plan)','#d97706',planCur,iTon,iAcSize,iType,true);
+  const planTbl=typeTable('แผนการจับ (Plan)','#d97706',planCur,iTon,iSizeP,iType,true);
   const actTbl=typeTable('ผลการจับจริง (Actual)','#16a34a',actCur,iAcTon,iAcSize,iAcType,true);
   // ---- IN Stock breakdown by factory size bands (from source left summary tables) ----
   const extractStock=(lbl)=>{ let hr=-1; for(let i=0;i<V.length;i++){ if((V[i][1]||'').toString().trim()===lbl){ hr=i+1; break; } } if(hr<0)return null;
