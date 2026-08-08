@@ -1126,12 +1126,14 @@ const AI_SUGGEST = [
   'บ่อไหนมีปัญหาบ้าง',
   'แผนจับเดือนนี้เป็นยังไง',
   'ลงกุ้งเดือนนี้กี่ตัว',
-  'บ่อมีกุ้งกี่บ่อ'
+  'บ่อมีกุ้งกี่บ่อ',
+  'คุณภาพน้ำวันนี้เป็นยังไง',
+  'อาหารวันนี้ให้ไปเท่าไหร่'
 ];
 
 async function pageAI(){
-  el('subtitle').textContent='ผู้ช่วย AI ถาม-ตอบข้อมูลฟาร์ม (Smart Q&A) · อ้างอิงข้อมูลสดจากทุกหน้า Dashboard';
-  el('app').innerHTML=`<div class="card"><h3><span class="dot"></span>🤖 AI Assistant</h3><div class="hint">พิมพ์คำถามเกี่ยวกับข้อมูลบ่อ/DOC/ไซส์/FCR/รอด/แผนจับ/ลงกุ้ง ได้เลย — ตอบจากข้อมูลสดในระบบ ไม่ใช่ AI ภายนอก</div><div class="aichat"><div id="aiLog" class="aichat-log"></div><div id="aiChips" class="aichips"></div><div class="aiinput-row"><input id="aiInput" class="aiinput" type="text" placeholder="พิมพ์คำถาม เช่น DOC เฉลี่ย Module A ตอนนี้เท่าไหร่"><button id="aiSendBtn" class="aisend">ส่ง</button></div></div></div>`;
+  el('subtitle').textContent='ผู้ช่วย AI ถาม-ตอบข้อมูลฟาร์ม (Smart Q&A) · อ้างอิงข้อมูลสดจาก Situation/Weekly/Order Harvest/Stocking/Daily';
+  el('app').innerHTML=`<div class="card"><h3><span class="dot"></span>🤖 AI Assistant</h3><div class="hint">พิมพ์คำถามเกี่ยวกับข้อมูลบ่อ/DOC/ไซส์/FCR/รอด/คุณภาพน้ำ/อาหาร/แผนจับ/ลงกุ้ง ได้เลย ทั้งระดับฟาร์ม พื้นที่ หรือรายบ่อ — ตอบจากข้อมูลสดในระบบ ไม่ใช่ AI ภายนอก</div><div class="aichat"><div id="aiLog" class="aichat-log"></div><div id="aiChips" class="aichips"></div><div class="aiinput-row"><input id="aiInput" class="aiinput" type="text" placeholder="พิมพ์คำถาม เช่น DOC เฉลี่ย Module A ตอนนี้เท่าไหร่"><button id="aiSendBtn" class="aisend">ส่ง</button></div></div></div>`;
   await aiBuildData();
   aiState.history=[];
   aiPush('bot', aiWelcomeMsg());
@@ -1142,14 +1144,25 @@ async function pageAI(){
   inp.focus();
 }
 
+async function aiFetchDaily(){
+  try{
+    const r = await fetch(API, {cache:'no-store'});
+    const j = await r.json();
+    return j;
+  }catch(e){ return null; }
+}
+function aiColorLetter(x){ x=String(x==null?'':x).trim().toLowerCase(); return x==='green'?'G':x==='yellow'?'Y':x==='red'?'R':'-'; }
+function aiOverallWord(x){ x=String(x==null?'':x).trim().toLowerCase(); return x==='green'?'เขียว':x==='yellow'?'เหลือง':x==='red'?'แดง':'-'; }
+
 async function aiBuildData(){
-  const [sit, wk, oh, stk] = await Promise.all([
+  const [sit, wk, oh, stk, daily] = await Promise.all([
     getTab('situation').catch(()=>null),
     getTab('weekly').catch(()=>null),
     getTab('orderharvest').catch(()=>null),
-    getTab('stocking').catch(()=>null)
+    getTab('stocking').catch(()=>null),
+    aiFetchDaily().catch(()=>null)
   ]);
-  AI_DATA = { modules:[], byModule:{}, total:null, ponds:[], harvest:{plan:{},actual:{},month:0,year:0,detail:[]}, stocking:{byModule:{},curRows:[],month:0,year:0} };
+  AI_DATA = { modules:[], byModule:{}, total:null, ponds:[], harvest:{plan:{},actual:{},month:0,year:0,detail:[]}, stocking:{byModule:{},curRows:[],month:0,year:0}, daily:{ready:false,updated:null,byModule:{}}, dailyPonds:[] };
 
   if(sit){
     const V=sit.values;
@@ -1204,6 +1217,42 @@ async function aiBuildData(){
     rows.forEach(r=>{ if(r.month===cm&&r.year===cy){ if(!byMod[r.mod])byMod[r.mod]={n:0,pcs:0}; byMod[r.mod].n++; byMod[r.mod].pcs+=r.pcs; AI_DATA.stocking.curRows.push(r); } });
     AI_DATA.stocking.byModule=byMod;
   }
+
+  if(daily && daily.rows){
+    AI_DATA.daily.updated = daily.updated || null;
+    AI_DATA.daily.ready = true;
+    const pondMap = {};
+    AI_DATA.ponds.forEach(p=>{ pondMap[p.pond.toUpperCase().replace(/-/g,'')] = p; });
+    const byModAgg = {};
+    daily.rows.forEach(r=>{
+      const mod0=(r[0]||'').trim(); const pond=(r[1]||'').trim(); if(!pond) return;
+      const status=(r[4]||'').trim();
+      const isCulture = status.toLowerCase()==='culture';
+      const rec = {
+        mod:mod0, pond, type:(r[2]||'').trim(), status,
+        mbw:num(r[5]), biomass:num(r[6]), feed:num(r[7]), sal:num(r[8]),
+        ph:num(r[9]), alk:num(r[10]), tan:num(r[11]), no2:num(r[12]), mort:num(r[13]),
+        stdFeed:num(r[14]), diffKg:num(r[15]), diffPct:num(r[16]),
+        color: isCulture ? {feed:aiColorLetter(r[17]),ph:aiColorLetter(r[18]),alk:aiColorLetter(r[19]),tan:aiColorLetter(r[20]),no2:aiColorLetter(r[21]),mort:aiColorLetter(r[22])} : null,
+        overall: isCulture ? aiOverallWord(r[29]) : '-',
+        closeDate:r[30]||'', rai:num(r[31]), prepStatus:(r[32]||'').trim()
+      };
+      AI_DATA.dailyPonds.push(rec);
+      const p = pondMap[pond.toUpperCase().replace(/-/g,'')];
+      if(p){ p.ph=rec.ph; p.alk=rec.alk; p.tan=rec.tan; p.no2=rec.no2; p.feed=rec.feed; p.stdFeed=rec.stdFeed; p.diffPct=rec.diffPct; p.mort=rec.mort; p.wqColor=rec.color; p.wqOverall=rec.overall; p.closeDate=rec.closeDate; p.rai=rec.rai; }
+      if(isCulture && mod0){
+        if(!byModAgg[mod0]) byModAgg[mod0]={ph:[],alk:[],tan:[],no2:[],feed:0,stdFeed:0,mort:0,n:0,green:0,yellow:0,red:0};
+        const a=byModAgg[mod0];
+        if(!isNaN(rec.ph)) a.ph.push(rec.ph);
+        if(!isNaN(rec.alk)) a.alk.push(rec.alk);
+        if(!isNaN(rec.tan)) a.tan.push(rec.tan);
+        if(!isNaN(rec.no2)) a.no2.push(rec.no2);
+        a.feed+=(rec.feed||0); a.stdFeed+=(rec.stdFeed||0); a.mort+=(isNaN(rec.mort)?0:rec.mort); a.n++;
+        if(rec.overall==='เขียว') a.green++; else if(rec.overall==='เหลือง') a.yellow++; else if(rec.overall==='แดง') a.red++;
+      }
+    });
+    AI_DATA.daily.byModule = byModAgg;
+  }
 }
 
 function aiEsc(s){ return String(s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
@@ -1231,10 +1280,10 @@ function aiTable(headers, rows){
 }
 
 function aiWelcomeMsg(){
-  return 'สวัสดีครับ 👋 ผมเป็นผู้ช่วยของ Roiphet Farm ถามข้อมูลบ่อกุ้งได้เลย เช่น DOC, ไซส์, FCR, %SR, แผนจับ, ลงกุ้ง หรือถามชื่อบ่อ (เช่น A2I03) ได้โดยตรงครับ<br><span style="color:var(--muted);font-size:12px">*ตอบจากข้อมูลสดในระบบ ไม่ใช่ AI ภายนอก จึงตอบได้เฉพาะคำถามเกี่ยวกับข้อมูลฟาร์มเท่านั้น</span>';
+  return 'สวัสดีครับ 👋 ผมเป็นผู้ช่วยของ Roiphet Farm ถามข้อมูลบ่อกุ้งได้เลย เช่น DOC, ไซส์, FCR, %SR, คุณภาพน้ำ, อาหาร, แผนจับ, ลงกุ้ง หรือถามชื่อบ่อ (เช่น A2I03) ได้โดยตรงครับ ถามได้ทั้งภาพรวมฟาร์ม รายพื้นที่ (Module A/B/C/D/RW) หรือรายบ่อ<br><span style="color:var(--muted);font-size:12px">*ตอบจากข้อมูลสดในระบบ ไม่ใช่ AI ภายนอก จึงตอบได้เฉพาะคำถามเกี่ยวกับข้อมูลฟาร์มเท่านั้น</span>';
 }
 function aiHelpMsg(){
-  return '<b>ผมช่วยตอบคำถามเกี่ยวกับ:</b><br>• จำนวนบ่อ / บ่อมีกุ้ง / บ่อว่าง<br>• DOC, ไซส์, FCR, %SR, ADG, Biomass (รวมหรือแยกตาม Module A/B/C/D/RW)<br>• บ่อที่มีปัญหา (FCR สูง/รอดต่ำ/โตช้า)<br>• แผนจับ–ผลจับกุ้งเดือนนี้<br>• ลงกุ้งเดือนนี้<br>• สถานะเตรียมบ่อ<br>• ถามชื่อบ่อได้โดยตรง เช่น "A2I03 เป็นยังไงบ้าง"<br><br><span style="color:var(--muted);font-size:12px">*ข้อมูลการเงิน แนะนำดูหน้า 5 · Financial โดยตรง</span>';
+  return '<b>ผมช่วยตอบคำถามเกี่ยวกับ:</b><br>• จำนวนบ่อ / บ่อมีกุ้ง / บ่อว่าง<br>• DOC, ไซส์, FCR, %SR, ADG, Biomass (รวมหรือแยกตาม Module A/B/C/D/RW)<br>• คุณภาพน้ำวันนี้ (pH, Alk, TAN, No-2) และสถานะสี เขียว/เหลือง/แดง<br>• อาหารที่ให้วันนี้ เทียบ STD Feed<br>• อัตราตายวันนี้ (Mortality)<br>• บ่อที่มีปัญหา (FCR สูง/รอดต่ำ/โตช้า/ค่าน้ำแดง)<br>• แผนจับ–ผลจับกุ้งเดือนนี้<br>• ลงกุ้งเดือนนี้<br>• สถานะเตรียมบ่อ<br>• ถามได้ทุกระดับ: ภาพรวมฟาร์ม / รายพื้นที่ (เช่น "Module A") / รายบ่อ เช่น "A2I03 เป็นยังไงบ้าง"<br><br><span style="color:var(--muted);font-size:12px">*ข้อมูลการเงิน แนะนำดูหน้า 5 · Financial โดยตรง</span>';
 }
 function aiChipsInline(){
   return '<div class="aichips" style="margin-top:8px">'+AI_SUGGEST.slice(0,4).map(q=>`<span class="aichip" onclick="aiAsk('${q.replace(/'/g,"\\'")}')">${q}</span>`).join('')+'</div>';
@@ -1255,6 +1304,10 @@ function aiAnswerOverview(){
   html += `<br>แผนจับเดือนนี้ <b>${fmt(planTon,2)}</b> ตัน · จับจริงแล้ว <b>${fmt(actTon,2)}</b> ตัน`;
   const stkTotal = Object.values(AI_DATA.stocking.byModule||{}).reduce((s,v)=>s+v.pcs,0);
   html += `<br>ลงกุ้งเดือนนี้ <b>${fmt(stkTotal/1e6,2)}</b> ล้านตัว`;
+  if(AI_DATA.daily.ready){
+    const agg = Object.values(AI_DATA.daily.byModule||{}).reduce((s,a)=>({green:s.green+a.green,yellow:s.yellow+a.yellow,red:s.red+a.red}),{green:0,yellow:0,red:0});
+    html += `<br>สถานะน้ำวันนี้: 🟢 ${fmt(agg.green)} · 🟡 ${fmt(agg.yellow)} · 🔴 ${fmt(agg.red)} บ่อ`;
+  }
   return html;
 }
 
@@ -1331,11 +1384,13 @@ function aiAnswerProblems(mod){
   const highFcr = ponds.filter(p=>!isNaN(p.fcr) && p.fcr>1.8).sort((a,b)=>b.fcr-a.fcr).slice(0,5);
   const lowSr = ponds.filter(p=>!isNaN(p.sr) && p.sr<75).sort((a,b)=>a.sr-b.sr).slice(0,5);
   const lowAdg = ponds.filter(p=>!isNaN(p.adg) && p.adg<0.2).sort((a,b)=>a.adg-b.adg).slice(0,5);
-  if(!highFcr.length && !lowSr.length && !lowAdg.length) return 'ยังไม่พบบ่อที่มีสัญญาณผิดปกติชัดเจนในขณะนี้ครับ 👍';
+  const redWq = AI_DATA.dailyPonds.filter(p=>p.status==='Culture' && (!mod||p.mod===mod) && p.overall==='แดง').slice(0,5);
+  if(!highFcr.length && !lowSr.length && !lowAdg.length && !redWq.length) return 'ยังไม่พบบ่อที่มีสัญญาณผิดปกติชัดเจนในขณะนี้ครับ 👍';
   let html = '<b>⚠️ บ่อที่ควรจับตา</b>';
   if(highFcr.length) html += '<br><br><b>FCR สูง (&gt;1.8)</b>'+aiTable(['บ่อ','Module','FCR'], highFcr.map(p=>[p.pond, aiModLabel(p.mod), fmt(p.fcr,2)]));
   if(lowSr.length) html += '<br><br><b>%SR ต่ำ (&lt;75%)</b>'+aiTable(['บ่อ','Module','%SR'], lowSr.map(p=>[p.pond, aiModLabel(p.mod), fmt(p.sr,0)+'%']));
   if(lowAdg.length) html += '<br><br><b>ADG ต่ำ/โตช้า (&lt;0.2)</b>'+aiTable(['บ่อ','Module','ADG'], lowAdg.map(p=>[p.pond, aiModLabel(p.mod), fmt(p.adg,2)]));
+  if(redWq.length) html += '<br><br><b>คุณภาพน้ำวันนี้อยู่ในเกณฑ์แดง</b>'+aiTable(['บ่อ','Module','pH','Alk','TAN','No-2'], redWq.map(p=>[p.pond, aiModLabel(p.mod), isNaN(p.ph)?'-':fmt(p.ph,2), isNaN(p.alk)?'-':fmt(p.alk,0), isNaN(p.tan)?'-':fmt(p.tan,2), isNaN(p.no2)?'-':fmt(p.no2,2)]));
   return html;
 }
 
@@ -1373,6 +1428,48 @@ function aiAnswerStocking(mod){
   return html;
 }
 
+function aiAnswerWaterQuality(mod){
+  if(!AI_DATA.daily.ready) return 'ยังไม่มีข้อมูลคุณภาพน้ำ (Daily) ในระบบตอนนี้ครับ';
+  const upd = AI_DATA.daily.updated ? new Date(AI_DATA.daily.updated).toLocaleString('th-TH',{dateStyle:'medium',timeStyle:'short'}) : '';
+  let html = (mod? `<b>คุณภาพน้ำวันนี้ Module ${aiModLabel(mod)}</b>` : `<b>คุณภาพน้ำวันนี้ทั้งฟาร์ม</b>`) + (upd?` <span style="color:var(--muted);font-size:12px">(อัปเดต ${upd})</span>`:'');
+  const src = mod ? {[mod]:AI_DATA.daily.byModule[mod]} : AI_DATA.daily.byModule;
+  const mods = Object.keys(src).filter(m=>src[m]);
+  if(!mods.length) return html + '<br>ไม่พบข้อมูลคุณภาพน้ำในพื้นที่นี้';
+  const avg = arr => arr.length ? (arr.reduce((x,y)=>x+y,0)/arr.length) : NaN;
+  const rows = mods.sort().map(m=>{
+    const a = src[m];
+    return [aiModLabel(m), isNaN(avg(a.ph))?'-':fmt(avg(a.ph),2), isNaN(avg(a.alk))?'-':fmt(avg(a.alk),0), isNaN(avg(a.tan))?'-':fmt(avg(a.tan),2), isNaN(avg(a.no2))?'-':fmt(avg(a.no2),2), `🟢${fmt(a.green)}/🟡${fmt(a.yellow)}/🔴${fmt(a.red)}`];
+  });
+  html += aiTable(['Module','pH','Alk','TAN','No-2','เขียว/เหลือง/แดง'], rows);
+  return html;
+}
+
+function aiAnswerFeed(mod){
+  if(!AI_DATA.daily.ready) return 'ยังไม่มีข้อมูลอาหาร (Daily) ในระบบตอนนี้ครับ';
+  const src = mod ? {[mod]:AI_DATA.daily.byModule[mod]} : AI_DATA.daily.byModule;
+  const mods = Object.keys(src).filter(m=>src[m]);
+  if(!mods.length) return 'ยังไม่พบข้อมูลการให้อาหารในพื้นที่นี้ครับ';
+  let feedSum=0, stdSum=0;
+  const rows = mods.sort().map(m=>{
+    const a = src[m]; feedSum+=a.feed; stdSum+=a.stdFeed;
+    const diff = a.stdFeed ? ((a.feed-a.stdFeed)/a.stdFeed*100) : NaN;
+    return [aiModLabel(m), fmt(a.feed,0), fmt(a.stdFeed,0), isNaN(diff)?'-':(diff>0?'+':'')+fmt(diff,1)+'%'];
+  });
+  let html = (mod? `<b>อาหารวันนี้ Module ${aiModLabel(mod)}</b>` : `<b>อาหารวันนี้ทั้งฟาร์ม</b>`);
+  html += aiTable(['Module','ให้จริง (กก.)','STD (กก.)','ส่วนต่าง'], rows);
+  html += `<br>รวมให้จริง <b>${fmt(feedSum,0)}</b> กก. เทียบ STD <b>${fmt(stdSum,0)}</b> กก.`;
+  return html;
+}
+
+function aiAnswerMortality(mod){
+  if(!AI_DATA.daily.ready) return 'ยังไม่มีข้อมูลอัตราตาย (Daily) ในระบบตอนนี้ครับ';
+  const ponds = AI_DATA.dailyPonds.filter(p=>p.status==='Culture' && (!mod||p.mod===mod) && !isNaN(p.mort) && p.mort>0).sort((a,b)=>b.mort-a.mort);
+  const total = ponds.reduce((s,p)=>s+p.mort,0);
+  let html = (mod? `<b>อัตราตายวันนี้ Module ${aiModLabel(mod)}</b>` : `<b>อัตราตายวันนี้ทั้งฟาร์ม</b>`) + `<br>รวม <b>${fmt(total,0)}</b> ตัว/วัน`;
+  if(ponds.length) html += aiTable(['บ่อ','Module','ตาย (ตัว/วัน)'], ponds.slice(0,8).map(p=>[p.pond, aiModLabel(p.mod), fmt(p.mort,0)]));
+  return html;
+}
+
 function aiAnswerPond(codeRaw){
   const norm = s => String(s).toUpperCase().replace(/-/g,'');
   const target = norm(codeRaw);
@@ -1383,6 +1480,11 @@ function aiAnswerPond(codeRaw){
     html += `<br>DOC ${isNaN(p.doc)?'-':fmt(p.doc,0)+' วัน'} · ไซส์ ${isNaN(p.size)?'-':fmt(p.size,0)+' ตัว/กก.'} · MBW ${isNaN(p.mbw)?'-':fmt(p.mbw,2)+' ก.'}`;
     html += `<br>FCR ${isNaN(p.fcr)?'-':fmt(p.fcr,2)} · %SR ${isNaN(p.sr)?'-':fmt(p.sr,0)+'%'} · ADG ${isNaN(p.adg)?'-':fmt(p.adg,2)}`;
     html += `<br>Biomass ${isNaN(p.biomass)?'-':fmt(p.biomass,0)+' กก.'}`;
+    if(p.wqColor){
+      html += `<br>pH ${isNaN(p.ph)?'-':fmt(p.ph,2)} · Alk ${isNaN(p.alk)?'-':fmt(p.alk,0)} · TAN ${isNaN(p.tan)?'-':fmt(p.tan,2)} · No-2 ${isNaN(p.no2)?'-':fmt(p.no2,2)}`;
+      html += `<br>อาหารวันนี้ ${isNaN(p.feed)?'-':fmt(p.feed,0)} กก. เทียบ STD ${isNaN(p.stdFeed)?'-':fmt(p.stdFeed,0)} กก. (${isNaN(p.diffPct)?'-':(p.diffPct>0?'+':'')+fmt(p.diffPct,1)+'%'}) · อัตราตาย ${isNaN(p.mort)?'-':fmt(p.mort,0)+' ตัว/วัน'}`;
+      html += `<br>สถานะน้ำรวมวันนี้: <b>${p.wqOverall}</b>`;
+    }
   } else if(p.prepStatus){
     html += `<br>เตรียมบ่อมาแล้ว ${isNaN(p.prepDay)?'-':fmt(p.prepDay,0)} วัน · ${p.prepStatus}`;
   }
@@ -1410,6 +1512,9 @@ function aiAnswer(qRaw){
   if(/adg|โตช้า|เจริญเติบโต/i.test(ql)) return aiAnswerMetric('adg', mod, 'ADG (g./วัน)', 2);
   if(/%sr|survival|อัตรารอด|\bรอด\b/i.test(ql)) return aiAnswerMetric('sr', mod, '%SR', 0);
   if(/biomass|น้ำหนักรวม|ผลผลิตรวม/i.test(ql)) return aiAnswerBiomass(mod);
+  if(/คุณภาพน้ำ|ค่าน้ำ|\bph\b|\balk\b|\btan\b|no-?2|ไนไตรท์|ด่าง/i.test(ql)) return aiAnswerWaterQuality(mod);
+  if(/ให้อาหาร|อาหารวันนี้|\bfeed\b|std\s*feed/i.test(ql)) return aiAnswerFeed(mod);
+  if(/อัตราตาย|มอทัลลิตี้|mortality|ตายวันนี้|สูญเสีย/i.test(ql)) return aiAnswerMortality(mod);
   if(/\bdoc\b|อายุกุ้ง|วันเลี้ยง|อายุเลี้ยง/i.test(ql)) return aiAnswerDoc(mod);
   if(/ไซส์|ไซซ์|ขนาดกุ้ง|\bsize\b/i.test(ql)) return aiAnswerSize(mod);
   if(/บ่อมีกุ้ง|บ่อว่าง|สิ้นเดือน/i.test(q)) return aiAnswerOccupancy(mod);
