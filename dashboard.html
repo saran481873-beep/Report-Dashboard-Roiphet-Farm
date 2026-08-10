@@ -553,8 +553,8 @@ async function pageSituation(){
   })();
   const reg=src.reg, shrimp=src.shrimp, empty=Math.max(0,reg-shrimp), pct=src.pct||(reg?Math.round(shrimp/reg*100)+'%':'0%'), eom=src.eom||0, eomPct=src.eomPct||(reg?Math.round(eom/reg*100)+'%':'0%');
   const kpis=`<div class="kpis">
-    <div class="kpi b"><div class="klabel">บ่อลงทะเบียน</div><div class="kval">${reg}</div><div class="ksub">Inter ${src.inter} · Growout ${src.grow}</div></div>
-    <div class="kpi g"><div class="klabel">บ่อเลี้ยง (มีกุ้ง)</div><div class="kval">${shrimp}</div><div class="ksub">บ่อ</div></div>
+    <div class="kpi b"><div class="klabel">บ่อลงทะเบียน</div><div class="kval">${reg}</div><div class="ksub">บ่อ</div></div>
+    <div class="kpi g"><div class="klabel">บ่อเลี้ยง (มีกุ้ง)</div><div class="kval">${shrimp}</div><div class="ksub">Inter ${src.inter} · Growout ${src.grow}</div></div>
     <div class="kpi dim"><div class="klabel">บ่อว่าง / ปิด</div><div class="kval">${empty}</div><div class="ksub">บ่อ</div></div>
     <div class="kpi y"><div class="klabel">% บ่อมีกุ้ง</div><div class="kval">${pct}</div><div class="ksub">${shrimp}/${reg} บ่อ</div></div>
     <div class="kpi v"><div class="klabel">% มีกุ้งสิ้นเดือน</div><div class="kval">${eomPct}</div><div class="ksub">${eom}/${reg} บ่อ</div></div>
