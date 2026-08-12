@@ -256,6 +256,20 @@ tr.spot-hl td{animation:spotflash 2.3s ease-out}
 .aisend{background:linear-gradient(135deg,var(--head1),var(--head2));color:#fff;border:none;padding:0 22px;border-radius:12px;font-size:13.5px;font-weight:700;cursor:pointer}
 .aisend:hover{opacity:.92}
 .mcard.c-ai{border-top-color:#0891b2}
+.mcard.c-biomass{border-top-color:#be123c}
+.biomass-form{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;margin-bottom:14px}
+.bfield{display:flex;flex-direction:column;gap:5px}
+.bfield label{font-size:11.5px;color:var(--muted);font-weight:600}
+.binput{width:180px;padding:10px 12px;border-radius:10px;border:1px solid var(--line);font-size:13.5px;font-family:'Noto Sans Thai',sans-serif;outline:none}
+.binput:focus{border-color:var(--accent)}
+.bsubmit{background:linear-gradient(135deg,var(--head1),var(--head2));color:#fff;border:none;padding:10px 22px;border-radius:10px;font-size:13.5px;font-weight:700;cursor:pointer}
+.bsubmit:hover{opacity:.92}
+.bsubmit:disabled{opacity:.6;cursor:default}
+.bres{display:flex;flex-wrap:wrap;gap:12px;margin-top:6px}
+.bitem{background:var(--green-bg);border:1px solid var(--green-line);border-radius:10px;padding:10px 16px;min-width:140px}
+.bitem span{display:block;font-size:11px;color:var(--muted);margin-bottom:3px}
+.bitem b{font-size:17px;color:var(--ink)}
+.berr{background:var(--red-bg);border:1px solid var(--red-line);color:var(--red);border-radius:10px;padding:10px 14px;font-size:13px;margin-top:6px}
 
 </style>
 </head>
@@ -303,6 +317,7 @@ const PAGES=[
   {id:'orderharvest',label:'6 · Order Harvest'},
   {id:'stocking',label:'7 · Stocking'}
   ,{id:'ai',label:'8 · AI Assistant'}
+  ,{id:'biomass',label:'9 · Estimate Biomass'}
 ];
 const cache={};
 let charts=[];
@@ -477,6 +492,7 @@ async function renderPage(id){
     else if(id==='orderharvest')await pageOrder();
     else if(id==='stocking')await pageStocking();
   else if(id==='ai')await pageAI();
+  else if(id==='biomass')await pageBiomass();
     setLive(true,'ออนไลน์');
     el('asof').textContent=new Date().toLocaleString('th-TH',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
   }catch(e){ el('app').innerHTML='<div class="loading">โหลดข้อมูลไม่สำเร็จ: '+e.message+'</div>'; setLive(false,'ออฟไลน์'); }
@@ -493,6 +509,7 @@ function renderHome(){
     {id:'orderharvest',cls:'c-order',ic:'🚚',t:'6 · Order Harvest',d:'สรุปแผน–ผลจับจริงเดือนปัจจุบัน แยกตาม Type และ IN Stock'},
     {id:'stocking',cls:'c-stock',ic:'🌱',t:'7 · Stocking',d:'สรุปการลงกุ้งแยกตามพื้นที่ เดือน และประเภท พร้อมตารางลงกุ้งเดือนปัจจุบัน'}
     ,{id:'ai',cls:'c-ai',ic:'🤖',t:'8 · AI Assistant',d:'ถาม-ตอบข้อมูลฟาร์มทั้งหมดแบบ Smart Q&A ผู้ช่วยในการเลี้ยงกุ้ง'}
+    ,{id:'biomass',cls:'c-biomass',ic:'⚖️',t:'9 · Estimate Biomass',d:'กรอก Feed_amout และ Size_Actual คำนวณ Biomass (kg.) พร้อมแสดง %FR และ Price (BHT/KG) ตามสูตรฟาร์ม'}
   ];
   el('app').innerHTML=`<div class="home-grid">`+cards.map(c=>{
     const click=c.ext?`onclick="window.open('${c.ext}','_blank')"`:`onclick="location.hash='#${c.id}'"`;
@@ -1541,6 +1558,65 @@ function aiSend(){
   aiPush('user', aiEsc(q));
   inp.value='';
   setTimeout(()=>{ aiPush('bot', aiAnswer(q)); }, 250);
+}
+
+
+/* ---------- ESTIMATE BIOMASS ---------- */
+async function pageBiomass(){
+  el('subtitle').textContent='กรอก Feed_amout และ Size_Actual เพื่อคำนวณ Biomass (kg.) · แสดง %FR และ Price (BHT/KG) ตามสูตรในชีต Estimate Biomass';
+  el('app').innerHTML=`<div class="card">
+    <h3><span class="dot"></span>⚖️ Estimate Biomass — คำนวณค่า</h3>
+    <div class="hint">กรอก Feed_amout (kg.) และ Size_Actual (ตัว/kg.) ระบบจะคำนวณ %FR, Biomass (kg.) และ Price (BHT/KG) ให้อัตโนมัติตามสูตรที่ตั้งไว้ในชีต แล้วบันทึกแถวใหม่ลงชีต Estimate Biomass</div>
+    <div class="biomass-form">
+      <div class="bfield"><label>Feed_amout (kg.)</label><input id="bFeed" type="number" step="any" class="binput" placeholder="เช่น 120"></div>
+      <div class="bfield"><label>Size_Actual (ตัว/kg.)</label><input id="bSize" type="number" step="any" class="binput" placeholder="เช่น 45"></div>
+      <button id="bSubmit" class="bsubmit">คำนวณ & บันทึก</button>
+    </div>
+    <div id="bResult"></div>
+  </div>
+  <div class="tablecard"><h3><span class="dot"></span>ประวัติการคำนวณ Biomass</h3><div id="bTableWrap" class="loading">กำลังโหลด…</div></div>`;
+  el('bSubmit').onclick=submitBiomass;
+  await renderBiomassTable();
+}
+
+async function renderBiomassTable(){
+  const j=await getTab('Estimate Biomass');
+  const head=(j&&j.values&&j.values[0])||['Feed_amout','Size_Actual','%FR','Biomass (kg.)','Price (BHT/KG)'];
+  const rows=((j&&j.values)||[]).slice(1).filter(r=>r.some(c=>String(c).trim()!==''));
+  let html='<table class="dtable"><thead><tr>'+head.map(h=>`<th>${h}</th>`).join('')+'</tr></thead><tbody>';
+  if(!rows.length){ html+=`<tr><td colspan="${head.length}">ยังไม่มีข้อมูล</td></tr>`; }
+  else{
+    rows.slice().reverse().forEach(r=>{ html+='<tr>'+r.map((c,i)=>`<td class="${i===0?'l':''}">${c===''||c==null?'–':c}</td>`).join('')+'</tr>'; });
+  }
+  html+='</tbody></table>';
+  el('bTableWrap').innerHTML=html;
+}
+
+async function submitBiomass(){
+  const feedEl=el('bFeed'), sizeEl=el('bSize');
+  const feed=feedEl.value, size=sizeEl.value;
+  if(feed===''||size===''||isNaN(Number(feed))||isNaN(Number(size))){
+    el('bResult').innerHTML='<div class="berr">กรุณากรอก Feed_amout และ Size_Actual เป็นตัวเลข</div>';
+    return;
+  }
+  const btn=el('bSubmit'); btn.disabled=true; const oldTxt=btn.textContent; btn.textContent='กำลังคำนวณ…';
+  try{
+    const r=await fetch(API+'?action=addBiomass&feed='+encodeURIComponent(feed)+'&size='+encodeURIComponent(size));
+    const j=await r.json();
+    if(j.error){ throw new Error(j.error); }
+    el('bResult').innerHTML=`<div class="bres">
+      <div class="bitem"><span>%FR</span><b>${j.fr}</b></div>
+      <div class="bitem"><span>Biomass (kg.)</span><b>${j.biomass}</b></div>
+      <div class="bitem"><span>Price (BHT/KG)</span><b>${j.price}</b></div>
+    </div>`;
+    feedEl.value=''; sizeEl.value='';
+    delete cache['Estimate Biomass'];
+    await renderBiomassTable();
+  }catch(e){
+    el('bResult').innerHTML='<div class="berr">คำนวณไม่สำเร็จ: '+e.message+'</div>';
+  }finally{
+    btn.disabled=false; btn.textContent=oldTxt;
+  }
 }
 
 
