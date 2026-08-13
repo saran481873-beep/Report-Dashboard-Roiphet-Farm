@@ -1218,7 +1218,9 @@ const AI_SUGGEST = [
   'ลงกุ้งเดือนนี้กี่ตัว',
   'บ่อมีกุ้งกี่บ่อ',
   'คุณภาพน้ำวันนี้เป็นยังไง',
-  'อาหารวันนี้ให้ไปเท่าไหร่'
+  'อาหารวันนี้ให้ไปเท่าไหร่',
+  'บ่อไหนพร้อมลงกุ้งบ้าง',
+  'ต้นทุนต่อกก. ตอนนี้เท่าไหร่'
 ];
 
 
@@ -1300,7 +1302,7 @@ async function pagePrepare(){
 }
 
 async function pageAI(){
-  el('subtitle').textContent='ผู้ช่วย AI ถาม-ตอบข้อมูลฟาร์ม (Smart Q&A) · อ้างอิงข้อมูลสดจาก Situation/Weekly/Order Harvest/Stocking/Daily';
+  el('subtitle').textContent='ผู้ช่วย AI ถาม-ตอบข้อมูลฟาร์ม (Smart Q&A) · อ้างอิงข้อมูลสดครบทุกฐานข้อมูลของ 2026 Daily Report (Situation/Weekly/Order Harvest/Stocking/Daily/Financial/Prepare/Estimate Biomass)';
   el('app').innerHTML=`<div class="card"><h3><span class="dot"></span>🤖 AI Assistant</h3><div class="hint">พิมพ์คำถามเกี่ยวกับข้อมูลบ่อ/DOC/ไซส์/FCR/รอด/คุณภาพน้ำ/อาหาร/แผนจับ/ลงกุ้ง ได้เลย ทั้งระดับฟาร์ม พื้นที่ หรือรายบ่อ — ตอบจากข้อมูลสดในระบบ ไม่ใช่ AI ภายนอก</div><div class="aichat"><div id="aiLog" class="aichat-log"></div><div id="aiChips" class="aichips"></div><div class="aiinput-row"><input id="aiInput" class="aiinput" type="text" placeholder="พิมพ์คำถาม เช่น DOC เฉลี่ย Module A ตอนนี้เท่าไหร่"><button id="aiSendBtn" class="aisend">ส่ง</button></div></div></div>`;
   await aiBuildData();
   aiState.history=[];
@@ -1323,14 +1325,17 @@ function aiColorLetter(x){ x=String(x==null?'':x).trim().toLowerCase(); return x
 function aiOverallWord(x){ x=String(x==null?'':x).trim().toLowerCase(); return x==='green'?'เขียว':x==='yellow'?'เหลือง':x==='red'?'แดง':'-'; }
 
 async function aiBuildData(){
-  const [sit, wk, oh, stk, daily] = await Promise.all([
+  const [sit, wk, oh, stk, daily, fin, prep, bio] = await Promise.all([
     getTab('situation').catch(()=>null),
     getTab('weekly').catch(()=>null),
     getTab('orderharvest').catch(()=>null),
     getTab('stocking').catch(()=>null),
-    aiFetchDaily().catch(()=>null)
+    aiFetchDaily().catch(()=>null),
+    getTab('financial').catch(()=>null),
+    getTab('prepare').catch(()=>null),
+    getTab('Estimate Biomass').catch(()=>null)
   ]);
-  AI_DATA = { modules:[], byModule:{}, total:null, ponds:[], harvest:{plan:{},actual:{},month:0,year:0,detail:[]}, stocking:{byModule:{},curRows:[],month:0,year:0}, daily:{ready:false,updated:null,byModule:{}}, dailyPonds:[] };
+  AI_DATA = { modules:[], byModule:{}, total:null, ponds:[], harvest:{plan:{},actual:{},month:0,year:0,detail:[]}, stocking:{byModule:{},curRows:[],month:0,year:0}, daily:{ready:false,updated:null,byModule:{}}, dailyPonds:[], financial:{byModule:{},total:null}, prepareAgg:{byModule:{},total:null}, biomassLog:{last:null,count:0} };
 
   if(sit){
     const V=sit.values;
@@ -1421,6 +1426,84 @@ async function aiBuildData(){
     });
     AI_DATA.daily.byModule = byModAgg;
   }
+
+  if(fin) AI_DATA.financial = aiParseFinancial(fin);
+  if(prep) AI_DATA.prepareAgg = aiParsePrepareAgg(prep);
+  if(bio) AI_DATA.biomassLog = aiParseBiomassLog(bio);
+}
+
+function aiParseFinancial(fin){
+  const V = fin.values||[];
+  const fblocks = {};
+  for(let i=0;i<V.length;i++){
+    if(/ร้อยเพชร/i.test((V[i][0]||'').trim())){
+      const lab = ((V[i-2]&&V[i-2][1])||'').trim();
+      const mm = (lab.match(/Module\s+([A-Z])/i)||[])[1];
+      if(mm){
+        const mc = {}; const H = V[i];
+        for(let c=0;c<H.length;c++){ const tt=(H[c]||'').trim().toLowerCase(); const mi=MONTHS.indexOf(tt); if(mi>=0) mc[mi]=c; }
+        fblocks[mm.toUpperCase()] = {start:i, mc};
+      }
+    }
+  }
+  const fr = function(bs,label,from){ for(let i=(from||bs); i<Math.min(bs+54,V.length); i++){ if((V[i][0]||'').trim().toLowerCase()===label.toLowerCase()) return i; } return -1; };
+  const byModule = {};
+  Object.keys(fblocks).forEach(function(mod){
+    const b = fblocks[mod];
+    const ml = Object.keys(b.mc).map(Number).sort(function(a,c){return a-c;});
+    if(!ml.length) return;
+    const rowVal = function(row,mi){ return (row<0||!V[row]) ? 0 : num(V[row][b.mc[mi]]); };
+    const rSales=fr(b.start,'Sales'), rNet=fr(b.start,'NetProfit'), rWeight=fr(b.start,'Weight');
+    const rSizeAnchor=fr(b.start,'Size');
+    const fromRow = rSizeAnchor>=0?rSizeAnchor:b.start;
+    const rTotKg=fr(b.start,'Total Cost', fromRow);
+    const rNetKg=fr(b.start,'Net Profit', fromRow);
+    const rSalesKg=fr(b.start,'Sales', fromRow);
+    let li=-1;
+    for(let k=ml.length-1;k>=0;k--){ if(rowVal(rWeight,ml[k])>0 || rowVal(rSales,ml[k])>0){ li=k; break; } }
+    if(li<0) li=ml.length-1;
+    const mi=ml[li];
+    byModule[mod] = { month: MONTH_TH[mi]||'', sales: rowVal(rSales,mi), netProfit: rowVal(rNet,mi), weight: rowVal(rWeight,mi), costPerKg: rowVal(rTotKg,mi), netPerKg: rowVal(rNetKg,mi), pricePerKg: rowVal(rSalesKg,mi) };
+  });
+  const mods = Object.keys(byModule);
+  const total = mods.length ? { sales: mods.reduce(function(s,m){return s+(byModule[m].sales||0);},0), netProfit: mods.reduce(function(s,m){return s+(byModule[m].netProfit||0);},0), weight: mods.reduce(function(s,m){return s+(byModule[m].weight||0);},0) } : null;
+  return {byModule: byModule, total: total};
+}
+
+function aiParsePrepareAgg(prep){
+  const V = prep.values;
+  if(!V || V.length<23) return {byModule:{}, total:null};
+  const mods = ['A','B','C','D','R'];
+  const dayRowIdx = {A:3,B:4,C:5,D:6,R:7};
+  const byModule = {};
+  mods.forEach(function(m){
+    const r = V[dayRowIdx[m]]||[];
+    byModule[m] = { day1_20:num(r[12])||0, day21_30:num(r[13])||0, dayOver30:num(r[14])||0, total:0, ready:0 };
+  });
+  const stageCols = {A:16,B:17,C:18,D:19,R:20};
+  let totalRow=null, readyRow=null;
+  for(let i=12;i<=22 && i<V.length;i++){
+    const label = (V[i][11]||'').trim();
+    if(label.indexOf('จำนวนเตรียมบ่อ')===0) totalRow=V[i];
+    if(label.indexOf('เตรียมบ่อพร้อมปล่อยกุ้ง (บ่อ')===0) readyRow=V[i];
+  }
+  mods.forEach(function(m){
+    if(totalRow) byModule[m].total = num(totalRow[stageCols[m]])||0;
+    if(readyRow) byModule[m].ready = num(readyRow[stageCols[m]])||0;
+  });
+  const total = { day1_20: mods.reduce(function(s,m){return s+byModule[m].day1_20;},0), day21_30: mods.reduce(function(s,m){return s+byModule[m].day21_30;},0), dayOver30: mods.reduce(function(s,m){return s+byModule[m].dayOver30;},0), total: mods.reduce(function(s,m){return s+byModule[m].total;},0), ready: mods.reduce(function(s,m){return s+byModule[m].ready;},0) };
+  return {byModule: byModule, total: total};
+}
+
+function aiParseBiomassLog(bio){
+  const V = bio.values||[];
+  const head = V[0]||['Feed_amout','Size_Actual','FR','Biomass (kg.)','Price (BHT/KG)'];
+  const rows = V.slice(1).filter(function(r){ return r.some(function(c){return String(c).trim()!=='';}); });
+  if(!rows.length) return {last:null,count:0};
+  const last = rows[rows.length-1];
+  const obj = {};
+  head.forEach(function(h,i){ obj[h]=last[i]; });
+  return {last: obj, count: rows.length};
 }
 
 function aiEsc(s){ return String(s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
@@ -1448,10 +1531,10 @@ function aiTable(headers, rows){
 }
 
 function aiWelcomeMsg(){
-  return 'สวัสดีครับ 👋 ผมเป็นผู้ช่วยของ Roiphet Farm ถามข้อมูลบ่อกุ้งได้เลย เช่น DOC, ไซส์, FCR, %SR, คุณภาพน้ำ, อาหาร, แผนจับ, ลงกุ้ง หรือถามชื่อบ่อ (เช่น A2I03) ได้โดยตรงครับ ถามได้ทั้งภาพรวมฟาร์ม รายพื้นที่ (Module A/B/C/D/RW) หรือรายบ่อ<br><span style="color:var(--muted);font-size:12px">*ตอบจากข้อมูลสดในระบบ ไม่ใช่ AI ภายนอก จึงตอบได้เฉพาะคำถามเกี่ยวกับข้อมูลฟาร์มเท่านั้น</span>';
+  return 'สวัสดีครับ 👋 ผมเป็นผู้ช่วยของ Roiphet Farm ถามข้อมูลบ่อกุ้งได้เลย เช่น DOC, ไซส์, FCR, %SR, คุณภาพน้ำ, อาหาร, แผนจับ, ลงกุ้ง, เตรียมบ่อ, Biomass, การเงิน (ยอดขาย/ต้นทุน/กำไร) หรือถามชื่อบ่อ (เช่น A2I03) ได้โดยตรงครับ ถามได้ทั้งภาพรวมฟาร์ม รายพื้นที่ (Module A/B/C/D/RW) หรือรายบ่อ — ครอบคลุมข้อมูลทุกหน้าของ Dashboard และทุกฐานข้อมูลใน 2026 Daily Report<br><span style="color:var(--muted);font-size:12px">*ตอบจากข้อมูลสดในระบบ ไม่ใช่ AI ภายนอก จึงตอบได้เฉพาะคำถามเกี่ยวกับข้อมูลฟาร์มเท่านั้น</span>';
 }
 function aiHelpMsg(){
-  return '<b>ผมช่วยตอบคำถามเกี่ยวกับ:</b><br>• จำนวนบ่อ / บ่อมีกุ้ง / บ่อว่าง<br>• DOC, ไซส์, FCR, %SR, ADG, Biomass (รวมหรือแยกตาม Module A/B/C/D/RW)<br>• คุณภาพน้ำวันนี้ (pH, Alk, TAN, No-2) และสถานะสี เขียว/เหลือง/แดง<br>• อาหารที่ให้วันนี้ เทียบ STD Feed<br>• อัตราตายวันนี้ (Mortality)<br>• บ่อที่มีปัญหา (FCR สูง/รอดต่ำ/โตช้า/ค่าน้ำแดง)<br>• แผนจับ–ผลจับกุ้งเดือนนี้<br>• ลงกุ้งเดือนนี้<br>• สถานะเตรียมบ่อ<br>• ถามได้ทุกระดับ: ภาพรวมฟาร์ม / รายพื้นที่ (เช่น "Module A") / รายบ่อ เช่น "A2I03 เป็นยังไงบ้าง"<br><br><span style="color:var(--muted);font-size:12px">*ข้อมูลการเงิน แนะนำดูหน้า 5 · Financial โดยตรง</span>';
+  return '<b>ผมช่วยตอบคำถามเกี่ยวกับ:</b><br>• จำนวนบ่อ / บ่อมีกุ้ง / บ่อว่าง<br>• DOC, ไซส์, FCR, %SR, ADG, Biomass (รวมหรือแยกตาม Module A/B/C/D/RW)<br>• คุณภาพน้ำวันนี้ (pH, Alk, TAN, No-2) และสถานะสี เขียว/เหลือง/แดง<br>• อาหารที่ให้วันนี้ เทียบ STD Feed<br>• อัตราตายวันนี้ (Mortality)<br>• บ่อที่มีปัญหา (FCR สูง/รอดต่ำ/โตช้า/ค่าน้ำแดง)<br>• แผนจับ–ผลจับกุ้งเดือนนี้<br>• ลงกุ้งเดือนนี้<br>• สถานะเตรียมบ่อ (รวมจำนวนบ่อพร้อมลงกุ้ง)<br>• ข้อมูลการเงิน: ยอดขาย ต้นทุน/กก. กำไรสุทธิ (รายพื้นที่/รวมฟาร์ม)<br>• ถามได้ทุกระดับ: ภาพรวมฟาร์ม / รายพื้นที่ (เช่น "Module A") / รายบ่อ เช่น "A2I03 เป็นยังไงบ้าง"<br><br><span style="color:var(--muted);font-size:12px">*ข้อมูลการเงิน แนะนำดูหน้า 5 · Financial โดยตรง</span>';
 }
 function aiChipsInline(){
   return '<div class="aichips" style="margin-top:8px">'+AI_SUGGEST.slice(0,4).map(q=>`<span class="aichip" onclick="aiAsk('${q.replace(/'/g,"\\'")}')">${q}</span>`).join('')+'</div>';
@@ -1534,7 +1617,26 @@ function aiAnswerMetric(key, mod, label, dec){
 function aiAnswerBiomass(mod){
   const ponds = aiFilterPonds(mod);
   const sum = ponds.reduce((s,p)=>s+(isNaN(p.biomass)?0:p.biomass),0);
-  return (mod? `<b>Biomass รวม Module ${aiModLabel(mod)}</b><br>` : `<b>Biomass รวมทั้งฟาร์ม</b><br>`) + `<b>${fmt(sum)}</b> กก. (จาก ${ponds.length} บ่อ)`;
+  let html = (mod? `<b>Biomass รวม Module ${aiModLabel(mod)}</b><br>` : `<b>Biomass รวมทั้งฟาร์ม</b><br>`) + `<b>${fmt(sum)}</b> กก. (จาก ${ponds.length} บ่อ)`;
+  const bl = AI_DATA.biomassLog;
+  if(bl && bl.last){ const keys=Object.keys(bl.last); html += '<br><br><b>ค่าประเมินล่าสุด (Estimate Biomass)</b>' + aiTable(keys, [keys.map(function(k){ const v=bl.last[k]; return (v===''||v==null)?'–':v; })]); }
+  return html;
+}
+
+function aiAnswerFinancial(mod){
+  const fin = AI_DATA.financial;
+  if(!fin || !fin.byModule || !Object.keys(fin.byModule).length) return 'ยังไม่มีข้อมูลการเงินครับ ลองดูที่หน้า <b>5 · Financial</b> โดยตรง';
+  if(mod && fin.byModule[mod]){
+    const m = fin.byModule[mod];
+    return `<b>สรุปการเงิน Module ${aiModLabel(mod)} (${m.month})</b>` + aiTable(['ยอดขาย (ล้านบาท)','กำไรสุทธิ (ล้านบาท)','ผลผลิต (กก.)','ต้นทุน/กก. (บาท)','กำไร/กก. (บาท)','ราคาขาย/กก. (บาท)'],[[fmt(m.sales),fmt(m.netProfit),fmt(m.weight),fmt(m.costPerKg),fmt(m.netPerKg),fmt(m.pricePerKg)]]) + '<br><span style="color:var(--muted);font-size:12px">*ดูรายละเอียดเพิ่มเติมที่หน้า 5 · Financial</span>';
+  }
+  const t = fin.total;
+  let html = '<b>สรุปการเงินรวมทั้งฟาร์ม (Module A-D · ข้อมูลเดือนล่าสุดของแต่ละพื้นที่)</b>';
+  if(t) html += aiTable(['ยอดขายรวม (ล้านบาท)','กำไรสุทธิรวม (ล้านบาท)','ผลผลิตรวม (กก.)'],[[fmt(t.sales),fmt(t.netProfit),fmt(t.weight)]]);
+  const mods = Object.keys(fin.byModule).sort();
+  if(mods.length) html += '<br><b>แยกตามพื้นที่</b>' + aiTable(['Module','เดือน','ยอดขาย (ล.บาท)','กำไรสุทธิ (ล.บาท)','ต้นทุน/กก.','กำไร/กก.'], mods.map(function(m){ const d=fin.byModule[m]; return [m,d.month,fmt(d.sales),fmt(d.netProfit),fmt(d.costPerKg),fmt(d.netPerKg)]; }));
+  html += '<br><span style="color:var(--muted);font-size:12px">*ดูรายละเอียดเพิ่มเติมที่หน้า 5 · Financial</span>';
+  return html;
 }
 
 function aiAnswerPrepare(mod){
@@ -1542,6 +1644,10 @@ function aiAnswerPrepare(mod){
   if(!src || !src.prepare) return 'ยังไม่มีข้อมูลเตรียมบ่อครับ';
   let html = (mod? `<b>สถานะเตรียมบ่อ Module ${aiModLabel(mod)}</b>` : `<b>สถานะเตรียมบ่อทั้งฟาร์ม</b>`);
   html += aiTable(['1-20 วัน','21-30 วัน','&gt;30 วัน'], [[fmt(src.prepare['1-20']), fmt(src.prepare['21-30']), fmt(src.prepare['>30'])]]);
+  if(AI_DATA.prepareAgg){
+    const pa = mod ? AI_DATA.prepareAgg.byModule[mod] : AI_DATA.prepareAgg.total;
+    if(pa) html += `<br>จำนวนบ่อเตรียมทั้งหมด <b>${fmt(pa.total)}</b> บ่อ · พร้อมลงกุ้งแล้ว <b>${fmt(pa.ready)}</b> บ่อ`;
+  }
   const prepping = AI_DATA.ponds.filter(p=> (!mod||p.mod===mod) && p.prepStatus);
   if(prepping.length){ html += '<br><b>รายการที่กำลังเดรียม</b>'+aiTable(['บ่อ','Module','วันเตรียม','สถานะ'], prepping.slice(0,10).map(p=>[p.pond, aiModLabel(p.mod), isNaN(p.prepDay)?'-':fmt(p.prepDay), p.prepStatus])); }
   return html;
@@ -1687,7 +1793,7 @@ function aiAnswer(qRaw){
   if(/ไซส์|ไซซ์|ขนาดกุ้ง|\bsize\b/i.test(ql)) return aiAnswerSize(mod);
   if(/บ่อมีกุ้ง|บ่อว่าง|สิ้นเดือน/i.test(q)) return aiAnswerOccupancy(mod);
   if(/จำนวนบ่อ|บ่อทั้งหมด|ลงทะเบียน|กี่บ่อ/i.test(q)) return aiAnswerPondCount(mod);
-  if(/กำไร|ต้นทุน|รายได้|ราคาขาย|revenue|profit|\bcost\b/i.test(ql)) return 'สำหรับข้อมูลการเงิน (กำไร/ต้นทุน/รายได้) แนะนำดูที่หน้า <b>5 · Financial</b> โดยตรงครับ เพื่อความถูกต้องแม่นยำของตัวเลข 💰';
+  if(/กำไร|ต้นทุน|รายได้|ราคาขาย|revenue|profit|\bcost\b|การเงิน|งบการเงิน|บาท\/กก/i.test(ql)) return aiAnswerFinancial(mod);
 
   return aiFallback();
 }
