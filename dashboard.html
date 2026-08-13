@@ -582,6 +582,15 @@ window.sortOhDate=function(){
   var th=document.getElementById('ohDateTh');
   if(th) th.textContent='Date '+(window.__ohSortDir===1?'▲':'▼');
 };
+window.sortStkDate=function(){
+  var tbody=document.querySelector('#stkTable tbody');
+  if(!tbody||!window.__stkRows) return;
+  window.__stkSortDir=-(window.__stkSortDir||1);
+  var sorted=window.__stkRows.slice().sort(function(a,b){ return (a.sortKey-b.sortKey)*window.__stkSortDir; });
+  tbody.innerHTML=sorted.map(function(x){return x.html;}).join('');
+  var th=document.getElementById('stkDateTh');
+  if(th) th.textContent='วันที่ลงกุ้ง '+(window.__stkSortDir===1?'▲':'▼');
+};
 window.toggleF=function(page,key,v){
   let a=(Array.isArray(F[page][key])?F[page][key]:['all']).slice();
   if(v==='all'){ a=['all']; }
@@ -1178,12 +1187,11 @@ async function pageStocking(){
   const modTable=`<div class='card'><h3><span class='dot'></span>สรุปตามพื้นที่ (Module)</h3><div class='hint'>ตามตัวกรองที่เลือกด้านบน · ชี้เมาส์ที่จำนวนบ่อเพื่อดูรายชื่อบ่อ</div><table class='dtable stripe'><thead><tr><th>Module</th><th>จำนวนบ่อ</th><th>จำนวนตัว (ล้านตัว)</th></tr></thead><tbody>${modRows||`<tr><td colspan='3'>ไม่พบข้อมูล</td></tr>`}</tbody><tfoot><tr><td class='l'>รวม</td><td>${fmt(totalPonds)}</td><td>${fmt(totalPcs/1e6,2)}</td></tr></tfoot></table></div>`;
   const curRows=rows.filter(r=>(isAllArea||areaSel.includes(r.mod))&&(isAllMonth||monthSel.includes(String(r.month)))&&(isAllType||typeSel.includes(r.type))).sort((a,b)=>a.mod.localeCompare(b.mod)||a.pond.localeCompare(b.pond));
   const curTotalPcs=curRows.reduce((s,r)=>s+(r.pcs||0),0);
-  const curBody=curRows.map(r=>`<tr><td class='l'><span class='pondtag'>${r.pond}</span></td><td class='l'>${r.date}</td><td class='l'>${r.type}</td><td><span class='mod-badge'>${r.mod}</span></td><td>${fmt(r.pcs)}</td></tr>`).join('');
+  const parseDMY=(s)=>{ const p=String(s||'').trim().split('/'); if(p.length!==3)return Infinity; const d=+p[0],m=+p[1],y=+p[2]; if(!d||!m||!y)return Infinity; return y*10000+m*100+d; };
+  window.__stkRows=curRows.map(r=>{ const html=`<tr><td class='l'><span class='pondtag'>${r.pond}</span></td><td class='l'>${r.date}</td><td class='l'>${r.type}</td><td><span class='mod-badge'>${r.mod}</span></td><td>${fmt(r.pcs)}</td></tr>`; return {sortKey:parseDMY(r.date), html:html}; });
+  const curBody=window.__stkRows.map(x=>x.html).join('');
   const curMonthLabel=isAllMonth?'ทุกเดือน':monthSel.map(m=>MONTH_TH[Number(m)-1]||m).join(', ');
-  window.__tblData=window.__tblData||{};
-  window.__tblData['stkTable']=curRows;
-  const stkColFilter=mkColFilterRow('stkTable',[{key:'pond'},{key:'date'},{key:'type'},{key:'mod'},{filter:false}]);
-  const tbl=`<div class='card'><h3><span class='dot'></span>ตารางลงกุ้ง (${curMonthLabel})</h3><div class='hint'>รายการลงกุ้งตามเดือนที่เลือก · เลือกได้มากกว่า 1 เดือน · กรองแต่ละคอลัมน์ได้ที่หัวตาราง</div><div class='maptbl-wrap'><table id='stkTable' class='dtable stripe'><thead><tr><th>ชื่อบ่อ</th><th>วันที่ลงกุ้ง</th><th>ประเภท</th><th>Module</th><th>จำนวน (ตัว)</th></tr>${stkColFilter}</thead><tbody>${curBody||`<tr><td colspan='5'>ไม่มีการลงกุ้งในเดือนที่เลือก</td></tr>`}</tbody><tfoot><tr><td class='l' colspan='4'>รวม</td><td>${fmt(curTotalPcs)}</td></tr></tfoot></table></div></div>`;
+  const tbl=`<div class='card'><h3><span class='dot'></span>ตารางลงกุ้ง (${curMonthLabel})</h3><div class='hint'>รายการลงกุ้งตามเดือนที่เลือก · เลือกได้มากกว่า 1 เดือน · คลิกหัวตาราง วันที่ลงกุ้ง เพื่อเรียงลำดับ</div><div class='maptbl-wrap'><table id='stkTable' class='dtable stripe'><thead><tr><th>ชื่อบ่อ</th><th id='stkDateTh' style='cursor:pointer' onclick='sortStkDate()'>วันที่ลงกุ้ง</th><th>ประเภท</th><th>Module</th><th>จำนวน (ตัว)</th></tr></thead><tbody>${curBody||`<tr><td colspan='5'>ไม่มีการลงกุ้งในเดือนที่เลือก</td></tr>`}</tbody><tfoot><tr><td class='l' colspan='4'>รวม</td><td>${fmt(curTotalPcs)}</td></tr></tfoot></table></div></div>`;
   el('app').innerHTML=kpis+modTable+tbl;
   decorateWidgets('stocking');
 }
