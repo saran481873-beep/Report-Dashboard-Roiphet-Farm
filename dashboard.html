@@ -1253,7 +1253,7 @@ async function pagePrepare(){
   var t1Rows=dayRows.map(function(r){
     return '<tr><td class="l"><span class="mod-badge">'+r.m+'</span></td><td>'+fmt(r.b1)+'</td><td>'+fmt(r.b2)+'</td><td>'+fmt(r.b3)+'</td></tr>';
   }).join('');
-  var t1='<div class="card"><h3><span class="dot"></span>วันเตรียมบ่อสะสมแต่ละพื้นที่</h3><div class="hint">จำนวนบ่อแยกตามช่วงวันเตรียมบ่อสะสม (เฉพาะบ่อ Status Close) ・ ข้อมูล L2:O9</div><table class="dtable stripe"><thead><tr><th>Module</th><th>1 - 20 วัน</th><th>21 - 30 วัน</th><th>&gt; 30 วัน</th></tr></thead><tbody>'+(t1Rows||'<tr><td colspan="4">ไม่พบข้อมูล</td></tr>')+'</tbody><tfoot><tr><td class="l">รวม</td><td>'+fmt(dayTotal.b1)+'</td><td>'+fmt(dayTotal.b2)+'</td><td>'+fmt(dayTotal.b3)+'</td></tr></tfoot></table></div>';
+  var t1='<div class="card"><h3><span class="dot"></span>วันเตรียมบ่อสะสมแต่ละพื้นที่</h3><div class="hint">จำนวนบ่อแยกตามช่วงวันเตรียมบ่อสะสม (เฉพาะบ่อ Status Close)</div><table class="dtable stripe"><thead><tr><th>Module</th><th>1 - 20 วัน</th><th>21 - 30 วัน</th><th>&gt; 30 วัน</th></tr></thead><tbody>'+(t1Rows||'<tr><td colspan="4">ไม่พบข้อมูล</td></tr>')+'</tbody><tfoot><tr><td class="l">รวม</td><td>'+fmt(dayTotal.b1)+'</td><td>'+fmt(dayTotal.b2)+'</td><td>'+fmt(dayTotal.b3)+'</td></tr></tfoot></table></div>';
 
   var stageDefs=[];
   for(var i2=12;i2<=23;i2++){
@@ -1279,7 +1279,7 @@ async function pagePrepare(){
   }
   var sumTotal=shownMods.reduce(function(s,m){return s+((totalRowDef&&totalRowDef.vals[m])||0);},0);
   var sumReady=shownMods.reduce(function(s,m){return s+((readyRowDef&&readyRowDef.vals[m])||0);},0);
-  var t2='<div class="card"><h3><span class="dot"></span>สถานะขั้นตอนการเตรียมบ่อแต่ละพื้นที่</h3><div class="hint">จำนวนบ่อในแต่ละขั้นตอนการเตรียมบ่อ (เฉพาะบ่อ Status Close) ・ ข้อมูล L11:U25</div><div class="maptbl-wrap"><table class="dtable stripe"><thead><tr>'+t2Head+'</tr></thead><tbody>'+(t2Body||'<tr><td colspan="'+(shownMods.length+1)+'">ไม่พบข้อมูล</td></tr>')+'<tr><td class="l">เตรียมบ่อพร้อมปล่อยกุ้ง (%)</td>'+pctCells+'</tr></tbody><tfoot><tr><td class="l" colspan="'+(shownMods.length+1)+'">รวมทั้งหมด: พร้อมปล่อยกุ้ง '+fmt(sumReady)+' / เตรียมบ่อ '+fmt(sumTotal)+' บ่อ ('+(sumTotal?fmt(sumReady/sumTotal*100,0):'0')+'%)</td></tr></tfoot></table></div></div>';
+  var t2='<div class="card"><h3><span class="dot"></span>สถานะขั้นตอนการเตรียมบ่อแต่ละพื้นที่</h3><div class="hint">จำนวนบ่อในแต่ละขั้นตอนการเตรียมบ่อ (เฉพาะบ่อ Status Close)</div><div class="maptbl-wrap"><table class="dtable stripe"><thead><tr>'+t2Head+'</tr></thead><tbody>'+(t2Body||'<tr><td colspan="'+(shownMods.length+1)+'">ไม่พบข้อมูล</td></tr>')+'<tr><td class="l">เตรียมบ่อพร้อมปล่อยกุ้ง (%)</td>'+pctCells+'</tr></tbody><tfoot><tr><td class="l" colspan="'+(shownMods.length+1)+'">รวมทั้งหมด: พร้อมปล่อยกุ้ง '+fmt(sumReady)+' / เตรียมบ่อ '+fmt(sumTotal)+' บ่อ ('+(sumTotal?fmt(sumReady/sumTotal*100,0):'0')+'%)</td></tr></tfoot></table></div></div>';
 
   var totalPrepared=filtered.length;
   var readyToStock=shownMods.reduce(function(s,m){return s+((readyRowDef&&readyRowDef.vals[m])||0);},0);
@@ -1292,7 +1292,7 @@ async function pagePrepare(){
   var detailBody=detailRows.map(function(r){
     return '<tr><td class="l">'+r.pond+'</td><td>'+(r.day?fmt(r.day):'–')+'</td><td class="l">'+(r.stage||'–')+'</td><td>'+(r.update||'–')+'</td></tr>';
   }).join('');
-  var t4='<div class="card"><h3><span class="dot"></span>รายละเอียดสถานะการเตรียมบ่อรายบ่อ</h3><div class="hint">เฉพาะบ่อ Status Close ตามตัวกรองด้านบน ・ เรียงตามวันเตรียมบ่อมาก→น้อย ・ ข้อมูล B2:I73</div><table class="dtable stripe"><thead><tr><th>ชื่อบ่อ</th><th>Prepare (day)</th><th>สถานะเตรียมบ่อ</th><th>UPDATE</th></tr></thead><tbody>'+(detailBody||'<tr><td colspan="4">ไม่พบข้อมูล</td></tr>')+'</tbody></table></div>';
+  var t4='<div class="card"><h3><span class="dot"></span>รายละเอียดสถานะการเตรียมบ่อรายบ่อ</h3><div class="hint">เฉพาะบ่อ Status Close ตามตัวกรองด้านบน ・ เรียงตามวันเตรียมบ่อมาก→น้อย</div><table class="dtable stripe"><thead><tr><th>ชื่อบ่อ</th><th>Prepare (day)</th><th>สถานะเตรียมบ่อ</th><th>UPDATE</th></tr></thead><tbody>'+(detailBody||'<tr><td colspan="4">ไม่พบข้อมูล</td></tr>')+'</tbody></table></div>';
 
   el('app').innerHTML=kpis+t1+t2+t4;
   decorateWidgets('prepare');
