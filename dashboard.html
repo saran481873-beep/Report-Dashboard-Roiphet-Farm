@@ -573,6 +573,15 @@ window.tblFilterApply=function(tableId){
   });
 };
 window.setF=function(page,key,v){F[page][key]=v;renderPage(page);};
+window.sortOhDate=function(){
+  var tbody=document.querySelector('#ohDetailTable tbody');
+  if(!tbody||!window.__ohRows) return;
+  window.__ohSortDir=-(window.__ohSortDir||1);
+  var sorted=window.__ohRows.slice().sort(function(a,b){ return (a.sortKey-b.sortKey)*window.__ohSortDir; });
+  tbody.innerHTML=sorted.map(function(x){return x.html;}).join('');
+  var th=document.getElementById('ohDateTh');
+  if(th) th.textContent='Date '+(window.__ohSortDir===1?'▲':'▼');
+};
 window.toggleF=function(page,key,v){
   let a=(Array.isArray(F[page][key])?F[page][key]:['all']).slice();
   if(v==='all'){ a=['all']; }
@@ -1013,7 +1022,7 @@ async function pageOrder(){
   el('subtitle').textContent='บทวิเคราะห์การเก็บเกี่ยวและการตลาด · แผน–ผลและโครงสร้างผลผลิต';
   const d=await getTab('orderharvest'); const V=d.values; const H=V[0];
   const idx=(name)=>H.findIndex(h=>(h||'').trim().toLowerCase()===name.toLowerCase());
-  const iMod=idx('Module'),iPond=idx('Pond'),iDate=idx('Date'),iMonth=idx('Month'),iSizeC=idx('Size Current'),iSizeP=idx('Size Plan'),iTon=idx('Ton'),iType=idx('Type'),iAcMon=idx('Ac.Month'),iAcSize=idx('Ac.Size'),iAcTon=idx('Ac.Ton'),iAcType=idx('Ac.Type');
+  const iMod=idx('Module'),iPond=idx('Pond'),iDate=idx('Date'),iMonth=idx('Month'),iSizeC=idx('Size Current'),iSizeP=idx('Size Plan'),iTon=idx('Ton'),iType=idx('Type'),iAcMon=idx('Ac.Month'),iAcSize=idx('Ac.Size'),iAcTon=idx('Ac.Ton'),iAcType=idx('Ac.Type'); const iStatus=33; // column AH
   const now=new Date(); const curMonth=now.getMonth()+1;
   const st=F.orderharvest;
   // collect data rows (year already 2026 only)
@@ -1114,13 +1123,11 @@ async function pageOrder(){
   </div>`;
   const chartMonthly=`<div class="card"><h3><span class="dot"></span>แผนการจับเทียบผลจับจริงรายเดือน (ตัน)</h3><div class="hint">เปรียบเทียบปริมาณตามแผน (Plan) กับปริมาณจับจริง (Actual) รายเดือนตลอดปี</div><canvas id="ohMonthly"></canvas></div>`;
   const parseDMY=(s)=>{ const p=String(s||'').trim().split('/'); if(p.length!==3)return Infinity; const d=+p[0],m=+p[1],y=+p[2]; if(!d||!m||!y)return Infinity; return y*10000+m*100+d; };
-const detailRows=planCur.slice().sort((a,b)=>parseDMY(a[iDate])-parseDMY(b[iDate]));
-const detailBody=detailRows.map(r=>{ const status=!!(r[iType]||'').trim()?'Actual':'Plan'; return `<tr><td class="l"><span class="mod-badge">${r[iMod]||''}</span></td><td class="l"><span class="pondtag">${r[iPond]||''}</span></td><td>${r[iDate]||''}</td><td>${isNaN(num(r[iSizeP]))?'–':fmt(num(r[iSizeP]),0)}</td><td>${fmt(num(r[iTon])||0,2)}</td><td class="l">${r[iType]||''}</td><td class="l"><span class="stat-badge ${status==='Actual'?'stat-a':'stat-p'}">${status}</span></td></tr>`; }).join('');
-const detailFilterData=detailRows.map(r=>({mod:r[iMod]||'',pond:r[iPond]||'',date:r[iDate]||'',type:r[iType]||'',status:!!(r[iType]||'').trim()?'Actual':'Plan'}));
-window.__tblData=window.__tblData||{};
-window.__tblData['ohDetailTable']=detailFilterData;
-const ohColFilter=mkColFilterRow('ohDetailTable',[{key:'mod'},{key:'pond'},{key:'date'},{filter:false},{filter:false},{key:'type'},{key:'status'}]);
-const detailTbl=`<div class="card"><h3><span class="dot"></span>รายละเอียดแผนการจับกุ้ง (${ohPeriod})</h3><div class="hint">รายการแผนจับกุ้งรายบ่อ ตามพื้นที่ที่เลือก · กรองแต่ละคอลัมน์ได้ที่หัวตาราง</div><div class="maptbl-wrap"><table id="ohDetailTable" class="dtable stripe"><thead><tr><th>Module</th><th>Pond</th><th>Date</th><th>Size Plan</th><th>Ton</th><th>Type</th><th>สถานะ</th></tr>${ohColFilter}</thead><tbody>${detailBody||`<tr><td colspan="7">ไม่มีข้อมูลแผนจับในช่วงที่เลือก</td></tr>`}</tbody></table></div></div>`;
+const detailRowsRaw=planCur.slice().sort((a,b)=>parseDMY(a[iDate])-parseDMY(b[iDate]));
+window.__ohRows=detailRowsRaw.map(r=>{ var status=(r[iStatus]!=null?String(r[iStatus]):'').trim(); var statusCls=/actual/i.test(status)?'stat-a':'stat-p'; var statusText=status||'–'; var html=`<tr><td class="l"><span class="mod-badge">${r[iMod]||''}</span></td><td class="l"><span class="pondtag">${r[iPond]||''}</span></td><td>${r[iDate]||''}</td><td>${isNaN(num(r[iSizeP]))?'–':fmt(num(r[iSizeP]),0)}</td><td>${fmt(num(r[iTon])||0,2)}</td><td class="l">${r[iType]||''}</td><td class="l"><span class="stat-badge ${statusCls}">${statusText}</span></td></tr>`; return {sortKey:parseDMY(r[iDate]), html:html}; });
+window.__ohSortDir=1;
+const detailBody=window.__ohRows.map(function(x){return x.html;}).join('');
+const detailTbl=`<div class="card"><h3><span class="dot"></span>รายละเอียดแผนการจับกุ้ง (${ohPeriod})</h3><div class="hint">รายการแผนจับกุ้งรายบ่อ ตามพื้นที่ที่เลือก · คลิกหัวตาราง Date เพื่อเรียงลำดับ</div><div class="maptbl-wrap"><table id="ohDetailTable" class="dtable stripe"><thead><tr><th>Module</th><th>Pond</th><th id="ohDateTh" style="cursor:pointer" onclick="sortOhDate()">Date ▲</th><th>Size Plan</th><th>Ton</th><th>Type</th><th>สถานะ</th></tr></thead><tbody>${detailBody||`<tr><td colspan="7">ไม่มีข้อมูลแผนจับในช่วงที่เลือก</td></tr>`}</tbody></table></div></div>`;
 el('app').innerHTML=kpis+row1+chartMonthly+stockCard+'<div class="grid2">'+planTbl+actTbl+'</div>'+detailTbl;
   const cS=el('ohSize'); if(cS){ const total=sizeBands.reduce((a,b)=>a+b,0)||1; charts.push(new Chart(cS,{type:'doughnut',data:{labels:['ไซซ์ใหญ่ (≤40 ตัว/กก.)','ไซซ์กลาง (41–60)','ไซซ์เล็ก (61–80)','ไซซ์เล็กมาก (>80)'],datasets:[{data:sizeBands,backgroundColor:[P.teal,P.sky,P.amber,P.rose],borderColor:'#fff',borderWidth:3,hoverOffset:6}]},options:{cutout:'58%',plugins:{legend:{position:'bottom',labels:{usePointStyle:true,pointStyle:'circle',boxWidth:9,padding:10,font:{size:12}}},datalabels:{display:true,color:'#fff',font:{weight:'800',size:13},formatter:v=>{const p=Math.round(v/total*100);return p>=6?p+'%':'';}},tooltip:{callbacks:{label:c=>c.label.split(' (')[0]+': '+fmt(c.raw,1)+' ตัน ('+fmt(c.raw/total*100,0)+'%)'}}}}})); }
   const cT=el('ohType'); if(cT){ const tk=Object.keys(typeTon); const tv=tk.map(k=>typeTon[k]); const total=tv.reduce((a,b)=>a+b,0)||1; const cols={'Close':P.teal,'Partial 1':P.sky,'Partial 2':P.amber,'Partial 3':P.viol,'Partial 4':P.rose}; charts.push(new Chart(cT,{type:'doughnut',data:{labels:tk,datasets:[{data:tv,backgroundColor:tk.map(k=>cols[k]||P.slate),borderColor:'#fff',borderWidth:3,hoverOffset:6}]},options:{cutout:'58%',plugins:{legend:{position:'bottom',labels:{usePointStyle:true,pointStyle:'circle',boxWidth:9,padding:10,font:{size:12}}},datalabels:{display:true,color:'#fff',font:{weight:'800',size:13},formatter:v=>{const p=Math.round(v/total*100);return p>=6?p+'%':'';}},tooltip:{callbacks:{label:c=>c.label+': '+fmt(c.raw,1)+' ตัน ('+fmt(c.raw/total*100,0)+'%)'}}}}})); }
