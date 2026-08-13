@@ -932,12 +932,12 @@ async function pageFinancial(){
     {l:'ต้นทุนผลิต',v:prodKg,u:'บาท/กก.',c:'y',d:0},
     {l:'ต้นทุนดอกเบี้ย/บริหาร',v:aiKg,u:'บาท/กก.',c:'y',d:0},
     {l:'ต้นทุนสุทธิ',v:totalCostKg,u:'บาท/กก.',c:'y',d:0},
-    {l:'ต้นทุนไม่รวม Period Cost',v:totalCostKg-npKg,u:'บาท/กก.',c:'y',d:0},
     {l:'กำไร (ขาดทุน) สุทธิ',v:netKg,u:'บาท/กก.',c:netKg>=0?'g':'r',d:0},
     {l:'กำไร (ขาดทุน) สุทธิ',v:mN,u:'ล้านบาท',c:mN>=0?'g':'r',d:2},
     {l:'อัตรากำไรสุทธิ',v:netM,u:'%',c:netM>=0?'g':'r',d:1},
     {l:'No Stk + Period Cost',v:mNP,u:'ล้านบาท',c:mNP>0?'r':'dim',d:2},
-    {l:'No Stk + Period Cost',v:npKg,u:'บาท/กก.',c:'y',d:2}
+    {l:'No Stk + Period Cost',v:npKg,u:'บาท/กก.',c:'y',d:2},
+    {l:'ต้นทุนไม่รวม Period Cost',v:totalCostKg-npKg,u:'บาท/กก.',c:'y',d:0}
   ];
   const kpis='<div class="kpis">'+FKP.map(k=>`<div class="kpi ${k.c}"><div class="klabel">${k.l}</div><div class="kval">${fmt(k.v,k.d)}</div><div class="ksub">${k.u}</div></div>`).join('')+'</div>';
   // ---- P&L statement table ----
