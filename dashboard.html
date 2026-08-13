@@ -323,7 +323,7 @@ const PAGES=[
   {id:'stocking',label:'7 · Stocking'}
   ,{id:'ai',label:'8 · AI Assistant'}
   ,{id:'biomass',label:'9 · Estimate Biomass'}
-  ,{id:'prepare',label:'10 · Prepare'}
+  ,{id:'prepare',label:'10 · Prepare pond'}
 ];
 const cache={};
 let charts=[];
@@ -533,7 +533,7 @@ function renderHome(){
     {id:'stocking',cls:'c-stock',ic:'🌱',t:'7 · Stocking',d:'สรุปการลงกุ้งแยกตามพื้นที่ เดือน และประเภท พร้อมตารางลงกุ้งเดือนปัจจุบัน'}
     ,{id:'ai',cls:'c-ai',ic:'🤖',t:'8 · AI Assistant',d:'ถาม-ตอบข้อมูลฟาร์มทั้งหมดแบบ Smart Q&A ผู้ช่วยในการเลี้ยงกุ้ง'}
     ,{id:'biomass',cls:'c-biomass',ic:'⚖️',t:'9 · Estimate Biomass',d:'กรอก Feed_amout และ Size_Actual คำนวณ Biomass (kg.) พร้อมแสดง %FR และ Price (BHT/KG) ตามสูตรฟาร์ม'}
-    ,{id:'prepare',cls:'c-prepare',ic:'🧹',t:'10 · Prepare',d:'สรุปการเตรียมบ่อก่อนลงกุ้ง จำนวนบ่อเตรียม บ่อพร้อมลงกุ้ง และสถานะแต่ละขั้นตอนการเตรียมบ่อ'}
+    ,{id:'prepare',cls:'c-prepare',ic:'🧹',t:'10 · Prepare pond',d:'สรุปการเตรียมบ่อก่อนลงกุ้ง จำนวนบ่อเตรียม บ่อพร้อมลงกุ้ง และสถานะแต่ละขั้นตอนการเตรียมบ่อ'}
   ];
   el('app').innerHTML=`<div class="home-grid">`+cards.map(c=>{
     const click=c.ext?`onclick="window.open('${c.ext}','_blank')"`:`onclick="location.hash='#${c.id}'"`;
