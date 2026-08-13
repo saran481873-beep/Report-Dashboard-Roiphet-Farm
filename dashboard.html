@@ -261,6 +261,7 @@ tr.spot-hl td{animation:spotflash 2.3s ease-out}
 .aisend:hover{opacity:.92}
 .mcard.c-ai{border-top-color:#0891b2}
 .mcard.c-biomass{border-top-color:#be123c}
+.mcard.c-prepare{border-top-color:#0d9488}
 .biomass-form{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;margin-bottom:14px}
 .bfield{display:flex;flex-direction:column;gap:5px}
 .bfield label{font-size:11.5px;color:var(--muted);font-weight:600}
@@ -322,6 +323,7 @@ const PAGES=[
   {id:'stocking',label:'7 · Stocking'}
   ,{id:'ai',label:'8 · AI Assistant'}
   ,{id:'biomass',label:'9 · Estimate Biomass'}
+  ,{id:'prepare',label:'10 · Prepare'}
 ];
 const cache={};
 let charts=[];
@@ -497,7 +499,7 @@ window.showAllWidgets=function(page){
 };
 
 /* filter state per page */
-const F={situation:{type:'all',area:['all']},performance:{month:['all'],area:['all']},weekly:{type:'all',status:'all',area:['all'],sortKey:null,sortDir:1},financial:{month:['all'],area:['all']},orderharvest:{size:'all',area:['all']},stocking:{area:['all'],month:['all'],type:['all']}};
+const F={situation:{type:'all',area:['all']},performance:{month:['all'],area:['all']},weekly:{type:'all',status:'all',area:['all'],sortKey:null,sortDir:1},financial:{month:['all'],area:['all']},orderharvest:{size:'all',area:['all']},stocking:{area:['all'],month:['all'],type:['all']},prepare:{area:['all'],type:['all'],unit:['all']}};
 
 /* ---------- PAGE DISPATCH ---------- */
 async function renderPage(id){
@@ -513,6 +515,7 @@ async function renderPage(id){
     else if(id==='stocking')await pageStocking();
   else if(id==='ai')await pageAI();
   else if(id==='biomass')await pageBiomass();
+  else if(id==='prepare')await pagePrepare();
     setLive(true,'ออนไลน์');
     el('asof').textContent=new Date().toLocaleString('th-TH',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
   }catch(e){ el('app').innerHTML='<div class="loading">โหลดข้อมูลไม่สำเร็จ: '+e.message+'</div>'; setLive(false,'ออฟไลน์'); }
@@ -530,6 +533,7 @@ function renderHome(){
     {id:'stocking',cls:'c-stock',ic:'🌱',t:'7 · Stocking',d:'สรุปการลงกุ้งแยกตามพื้นที่ เดือน และประเภท พร้อมตารางลงกุ้งเดือนปัจจุบัน'}
     ,{id:'ai',cls:'c-ai',ic:'🤖',t:'8 · AI Assistant',d:'ถาม-ตอบข้อมูลฟาร์มทั้งหมดแบบ Smart Q&A ผู้ช่วยในการเลี้ยงกุ้ง'}
     ,{id:'biomass',cls:'c-biomass',ic:'⚖️',t:'9 · Estimate Biomass',d:'กรอก Feed_amout และ Size_Actual คำนวณ Biomass (kg.) พร้อมแสดง %FR และ Price (BHT/KG) ตามสูตรฟาร์ม'}
+    ,{id:'prepare',cls:'c-prepare',ic:'🧹',t:'10 · Prepare',d:'สรุปการเตรียมบ่อก่อนลงกุ้ง จำนวนบ่อเตรียม บ่อพร้อมลงกุ้ง และสถานะแต่ละขั้นตอนการเตรียมบ่อ'}
   ];
   el('app').innerHTML=`<div class="home-grid">`+cards.map(c=>{
     const click=c.ext?`onclick="window.open('${c.ext}','_blank')"`:`onclick="location.hash='#${c.id}'"`;
@@ -1215,6 +1219,84 @@ const AI_SUGGEST = [
   'คุณภาพน้ำวันนี้เป็นยังไง',
   'อาหารวันนี้ให้ไปเท่าไหร่'
 ];
+
+
+async function pagePrepare(){
+  el('subtitle').textContent='สรุปการเตรียมบ่อ (Prepare) · สถานะและความคืบหน้าการเตรียมบ่อก่อนลงกุ้ง เฉพาะบ่อสถานะ Close';
+  var d=await getTab('prepare'); var V=d.values;
+  var rows=[];
+  for(var i=2;i<V.length;i++){
+    var r=V[i]; if(!(r[1]||'').trim())continue;
+    if((r[4]||'').trim()!=='Close')continue;
+    rows.push({mod:(r[0]||'').trim(),pond:(r[1]||'').trim(),type:(r[2]||'').trim(),unit:(r[3]||'').trim(),day:num(r[5]),stage:(r[6]||'').trim(),update:(r[8]||'').trim()});
+  }
+  var mods=[...new Set(rows.map(function(r){return r.mod;}))].filter(Boolean).sort();
+  var types=[...new Set(rows.map(function(r){return r.type;}))].filter(Boolean).sort();
+  var units=[...new Set(rows.map(function(r){return r.unit;}))].filter(Boolean).sort();
+  var st=F.prepare;
+  filterBar('prepare',[
+    {label:'พื้นที่ (Module)',key:'area',multi:true,hint:'เลือกได้หลายพื้นที่',opts:[{v:'all',t:'ทั้งหมด'}].concat(mods.map(function(m){return {v:m,t:m};}))},
+    {label:'Type',key:'type',multi:true,hint:'เลือกได้หลายประเภท',opts:[{v:'all',t:'ทั้งหมด'}].concat(types.map(function(t){return {v:t,t:t};}))},
+    {label:'Unit',key:'unit',multi:true,hint:'เลือกได้หลาย Unit',opts:[{v:'all',t:'ทั้งหมด'}].concat(units.map(function(u){return {v:u,t:'Unit '+u};}))}
+  ]);
+  var areaSel=st.area,isAllArea=areaSel.includes('all');
+  var typeSel=st.type,isAllType=typeSel.includes('all');
+  var unitSel=st.unit,isAllUnit=unitSel.includes('all');
+  var filtered=rows.filter(function(r){return (isAllArea||areaSel.includes(r.mod))&&(isAllType||typeSel.includes(r.type))&&(isAllUnit||unitSel.includes(r.unit));});
+
+  var modOrder=['A','B','C','D','R'];
+  var shownMods=modOrder.filter(function(m){return isAllArea||areaSel.includes(m);});
+
+  var dayRowsAll={A:3,B:4,C:5,D:6,R:7};
+  var dayRows=shownMods.map(function(m){var r=V[dayRowsAll[m]]; return {m:m,b1:num(r[12]),b2:num(r[13]),b3:num(r[14])};});
+  var dayTotal=dayRows.reduce(function(a,r){return {b1:a.b1+(r.b1||0),b2:a.b2+(r.b2||0),b3:a.b3+(r.b3||0)};},{b1:0,b2:0,b3:0});
+  var t1Rows=dayRows.map(function(r){
+    return '<tr><td class="l"><span class="mod-badge">'+r.m+'</span></td><td>'+fmt(r.b1)+'</td><td>'+fmt(r.b2)+'</td><td>'+fmt(r.b3)+'</td></tr>';
+  }).join('');
+  var t1='<div class="card"><h3><span class="dot"></span>วันเตรียมบ่อสะสมแต่ละพื้นที่</h3><div class="hint">จำนวนบ่อแยกตามช่วงวันเตรียมบ่อสะสม (เฉพาะบ่อ Status Close) ・ ข้อมูล L2:O9</div><table class="dtable stripe"><thead><tr><th>Module</th><th>1 - 20 วัน</th><th>21 - 30 วัน</th><th>&gt; 30 วัน</th></tr></thead><tbody>'+(t1Rows||'<tr><td colspan="4">ไม่พบข้อมูล</td></tr>')+'</tbody><tfoot><tr><td class="l">รวม</td><td>'+fmt(dayTotal.b1)+'</td><td>'+fmt(dayTotal.b2)+'</td><td>'+fmt(dayTotal.b3)+'</td></tr></tfoot></table></div>';
+
+  var stageDefs=[];
+  for(var i2=12;i2<=23;i2++){
+    stageDefs.push({label:(V[i2][11]||'').trim(), vals:{A:num(V[i2][16]),B:num(V[i2][17]),C:num(V[i2][18]),D:num(V[i2][19]),R:num(V[i2][20])}});
+  }
+  var matrixRows=stageDefs.filter(function(s){return /^\d\./.test(s.label) || s.label.indexOf('จำนวนเตรียมบ่อ')===0;});
+  var totalRowDef=null, readyRowDef=null;
+  stageDefs.forEach(function(s){
+    if(s.label.indexOf('จำนวนเตรียมบ่อ')===0) totalRowDef=s;
+    if(s.label.indexOf('เตรียมบ่อพร้อมปล่อยกุ้ง (บ่อ')===0) readyRowDef=s;
+  });
+
+  var t2Head='<th>ขั้นตอน / รายการ</th>'+shownMods.map(function(m){return '<th>'+m+'</th>';}).join('');
+  var t2Body=matrixRows.map(function(s){
+    return '<tr><td class="l">'+s.label+'</td>'+shownMods.map(function(m){return '<td>'+fmt(s.vals[m]||0)+'</td>';}).join('')+'</tr>';
+  }).join('');
+  var pctCells='';
+  if(totalRowDef&&readyRowDef){
+    pctCells=shownMods.map(function(m){
+      var t=totalRowDef.vals[m]||0, rd=readyRowDef.vals[m]||0;
+      return '<td>'+(t?fmt(rd/t*100,0)+'%':'–')+'</td>';
+    }).join('');
+  }
+  var sumTotal=shownMods.reduce(function(s,m){return s+((totalRowDef&&totalRowDef.vals[m])||0);},0);
+  var sumReady=shownMods.reduce(function(s,m){return s+((readyRowDef&&readyRowDef.vals[m])||0);},0);
+  var t2='<div class="card"><h3><span class="dot"></span>สถานะขั้นตอนการเตรียมบ่อแต่ละพื้นที่</h3><div class="hint">จำนวนบ่อในแต่ละขั้นตอนการเตรียมบ่อ (เฉพาะบ่อ Status Close) ・ ข้อมูล L11:U25</div><div class="maptbl-wrap"><table class="dtable stripe"><thead><tr>'+t2Head+'</tr></thead><tbody>'+(t2Body||'<tr><td colspan="'+(shownMods.length+1)+'">ไม่พบข้อมูล</td></tr>')+'<tr><td class="l">เตรียมบ่อพร้อมปล่อยกุ้ง (%)</td>'+pctCells+'</tr></tbody><tfoot><tr><td class="l" colspan="'+(shownMods.length+1)+'">รวมทั้งหมด: พร้อมปล่อยกุ้ง '+fmt(sumReady)+' / เตรียมบ่อ '+fmt(sumTotal)+' บ่อ ('+(sumTotal?fmt(sumReady/sumTotal*100,0):'0')+'%)</td></tr></tfoot></table></div></div>';
+
+  var totalPrepared=filtered.length;
+  var readyToStock=shownMods.reduce(function(s,m){return s+((readyRowDef&&readyRowDef.vals[m])||0);},0);
+  var kpis='<div class="kpis">'
+    +'<div class="kpi b"><div class="klabel">จำนวนบ่อที่มีการเตรียมทั้งหมด</div><div class="kval">'+fmt(totalPrepared)+'</div><div class="ksub">บ่อ (Status Close)</div></div>'
+    +'<div class="kpi g"><div class="klabel">บ่อที่พร้อมลงกุ้ง</div><div class="kval">'+fmt(readyToStock)+'</div><div class="ksub">บ่อ ・ ขั้นตอน 7. พร้อมปล่อยกุ้ง</div></div>'
+    +'</div>';
+
+  var detailRows=filtered.slice().sort(function(a,b){return (b.day||0)-(a.day||0);});
+  var detailBody=detailRows.map(function(r){
+    return '<tr><td class="l">'+r.pond+'</td><td>'+(r.day?fmt(r.day):'–')+'</td><td class="l">'+(r.stage||'–')+'</td><td>'+(r.update||'–')+'</td></tr>';
+  }).join('');
+  var t4='<div class="card"><h3><span class="dot"></span>รายละเอียดสถานะการเตรียมบ่อรายบ่อ</h3><div class="hint">เฉพาะบ่อ Status Close ตามตัวกรองด้านบน ・ เรียงตามวันเตรียมบ่อมาก→น้อย ・ ข้อมูล B2:I73</div><table class="dtable stripe"><thead><tr><th>ชื่อบ่อ</th><th>Prepare (day)</th><th>สถานะเตรียมบ่อ</th><th>UPDATE</th></tr></thead><tbody>'+(detailBody||'<tr><td colspan="4">ไม่พบข้อมูล</td></tr>')+'</tbody></table></div>';
+
+  el('app').innerHTML=kpis+t1+t2+t4;
+  decorateWidgets('prepare');
+}
 
 async function pageAI(){
   el('subtitle').textContent='ผู้ช่วย AI ถาม-ตอบข้อมูลฟาร์ม (Smart Q&A) · อ้างอิงข้อมูลสดจาก Situation/Weekly/Order Harvest/Stocking/Daily';
