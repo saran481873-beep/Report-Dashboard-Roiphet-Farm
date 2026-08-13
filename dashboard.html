@@ -932,6 +932,7 @@ async function pageFinancial(){
     {l:'ต้นทุนผลิต',v:prodKg,u:'บาท/กก.',c:'y',d:0},
     {l:'ต้นทุนดอกเบี้ย/บริหาร',v:aiKg,u:'บาท/กก.',c:'y',d:0},
     {l:'ต้นทุนสุทธิ',v:totalCostKg,u:'บาท/กก.',c:'y',d:0},
+    {l:'ต้นทุนไม่รวม Period Cost',v:totalCostKg-npKg,u:'บาท/กก.',c:'y',d:0},
     {l:'กำไร (ขาดทุน) สุทธิ',v:netKg,u:'บาท/กก.',c:netKg>=0?'g':'r',d:0},
     {l:'กำไร (ขาดทุน) สุทธิ',v:mN,u:'ล้านบาท',c:mN>=0?'g':'r',d:2},
     {l:'อัตรากำไรสุทธิ',v:netM,u:'%',c:netM>=0?'g':'r',d:1},
@@ -1084,8 +1085,9 @@ async function pageOrder(){
     <div class="card"><h3><span class="dot"></span>โครงสร้างการจับจำแนกตามประเภท</h3><div class="hint">สัดส่วนปริมาณจับจริงตามรูปแบบการจับ · หน่วย: ตัน</div><canvas id="ohType"></canvas></div>
   </div>`;
   const chartMonthly=`<div class="card"><h3><span class="dot"></span>แผนการจับเทียบผลจับจริงรายเดือน (ตัน)</h3><div class="hint">เปรียบเทียบปริมาณตามแผน (Plan) กับปริมาณจับจริง (Actual) รายเดือนตลอดปี</div><canvas id="ohMonthly"></canvas></div>`;
-  const detailRows=planCur.slice().sort((a,b)=>((a[iMod]||'').localeCompare(b[iMod]))||((a[iPond]||'').localeCompare(b[iPond])));
-const detailBody=detailRows.map(r=>`<tr><td class="l"><span class="mod-badge">${r[iMod]||''}</span></td><td class="l"><span class="pondtag">${r[iPond]||''}</span></td><td>${r[iDate]||''}</td><td>${isNaN(num(r[iSizeP]))?'–':fmt(num(r[iSizeP]),0)}</td><td>${fmt(num(r[iTon])||0,2)}</td><td class="l">${r[iType]||''}</td></tr>`).join('');
+  const parseDMY=(s)=>{ const p=String(s||'').trim().split('/'); if(p.length!==3)return Infinity; const d=+p[0],m=+p[1],y=+p[2]; if(!d||!m||!y)return Infinity; return y*10000+m*100+d; };
+const detailRows=planCur.slice().sort((a,b)=>parseDMY(a[iDate])-parseDMY(b[iDate]));
+const detailBody=detailRows.map(r=>{ const done=!!(r[iType]||'').trim(); return `<tr${done?' style="background:#e0f2fe"':''}><td class="l"><span class="mod-badge">${r[iMod]||''}</span></td><td class="l"><span class="pondtag">${r[iPond]||''}</span></td><td>${r[iDate]||''}</td><td>${isNaN(num(r[iSizeP]))?'–':fmt(num(r[iSizeP]),0)}</td><td>${fmt(num(r[iTon])||0,2)}</td><td class="l">${r[iType]||''}</td></tr>`; }).join('');
 const detailTbl=`<div class="card"><h3><span class="dot"></span>รายละเอียดแผนการจับกุ้ง (${ohPeriod})</h3><div class="hint">รายการแผนจับกุ้งรายบ่อ ตามพื้นที่ที่เลือก</div><div class="maptbl-wrap"><table class="dtable stripe"><thead><tr><th>Module</th><th>Pond</th><th>Date</th><th>Size Plan</th><th>Ton</th><th>Type</th></tr></thead><tbody>${detailBody||`<tr><td colspan="6">ไม่มีข้อมูลแผนจับในช่วงที่เลือก</td></tr>`}</tbody></table></div></div>`;
 el('app').innerHTML=kpis+row1+chartMonthly+stockCard+'<div class="grid2">'+planTbl+actTbl+'</div>'+detailTbl;
   const cS=el('ohSize'); if(cS){ const total=sizeBands.reduce((a,b)=>a+b,0)||1; charts.push(new Chart(cS,{type:'doughnut',data:{labels:['ไซซ์ใหญ่ (≤40 ตัว/กก.)','ไซซ์กลาง (41–60)','ไซซ์เล็ก (61–80)','ไซซ์เล็กมาก (>80)'],datasets:[{data:sizeBands,backgroundColor:[P.teal,P.sky,P.amber,P.rose],borderColor:'#fff',borderWidth:3,hoverOffset:6}]},options:{cutout:'58%',plugins:{legend:{position:'bottom',labels:{usePointStyle:true,pointStyle:'circle',boxWidth:9,padding:10,font:{size:12}}},datalabels:{display:true,color:'#fff',font:{weight:'800',size:13},formatter:v=>{const p=Math.round(v/total*100);return p>=6?p+'%':'';}},tooltip:{callbacks:{label:c=>c.label.split(' (')[0]+': '+fmt(c.raw,1)+' ตัน ('+fmt(c.raw/total*100,0)+'%)'}}}}})); }
