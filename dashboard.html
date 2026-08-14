@@ -1164,6 +1164,61 @@ async function pageStocking(){
   const mods=[...new Set(rows.map(r=>r.mod))].filter(Boolean).sort();
   const months=[...new Set(rows.map(r=>r.month))].filter(Boolean).sort((a,b)=>a-b);
   const types=[...new Set(rows.map(r=>r.type))].filter(Boolean).sort();
+
+  const now=new Date(); const curMonth=now.getMonth()+1;
+  const planMonths=months.filter(m=>m>=curMonth);
+  const planCell={};
+  const planModTotal={}; mods.forEach(m=>{ planModTotal[m]={ponds:new Set(),pcs:0}; });
+  const planMonthTotal={}; planMonths.forEach(mo=>{ planMonthTotal[mo]={ponds:new Set(),pcs:0}; });
+  rows.forEach(r=>{
+    if(!r.month||!r.mod||r.month<curMonth) return;
+    planCell[r.month]=planCell[r.month]||{};
+    planCell[r.month][r.mod]=planCell[r.month][r.mod]||{ponds:new Set(),pcs:0};
+    planCell[r.month][r.mod].ponds.add(r.pond);
+    planCell[r.month][r.mod].pcs+=r.pcs||0;
+    planModTotal[r.mod].ponds.add(r.pond);
+    planModTotal[r.mod].pcs+=r.pcs||0;
+    planMonthTotal[r.month].ponds.add(r.pond);
+    planMonthTotal[r.month].pcs+=r.pcs||0;
+  });
+  const planGrandPonds=new Set(rows.filter(r=>r.month>=curMonth&&r.mod).map(r=>r.pond)).size;
+  const planGrandPcs=mods.reduce((s,m)=>s+planModTotal[m].pcs,0);
+  let peakMonth=planMonths[0]||curMonth;
+  planMonths.forEach(mo=>{ if(planMonthTotal[mo].ponds.size>(planMonthTotal[peakMonth]?planMonthTotal[peakMonth].ponds.size:0)) peakMonth=mo; });
+  let peakMod=mods[0]||'';
+  mods.forEach(m=>{ if(planModTotal[m].pcs>(planModTotal[peakMod]?planModTotal[peakMod].pcs:0)) peakMod=m; });
+  const peakMonthPct=planGrandPcs?(planMonthTotal[peakMonth].pcs/planGrandPcs*100):0;
+  const planHead=`<th class='l'>เดือน / ช่วงเวลา</th>`+mods.map(m=>`<th>โมดูล ${m}</th>`).join('')+`<th style='background:#e0f2fe'>รวมรายเดือน</th>`;
+  const planBody=planMonths.map(mo=>{
+    const isPeak=mo===peakMonth;
+    const cells=mods.map(m=>{
+      const c=(planCell[mo]&&planCell[mo][m])?planCell[mo][m]:null;
+      if(!c||!c.ponds.size) return `<td style='color:#cbd5e1'>–</td>`;
+      return `<td><b>${fmt(c.ponds.size)} บ่อ</b><br><span style='color:var(--muted);font-size:11px'>(${fmt(c.pcs)})</span></td>`;
+    }).join('');
+    const mt=planMonthTotal[mo];
+    const totalCell=`<td style='background:#f0f9ff'><b>${fmt(mt.ponds.size)} บ่อ</b><br><span style='color:var(--muted);font-size:11px'>(${fmt(mt.pcs)} ตัว)</span></td>`;
+    const peakBadge=isPeak?` <span class='stat-badge' style='background:var(--yellow-bg);color:var(--yellow)'>Peak</span>`:'';
+    return `<tr${isPeak?" style='background:var(--yellow-bg)'":''}><td class='l'>${MONTH_TH[mo-1]||mo} (เดือน ${mo})${peakBadge}</td>${cells}${totalCell}</tr>`;
+  }).join('');
+  const planFootCells=mods.map(m=>{
+    const mt=planModTotal[m];
+    return `<td><b>${fmt(mt.ponds.size)} บ่อ</b><br><span style='font-size:11px;opacity:.85'>(${fmt(mt.pcs)})</span></td>`;
+  }).join('');
+  const planFoot=`<tr><td class='l'>รวมทั้งหมด (Grand Total)</td>${planFootCells}<td style='background:var(--accent);color:#fff'><b>${fmt(planGrandPonds)} บ่อ</b><br><span style='font-size:11px'>(${fmt(planGrandPcs)} ตัว)</span></td></tr>`;
+  const planKpis=`<div class='kpis'>
+    <div class='kpi b'><div class='klabel'>จำนวนบ่อรวมทั้งหมด</div><div class='kval'>${fmt(planGrandPonds)}</div><div class='ksub'>บ่อ · ครอบคลุม ${mods.length} โมดูล (${mods.join(', ')})</div></div>
+    <div class='kpi g'><div class='klabel'>ยอดรวมลูกกุ้งทั้งหมด</div><div class='kval'>${fmt(planGrandPcs/1e6,2)} <span style='font-size:15px'>ล้านตัว</span></div><div class='ksub'>${fmt(planGrandPcs)} ตัว</div></div>
+    <div class='kpi y'><div class='klabel'>เดือนพีคสูงสุด (Peak Month)</div><div class='kval'>เดือน ${peakMonth} <span style='font-size:14px'>(${MONTH_TH[peakMonth-1]||''})</span></div><div class='ksub'>ลงกุ้ง ${fmt(planMonthTotal[peakMonth]?planMonthTotal[peakMonth].ponds.size:0)} บ่อ (${fmt((planMonthTotal[peakMonth]?planMonthTotal[peakMonth].pcs:0)/1e6,2)} ล้านตัว / ${peakMonthPct.toFixed(1)}%)</div></div>
+    <div class='kpi v'><div class='klabel'>โมดูลที่มียอดลงกุ้งสูงสุด</div><div class='kval'>โมดูล ${peakMod}</div><div class='ksub'>${fmt((planModTotal[peakMod]?planModTotal[peakMod].pcs:0)/1e6,2)} ล้านตัว (${fmt(planModTotal[peakMod]?planModTotal[peakMod].ponds.size:0)} บ่อ)</div></div>
+  </div>`;
+  const planReport=`<div class='card' style='margin-bottom:var(--gap)'>
+    <h3><span class='dot'></span>รายงานแผนการลงกุ้ง รายโมดูลและรายเดือน 2026</h3>
+    <div class='hint'>สรุปภาพรวมจำนวนบ่อและปริมาณการลงลูกกุ้ง (ตัว) ตั้งแต่เดือนปัจจุบันเป็นต้นไป แบ่งตามช่วงเวลาและพื้นที่การเลี้ยง (ไม่ขึ้นกับตัวกรองด้านล่าง)</div>
+    ${planKpis}
+    <div class='maptbl-wrap'><table class='dtable stripe'><thead><tr>${planHead}</tr></thead><tbody>${planBody||`<tr><td colspan='${mods.length+2}'>ไม่พบข้อมูล</td></tr>`}</tbody><tfoot>${planFoot}</tfoot></table></div>
+  </div>`;
+
   const st=F.stocking;
   filterBar('stocking',[
     {label:'พื้นที่ (Module)',key:'area',multi:true,opts:[{v:'all',t:'ทั้งหมด'},...mods.map(m=>({v:m,t:m}))]},
@@ -1197,7 +1252,7 @@ async function pageStocking(){
   const curBody=window.__stkRows.map(x=>x.html).join('');
   const curMonthLabel=isAllMonth?'ทุกเดือน':monthSel.map(m=>MONTH_TH[Number(m)-1]||m).join(', ');
   const tbl=`<div class='card'><h3><span class='dot'></span>ตารางลงกุ้ง (${curMonthLabel})</h3><div class='hint'>รายการลงกุ้งตามเดือนที่เลือก · เลือกได้มากกว่า 1 เดือน · คลิกหัวตาราง วันที่ลงกุ้ง เพื่อเรียงลำดับ</div><div class='maptbl-wrap'><table id='stkTable' class='dtable stripe'><thead><tr><th>ชื่อบ่อ</th><th id='stkDateTh' style='cursor:pointer' onclick='sortStkDate()'>วันที่ลงกุ้ง</th><th>ประเภท</th><th>Module</th><th>จำนวน (ตัว)</th></tr></thead><tbody>${curBody||`<tr><td colspan='5'>ไม่มีการลงกุ้งในเดือนที่เลือก</td></tr>`}</tbody><tfoot><tr><td class='l' colspan='4'>รวม</td><td>${fmt(curTotalPcs)}</td></tr></tfoot></table></div></div>`;
-  el('app').innerHTML=kpis+modTable+tbl;
+  el('app').innerHTML=planReport+kpis+modTable+tbl;
   decorateWidgets('stocking');
 }
 window.stkTip=function(e){ const mod=e.target.getAttribute('data-mod'); const s=((window.__stkPonds||{})[mod]||{}).pondPcs||{}; let tip=document.getElementById('ohtip'); if(!tip){tip=document.createElement('div');tip.id='ohtip';tip.className='ohtip';document.body.appendChild(tip);} const ponds=Object.keys(s); if(!ponds.length){tip.style.display='none';return;} tip.innerHTML=`<div class='ohtip-h'>รายชื่อบ่อ Module ${mod} · ${ponds.length} บ่อ</div>`+ponds.sort().map(p=>`<div class='ohtip-r'><span>${p}</span><b>${fmt(s[p])} ตัว</b></div>`).join(''); tip.style.display='block'; const pad=14,w=tip.offsetWidth,h=tip.offsetHeight; let x=e.clientX+pad,y=e.clientY+pad; if(x+w>window.innerWidth)x=e.clientX-w-pad; if(y+h>window.innerHeight)y=Math.max(6,window.innerHeight-h-6); tip.style.left=x+'px'; tip.style.top=y+'px'; };
