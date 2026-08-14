@@ -1228,7 +1228,7 @@ async function pageStocking(){
     const mt=planMonthTotal[mo];
     const totalCell=`<td style='background:#f0f9ff'><b>${fmt(mt.ponds.size)} บ่อ</b><br><span style='color:var(--muted);font-size:11px'>(${fmt(mt.pcs/1e6,2)} ล้านตัว)</span></td>`;
     const peakBadge=isPeak?` <span class='stat-badge' style='background:var(--yellow-bg);color:var(--yellow)'>Peak</span>`:'';
-    const mainRow=`<tr${isPeak?" style='background:var(--yellow-bg)'":''}><td class='l'>${MONTH_TH[mo-1]||mo} (เดือน ${mo})${peakBadge}</td>${cells}${totalCell}</tr>`;
+    const mainRow=`<tr style='cursor:pointer;${isPeak?'background:var(--yellow-bg);':''}' onclick="var r=this;var opening=!r.classList.contains('open');r.classList.toggle('open');var n=r;for(var i=0;i<4;i++){n=n.nextElementSibling;if(n)n.style.display=opening?'':'none';}var ic=r.querySelector('.planToggleIcon');if(ic)ic.textContent=opening?'▾':'▸';"><td class='l'><span class='planToggleIcon' style='display:inline-block;width:12px;color:var(--muted);font-size:10px'>▸</span> ${MONTH_TH[mo-1]||mo} (เดือน ${mo})${peakBadge}</td>${cells}${totalCell}</tr>`;
     const weekRows=[1,2,3,4].map(wk=>{
       const wCells=planMods.map(m=>{
         const c=(planWeekCell[mo]&&planWeekCell[mo][wk]&&planWeekCell[mo][wk][m])?planWeekCell[mo][wk][m]:null;
@@ -1237,7 +1237,7 @@ async function pageStocking(){
       }).join('');
       const wt=(planWeekMonthTotal[mo]&&planWeekMonthTotal[mo][wk])?planWeekMonthTotal[mo][wk]:null;
       const wTotalCell=(wt&&wt.ponds.size)?`<td style='background:#f7fbff;font-size:11px'><b>${fmt(wt.ponds.size)} บ่อ</b> <span style='color:var(--muted)'>(${fmt(wt.pcs/1e6,2)} ล้านตัว)</span></td>`:`<td style='background:#f7fbff;color:#e2e8f0;font-size:11px'>–</td>`;
-      return `<tr style='background:#fafcfd'><td class='l' style='padding-left:24px;font-size:11px;color:var(--muted);font-weight:600'>↳ W${wk}</td>${wCells}${wTotalCell}</tr>`;
+      return `<tr style='display:none;background:#fafcfd'><td class='l' style='padding-left:24px;font-size:11px;color:var(--muted);font-weight:600'>↳ W${wk}</td>${wCells}${wTotalCell}</tr>`;
     }).join('');
     return mainRow+weekRows;
   }).join('');
