@@ -1170,9 +1170,9 @@ async function pageStocking(){
   filterBar('stocking',[
     {label:'พื้นที่ (Module)',key:'area',multi:true,opts:[{v:'all',t:'ทั้งหมด'},...mods.map(m=>({v:m,t:m}))]},
     {label:'ปี',key:'year',multi:true,hint:'เลือกได้หลายปี',opts:[{v:'all',t:'ทั้งหมด'},...years.map(y=>({v:String(y),t:String(y)}))]},
+    {label:'สัปดาห์',key:'week',multi:true,hint:'เลือกได้หลายสัปดาห์',opts:[{v:'all',t:'ทั้งหมด'},{v:'1',t:'W1'},{v:'2',t:'W2'},{v:'3',t:'W3'},{v:'4',t:'W4'}]},
     {label:'เดือน',key:'month',multi:true,hint:'เลือกได้หลายเดือน',opts:[{v:'all',t:'ทั้งหมด'},...months.map(m=>({v:String(m),t:MONTH_TH[m-1]||('เดือน '+m)}))]},
-    {label:'ประเภทกุ้ง',key:'type',multi:true,hint:'เลือกได้หลายประเภท',opts:[{v:'all',t:'ทั้งหมด'},...types.map(t=>({v:t,t:t}))]},
-    {label:'สัปดาห์',key:'week',multi:true,hint:'เลือกได้หลายสัปดาห์',opts:[{v:'all',t:'ทั้งหมด'},{v:'1',t:'W1'},{v:'2',t:'W2'},{v:'3',t:'W3'},{v:'4',t:'W4'}]}
+    {label:'ประเภทกุ้ง',key:'type',multi:true,hint:'เลือกได้หลายประเภท',opts:[{v:'all',t:'ทั้งหมด'},...types.map(t=>({v:t,t:t}))]}
   ]);
   const areaSel=st.area, isAllArea=areaSel.includes('all');
   const monthSel=st.month, isAllMonth=monthSel.includes('all');
