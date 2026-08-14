@@ -1217,28 +1217,24 @@ async function pageStocking(){
   }).join('');
   const planFoot=`<tr><td class='l'>รวมทั้งหมด (Grand Total)</td>${planFootCells}<td style='background:var(--accent);color:#fff'><b>${fmt(planGrandPonds)} บ่อ</b><br><span style='font-size:11px'>(${fmt(planGrandPcs)} ตัว)</span></td></tr>`;
   const planFilterLabel=(isAllArea?'ทุกพื้นที่':areaSel.join(', '))+' · '+(isAllMonth?'ทุกเดือน':monthSel.map(m=>MONTH_TH[Number(m)-1]||m).join(', '))+' · '+(isAllType?'ทุกประเภท':typeSel.join(', '));
-  const planKpis=`<div class='kpis'>
-    <div class='kpi b'><div class='klabel'>จำนวนบ่อรวม</div><div class='kval'>${fmt(planGrandPonds)}</div><div class='ksub'>บ่อ · ${planMods.length} โมดูล (${planMods.join(', ')||'-'})</div></div>
-    <div class='kpi g'><div class='klabel'>ยอดรวมลูกกุ้ง</div><div class='kval'>${fmt(planGrandPcs/1e6,2)} <span style='font-size:15px'>ล้านตัว</span></div><div class='ksub'>${fmt(planGrandPcs)} ตัว</div></div>
-    <div class='kpi y'><div class='klabel'>เดือนพีคสูงสุด (Peak Month)</div><div class='kval'>${planMonths.length?('เดือน '+peakMonth):'-'} <span style='font-size:14px'>${planMonths.length?('('+(MONTH_TH[peakMonth-1]||'')+')'):''}</span></div><div class='ksub'>${(planMonths.length&&planMonthTotal[peakMonth])?(`ลงกุ้ง ${fmt(planMonthTotal[peakMonth].ponds.size)} บ่อ (${fmt(planMonthTotal[peakMonth].pcs/1e6,2)} ล้านตัว / ${peakMonthPct.toFixed(1)}%)`):'ไม่มีข้อมูล'}</div></div>
-    <div class='kpi v'><div class='klabel'>โมดูลยอดสูงสุด</div><div class='kval'>${planMods.length?('โมดูล '+peakMod):'-'}</div><div class='ksub'>${(planMods.length&&planModTotal[peakMod])?(`${fmt(planModTotal[peakMod].pcs/1e6,2)} ล้านตัว (${fmt(planModTotal[peakMod].ponds.size)} บ่อ)`):'ไม่มีข้อมูล'}</div></div>
-  </div>`;
-  const planReport=`<div class='card' style='margin-bottom:var(--gap)'>
-    <h3><span class='dot'></span>รายงานแผนการลงกุ้ง รายโมดูลและรายเดือน</h3>
-    <div class='hint'>ตามตัวกรองที่เลือกด้านบน: ${planFilterLabel} · เลือกได้มากกว่า 1 รายการต่อกลุ่ม</div>
-    ${planKpis}
-    <div class='maptbl-wrap'><table class='dtable stripe'><thead><tr>${planHead}</tr></thead><tbody>${planBody||`<tr><td colspan='${planMods.length+2}'>ไม่พบข้อมูลตามตัวกรองที่เลือก</td></tr>`}</tbody><tfoot>${planFoot}</tfoot></table></div>
-  </div>`;
   const totalPonds=new Set(filtered.map(r=>r.pond)).size;
   const totalPcs=filtered.reduce((s,r)=>s+(r.pcs||0),0);
   const byType={}; filtered.forEach(r=>{ if(!r.type)return; if(!byType[r.type])byType[r.type]={ponds:new Set(),pcs:0}; byType[r.type].ponds.add(r.pond); byType[r.type].pcs+=r.pcs||0; });
   const typeKeys=Object.keys(byType).sort();
   const accents=['y','v','r','dim'];
   const typeCards=typeKeys.map((t,i)=>`<div class='kpi ${accents[i%accents.length]}'><div class='klabel'>${t}</div><div class='kval'>${fmt(byType[t].pcs/1e6,2)}</div><div class='ksub'>ล้านตัว · ${fmt(byType[t].ponds.size)} บ่อ</div></div>`).join('');
-  const kpis=`<div class='kpis'>
-    <div class='kpi b'><div class='klabel'>จำนวนบ่อที่ลงกุ้ง</div><div class='kval'>${fmt(totalPonds)}</div><div class='ksub'>บ่อ</div></div>
-    <div class='kpi g'><div class='klabel'>จำนวนตัวที่ลงกุ้ง (รวม)</div><div class='kval'>${fmt(totalPcs/1e6,2)}</div><div class='ksub'>ล้านตัว</div></div>
+  const planKpis=`<div class='kpis'>
+    <div class='kpi b'><div class='klabel'>จำนวนบ่อรวม</div><div class='kval'>${fmt(planGrandPonds)}</div><div class='ksub'>บ่อ · ${planMods.length} โมดูล (${planMods.join(', ')||'-'})</div></div>
+    <div class='kpi g'><div class='klabel'>ยอดรวมลูกกุ้ง</div><div class='kval'>${fmt(planGrandPcs/1e6,2)} <span style='font-size:15px'>ล้านตัว</span></div><div class='ksub'>${fmt(planGrandPcs)} ตัว</div></div>
+    <div class='kpi y'><div class='klabel'>เดือนพีคสูงสุด (Peak Month)</div><div class='kval'>${planMonths.length?('เดือน '+peakMonth):'-'} <span style='font-size:14px'>${planMonths.length?('('+(MONTH_TH[peakMonth-1]||'')+')'):''}</span></div><div class='ksub'>${(planMonths.length&&planMonthTotal[peakMonth])?(`ลงกุ้ง ${fmt(planMonthTotal[peakMonth].ponds.size)} บ่อ (${fmt(planMonthTotal[peakMonth].pcs/1e6,2)} ล้านตัว / ${peakMonthPct.toFixed(1)}%)`):'ไม่มีข้อมูล'}</div></div>
+    <div class='kpi v'><div class='klabel'>โมดูลยอดสูงสุด</div><div class='kval'>${planMods.length?('โมดูล '+peakMod):'-'}</div><div class='ksub'>${(planMods.length&&planModTotal[peakMod])?(`${fmt(planModTotal[peakMod].pcs/1e6,2)} ล้านตัว (${fmt(planModTotal[peakMod].ponds.size)} บ่อ)`):'ไม่มีข้อมูล'}</div></div>
     ${typeCards}
+  </div>`;
+  const planReport=`<div class='card' style='margin-bottom:var(--gap)'>
+    <h3><span class='dot'></span>รายงานแผนการลงกุ้ง รายโมดูลและรายเดือน</h3>
+    <div class='hint'>ตามตัวกรองที่เลือกด้านบน: ${planFilterLabel} · เลือกได้มากกว่า 1 รายการต่อกลุ่ม</div>
+    ${planKpis}
+    <div class='maptbl-wrap'><table class='dtable stripe'><thead><tr>${planHead}</tr></thead><tbody>${planBody||`<tr><td colspan='${planMods.length+2}'>ไม่พบข้อมูลตามตัวกรองที่เลือก</td></tr>`}</tbody><tfoot>${planFoot}</tfoot></table></div>
   </div>`;
   const byMod={}; filtered.forEach(r=>{ if(!byMod[r.mod])byMod[r.mod]={ponds:new Set(),pcs:0,pondPcs:{}}; byMod[r.mod].ponds.add(r.pond); byMod[r.mod].pcs+=r.pcs||0; byMod[r.mod].pondPcs[r.pond]=(byMod[r.mod].pondPcs[r.pond]||0)+(r.pcs||0); });
   window.__stkPonds=byMod;
@@ -1252,7 +1248,7 @@ async function pageStocking(){
   const curBody=window.__stkRows.map(x=>x.html).join('');
   const curMonthLabel=isAllMonth?'ทุกเดือน':monthSel.map(m=>MONTH_TH[Number(m)-1]||m).join(', ');
   const tbl=`<div class='card'><h3><span class='dot'></span>ตารางลงกุ้ง (${curMonthLabel})</h3><div class='hint'>รายการลงกุ้งตามเดือนที่เลือก · เลือกได้มากกว่า 1 เดือน · คลิกหัวตาราง วันที่ลงกุ้ง เพื่อเรียงลำดับ</div><div class='maptbl-wrap'><table id='stkTable' class='dtable stripe'><thead><tr><th>ชื่อบ่อ</th><th id='stkDateTh' style='cursor:pointer' onclick='sortStkDate()'>วันที่ลงกุ้ง</th><th>ประเภท</th><th>Module</th><th>จำนวน (ตัว)</th></tr></thead><tbody>${curBody||`<tr><td colspan='5'>ไม่มีการลงกุ้งในเดือนที่เลือก</td></tr>`}</tbody><tfoot><tr><td class='l' colspan='4'>รวม</td><td>${fmt(curTotalPcs)}</td></tr></tfoot></table></div></div>`;
-  el('app').innerHTML=planReport+kpis+modTable+tbl;
+  el('app').innerHTML=planReport+modTable+tbl;
   decorateWidgets('stocking');
 }
 window.stkTip=function(e){ const mod=e.target.getAttribute('data-mod'); const s=((window.__stkPonds||{})[mod]||{}).pondPcs||{}; let tip=document.getElementById('ohtip'); if(!tip){tip=document.createElement('div');tip.id='ohtip';tip.className='ohtip';document.body.appendChild(tip);} const ponds=Object.keys(s); if(!ponds.length){tip.style.display='none';return;} tip.innerHTML=`<div class='ohtip-h'>รายชื่อบ่อ Module ${mod} · ${ponds.length} บ่อ</div>`+ponds.sort().map(p=>`<div class='ohtip-r'><span>${p}</span><b>${fmt(s[p])} ตัว</b></div>`).join(''); tip.style.display='block'; const pad=14,w=tip.offsetWidth,h=tip.offsetHeight; let x=e.clientX+pad,y=e.clientY+pad; if(x+w>window.innerWidth)x=e.clientX-w-pad; if(y+h>window.innerHeight)y=Math.max(6,window.innerHeight-h-6); tip.style.left=x+'px'; tip.style.top=y+'px'; };
