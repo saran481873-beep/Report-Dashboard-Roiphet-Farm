@@ -1229,7 +1229,7 @@ async function pageStocking(){
   const planKpis=`<div class='kpis'>
     <div class='kpi b'><div class='klabel'>จำนวนบ่อรวม</div><div class='kval'>${fmt(planGrandPonds)}</div><div class='ksub' style='font-size:10px;line-height:1.3'>บ่อ · ${planMods.length} โมดูล (${planMods.join(', ')||'-'})</div></div>
     <div class='kpi g'><div class='klabel'>ยอดรวมลูกกุ้ง</div><div class='kval'>${fmt(planGrandPcs/1e6,2)} <span style='font-size:15px'>ล้านตัว</span></div></div>
-    <div class='kpi y'><div class='klabel'>เดือนพีคสูงสุด (Peak Month)</div><div class='kval'>${planMonths.length?('เดือน '+peakMonth):'-'} <span style='font-size:14px'>${planMonths.length?('('+(MONTH_TH[peakMonth-1]||'')+')'):''}</span></div></div>
+    <div class='kpi y'><div class='klabel' style='font-size:11px'>เดือนพีคสูงสุด (Peak Month)</div><div class='kval'>${planMonths.length?(MONTH_TH[peakMonth-1]||('เดือน '+peakMonth)):'-'}</div></div>
     <div class='kpi v'><div class='klabel'>โมดูลยอดสูงสุด</div><div class='kval'>${planMods.length?('โมดูล '+peakMod):'-'}</div><div class='ksub'>${(planMods.length&&planModTotal[peakMod])?(`${fmt(planModTotal[peakMod].pcs/1e6,2)} ล้านตัว (${fmt(planModTotal[peakMod].ponds.size)} บ่อ)`):'ไม่มีข้อมูล'}</div></div>
     ${typeCards}
   </div>`;
