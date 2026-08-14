@@ -1186,6 +1186,8 @@ async function pageStocking(){
   const planCell={};
   const planModTotal={}; planMods.forEach(m=>{ planModTotal[m]={ponds:new Set(),pcs:0}; });
   const planMonthTotal={}; planMonths.forEach(mo=>{ planMonthTotal[mo]={ponds:new Set(),pcs:0}; });
+  const planWeekCell={};
+  const planWeekMonthTotal={};
   filtered.forEach(r=>{
     if(!r.month||!r.mod||!planMods.includes(r.mod)) return;
     planCell[r.month]=planCell[r.month]||{};
@@ -1196,6 +1198,17 @@ async function pageStocking(){
     planModTotal[r.mod].pcs+=r.pcs||0;
     planMonthTotal[r.month].ponds.add(r.pond);
     planMonthTotal[r.month].pcs+=r.pcs||0;
+    if(r.week){
+      planWeekCell[r.month]=planWeekCell[r.month]||{};
+      planWeekCell[r.month][r.week]=planWeekCell[r.month][r.week]||{};
+      planWeekCell[r.month][r.week][r.mod]=planWeekCell[r.month][r.week][r.mod]||{ponds:new Set(),pcs:0};
+      planWeekCell[r.month][r.week][r.mod].ponds.add(r.pond);
+      planWeekCell[r.month][r.week][r.mod].pcs+=r.pcs||0;
+      planWeekMonthTotal[r.month]=planWeekMonthTotal[r.month]||{};
+      planWeekMonthTotal[r.month][r.week]=planWeekMonthTotal[r.month][r.week]||{ponds:new Set(),pcs:0};
+      planWeekMonthTotal[r.month][r.week].ponds.add(r.pond);
+      planWeekMonthTotal[r.month][r.week].pcs+=r.pcs||0;
+    }
   });
   const planGrandPonds=new Set(filtered.filter(r=>r.month&&r.mod&&planMods.includes(r.mod)).map(r=>r.pond)).size;
   const planGrandPcs=planMods.reduce((s,m)=>s+planModTotal[m].pcs,0);
@@ -1210,18 +1223,29 @@ async function pageStocking(){
     const cells=planMods.map(m=>{
       const c=(planCell[mo]&&planCell[mo][m])?planCell[mo][m]:null;
       if(!c||!c.ponds.size) return `<td style='color:#cbd5e1'>–</td>`;
-      return `<td><b>${fmt(c.ponds.size)} บ่อ</b><br><span style='color:var(--muted);font-size:11px'>(${fmt(c.pcs)})</span></td>`;
+      return `<td><b>${fmt(c.ponds.size)} บ่อ</b><br><span style='color:var(--muted);font-size:11px'>(${fmt(c.pcs/1e6,2)} ล้านตัว)</span></td>`;
     }).join('');
     const mt=planMonthTotal[mo];
-    const totalCell=`<td style='background:#f0f9ff'><b>${fmt(mt.ponds.size)} บ่อ</b><br><span style='color:var(--muted);font-size:11px'>(${fmt(mt.pcs)} ตัว)</span></td>`;
+    const totalCell=`<td style='background:#f0f9ff'><b>${fmt(mt.ponds.size)} บ่อ</b><br><span style='color:var(--muted);font-size:11px'>(${fmt(mt.pcs/1e6,2)} ล้านตัว)</span></td>`;
     const peakBadge=isPeak?` <span class='stat-badge' style='background:var(--yellow-bg);color:var(--yellow)'>Peak</span>`:'';
-    return `<tr${isPeak?" style='background:var(--yellow-bg)'":''}><td class='l'>${MONTH_TH[mo-1]||mo} (เดือน ${mo})${peakBadge}</td>${cells}${totalCell}</tr>`;
+    const mainRow=`<tr${isPeak?" style='background:var(--yellow-bg)'":''}><td class='l'>${MONTH_TH[mo-1]||mo} (เดือน ${mo})${peakBadge}</td>${cells}${totalCell}</tr>`;
+    const weekRows=[1,2,3,4].map(wk=>{
+      const wCells=planMods.map(m=>{
+        const c=(planWeekCell[mo]&&planWeekCell[mo][wk]&&planWeekCell[mo][wk][m])?planWeekCell[mo][wk][m]:null;
+        if(!c||!c.ponds.size) return `<td style='color:#e2e8f0;font-size:11px'>–</td>`;
+        return `<td style='font-size:11px'><b>${fmt(c.ponds.size)} บ่อ</b> <span style='color:var(--muted)'>(${fmt(c.pcs/1e6,2)} ล้านตัว)</span></td>`;
+      }).join('');
+      const wt=(planWeekMonthTotal[mo]&&planWeekMonthTotal[mo][wk])?planWeekMonthTotal[mo][wk]:null;
+      const wTotalCell=(wt&&wt.ponds.size)?`<td style='background:#f7fbff;font-size:11px'><b>${fmt(wt.ponds.size)} บ่อ</b> <span style='color:var(--muted)'>(${fmt(wt.pcs/1e6,2)} ล้านตัว)</span></td>`:`<td style='background:#f7fbff;color:#e2e8f0;font-size:11px'>–</td>`;
+      return `<tr style='background:#fafcfd'><td class='l' style='padding-left:24px;font-size:11px;color:var(--muted);font-weight:600'>↳ W${wk}</td>${wCells}${wTotalCell}</tr>`;
+    }).join('');
+    return mainRow+weekRows;
   }).join('');
   const planFootCells=planMods.map(m=>{
     const mt=planModTotal[m];
-    return `<td><b>${fmt(mt.ponds.size)} บ่อ</b><br><span style='font-size:11px;opacity:.85'>(${fmt(mt.pcs)})</span></td>`;
+    return `<td><b>${fmt(mt.ponds.size)} บ่อ</b><br><span style='font-size:11px;opacity:.85'>(${fmt(mt.pcs/1e6,2)} ล้านตัว)</span></td>`;
   }).join('');
-  const planFoot=`<tr><td class='l'>รวมทั้งหมด (Grand Total)</td>${planFootCells}<td style='background:var(--accent);color:#fff'><b>${fmt(planGrandPonds)} บ่อ</b><br><span style='font-size:11px'>(${fmt(planGrandPcs)} ตัว)</span></td></tr>`;
+  const planFoot=`<tr><td class='l'>รวมทั้งหมด (Grand Total)</td>${planFootCells}<td style='background:var(--accent);color:#fff'><b>${fmt(planGrandPonds)} บ่อ</b><br><span style='font-size:11px'>(${fmt(planGrandPcs/1e6,2)} ล้านตัว)</span></td></tr>`;
   const planFilterLabel=(isAllArea?'ทุกพื้นที่':areaSel.join(', '))+' · '+(isAllMonth?'ทุกเดือน':monthSel.map(m=>MONTH_TH[Number(m)-1]||m).join(', '))+' · '+(isAllType?'ทุกประเภท':typeSel.join(', '));
   const totalPonds=new Set(filtered.map(r=>r.pond)).size;
   const totalPcs=filtered.reduce((s,r)=>s+(r.pcs||0),0);
