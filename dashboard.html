@@ -500,7 +500,7 @@ window.showAllWidgets=function(page){
 };
 
 /* filter state per page */
-const F={situation:{type:'all',area:['all']},performance:{month:['all'],area:['all']},weekly:{type:'all',status:'all',area:['all'],sortKey:null,sortDir:1},financial:{month:['all'],area:['all']},orderharvest:{size:'all',area:['all']},stocking:{area:['all'],month:['all'],type:['all'],week:['all']},prepare:{area:['all'],type:['all'],unit:['all']}};
+const F={situation:{type:'all',area:['all']},performance:{month:['all'],area:['all']},weekly:{type:'all',status:'all',area:['all'],sortKey:null,sortDir:1},financial:{month:['all'],area:['all']},orderharvest:{size:'all',area:['all']},stocking:{area:['all'],month:['all'],type:['all'],week:['all'],year:['all']},prepare:{area:['all'],type:['all'],unit:['all']}};
 
 /* ---------- PAGE DISPATCH ---------- */
 async function renderPage(id){
@@ -1165,9 +1165,11 @@ async function pageStocking(){
   const mods=[...new Set(rows.map(r=>r.mod))].filter(Boolean).sort();
   const months=[...new Set(rows.map(r=>r.month))].filter(Boolean).sort((a,b)=>a-b);
   const types=[...new Set(rows.map(r=>r.type))].filter(Boolean).sort();
+  const years=[...new Set(rows.map(r=>r.year))].filter(Boolean).sort((a,b)=>a-b);
   const st=F.stocking;
   filterBar('stocking',[
     {label:'พื้นที่ (Module)',key:'area',multi:true,opts:[{v:'all',t:'ทั้งหมด'},...mods.map(m=>({v:m,t:m}))]},
+    {label:'ปี',key:'year',multi:true,hint:'เลือกได้หลายปี',opts:[{v:'all',t:'ทั้งหมด'},...years.map(y=>({v:String(y),t:String(y)}))]},
     {label:'เดือน',key:'month',multi:true,hint:'เลือกได้หลายเดือน',opts:[{v:'all',t:'ทั้งหมด'},...months.map(m=>({v:String(m),t:MONTH_TH[m-1]||('เดือน '+m)}))]},
     {label:'ประเภทกุ้ง',key:'type',multi:true,hint:'เลือกได้หลายประเภท',opts:[{v:'all',t:'ทั้งหมด'},...types.map(t=>({v:t,t:t}))]},
     {label:'สัปดาห์',key:'week',multi:true,hint:'เลือกได้หลายสัปดาห์',opts:[{v:'all',t:'ทั้งหมด'},{v:'1',t:'W1'},{v:'2',t:'W2'},{v:'3',t:'W3'},{v:'4',t:'W4'}]}
@@ -1176,7 +1178,8 @@ async function pageStocking(){
   const monthSel=st.month, isAllMonth=monthSel.includes('all');
   const typeSel=st.type, isAllType=typeSel.includes('all');
   const weekSel=st.week||['all'], isAllWeek=weekSel.includes('all');
-  const filtered=rows.filter(r=>(isAllArea||areaSel.includes(r.mod))&&(isAllMonth||monthSel.includes(String(r.month)))&&(isAllType||typeSel.includes(r.type))&&(isAllWeek||weekSel.includes(String(r.week))));
+  const yearSel=st.year||['all'], isAllYear=yearSel.includes('all');
+  const filtered=rows.filter(r=>(isAllArea||areaSel.includes(r.mod))&&(isAllMonth||monthSel.includes(String(r.month)))&&(isAllType||typeSel.includes(r.type))&&(isAllWeek||weekSel.includes(String(r.week)))&&(isAllYear||yearSel.includes(String(r.year))));
 
   const planMods=isAllArea?mods:mods.filter(m=>areaSel.includes(m));
   const planMonths=[...new Set(filtered.map(r=>r.month))].filter(Boolean).sort((a,b)=>a-b);
@@ -1244,7 +1247,7 @@ async function pageStocking(){
   const modKeys=Object.keys(byMod).sort();
   const modRows=modKeys.map(m=>`<tr><td class='l'><span class='mod-badge'>${m}</span></td><td data-mod='${m}' onmousemove='stkTip(event)' onmouseleave='stkHide()' style='cursor:help'>${fmt(byMod[m].ponds.size)}</td><td>${fmt(byMod[m].pcs/1e6,2)}</td></tr>`).join('');
   const modTable=`<div class='card'><h3><span class='dot'></span>สรุปตามพื้นที่ (Module)</h3><div class='hint'>ตามตัวกรองที่เลือกด้านบน · ชี้เมาส์ที่จำนวนบ่อเพื่อดูรายชื่อบ่อ</div><table class='dtable stripe'><thead><tr><th>Module</th><th>จำนวนบ่อ</th><th>จำนวนตัว (ล้านตัว)</th></tr></thead><tbody>${modRows||`<tr><td colspan='3'>ไม่พบข้อมูล</td></tr>`}</tbody><tfoot><tr><td class='l'>รวม</td><td>${fmt(totalPonds)}</td><td>${fmt(totalPcs/1e6,2)}</td></tr></tfoot></table></div>`;
-  const curRows=rows.filter(r=>(isAllArea||areaSel.includes(r.mod))&&(isAllMonth||monthSel.includes(String(r.month)))&&(isAllType||typeSel.includes(r.type))&&(isAllWeek||weekSel.includes(String(r.week)))).sort((a,b)=>a.mod.localeCompare(b.mod)||a.pond.localeCompare(b.pond));
+  const curRows=rows.filter(r=>(isAllArea||areaSel.includes(r.mod))&&(isAllMonth||monthSel.includes(String(r.month)))&&(isAllType||typeSel.includes(r.type))&&(isAllWeek||weekSel.includes(String(r.week)))&&(isAllYear||yearSel.includes(String(r.year)))).sort((a,b)=>a.mod.localeCompare(b.mod)||a.pond.localeCompare(b.pond));
   const curTotalPcs=curRows.reduce((s,r)=>s+(r.pcs||0),0);
   const parseDMY=(s)=>{ const p=String(s||'').trim().split('/'); if(p.length!==3)return Infinity; const d=+p[0],m=+p[1],y=+p[2]; if(!d||!m||!y)return Infinity; return y*10000+m*100+d; };
   window.__stkRows=curRows.map(r=>{ const html=`<tr><td class='l'><span class='pondtag'>${r.pond}</span></td><td class='l'>${r.date}</td><td class='l'>W${r.week||'-'}</td><td class='l'>${r.type}</td><td><span class='mod-badge'>${r.mod}</span></td><td>${fmt(r.pcs)}</td></tr>`; return {sortKey:parseDMY(r.date), html:html}; });
