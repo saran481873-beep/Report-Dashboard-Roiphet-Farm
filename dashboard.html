@@ -728,7 +728,10 @@ async function pagePerformance(){
     mm=perfMetricMap(V,blk.row);
     g=(name)=>combineColsOnly(mm,name,cols);
   }else if(selMods.length===0){
-    el('app').innerHTML=noDataCard('Module R'); return;
+    const mb=blocks.find(b=>/new\s*model/i.test(b.label));
+    if(!mb){ el('app').innerHTML=noDataCard('Module R'); return; }
+    blk=mb; mm=perfMetricMap(V,blk.row);
+    g=(name)=>combineColsOnly(mm,name,cols);
   }else if(selMods.length===1){
     const mb=blocks.find(b=>b.label.toUpperCase().indexOf('MODULE '+selMods[0])>=0);
     if(!mb){ el('app').innerHTML=noDataCard('Module '+selMods[0]); return; }
@@ -737,7 +740,7 @@ async function pagePerformance(){
   }else{
     blk={label:'โมดูล '+selMods.join('+')};
     g=(name)=>combineMetric(selMods,name,cols);
-    if(hasR)combineNote='รวมค่าเฉพาะ Module '+selMods.join(', ')+' — ไม่รวม Module R เนื่องจากไม่มีข้อมูลในชีต Performance';
+    if(hasR)combineNote='รวมค่าเฉพาะ Module '+selMods.join(', ')+' — ไม่รวม New model (R) ตามที่กำหนด (เลือกเฉพาะ R เพื่อดูข้อมูล New model แยก)';
   }
   const metricAtCol=(name,c)=>{ if(isAllArea||selMods.length===1){ const r=mm[name]; return r!=null?perfVal(V,r,c):NaN; } return combineMetric(selMods,name,[c]); };
   const KP=[
@@ -937,7 +940,7 @@ async function pageFinancial(){
   const d=await getTab('financial'); const V=d.values;
   // detect module blocks (A/B/C/D) — header row 'ร้อยเพชร..' preceded by 'Module X' label
   const fblocks={};
-  for(let i=0;i<V.length;i++){ if(/ร้อยเพชร/i.test((V[i][0]||'').trim())){ const lab=((V[i-2]&&V[i-2][1])||'').trim(); const mm=(lab.match(/Module\s+([A-Z])/i)||[])[1]; if(mm){ const mc={}; const H=V[i]; for(let c=0;c<H.length;c++){ const t=(H[c]||'').trim().toLowerCase(); const mi=MONTHS.indexOf(t); if(mi>=0)mc[mi]=c; } fblocks[mm.toUpperCase()]={start:i,mc}; } } }
+  for(let i=0;i<V.length;i++){ if(/ร้อยเพชร/i.test((V[i][0]||'').trim())){ const lab=((V[i-2]&&V[i-2][1])||'').trim(); const mmArr=lab.match(/Module\s+([A-Z])/i); const mm=mmArr?mmArr[1]:(/new\s*model/i.test(lab)?'R':null); if(mm){ const mc={}; const H=V[i]; for(let c=0;c<H.length;c++){ const t=(H[c]||'').trim().toLowerCase(); const mi=MONTHS.indexOf(t); if(mi>=0)mc[mi]=c; } fblocks[mm.toUpperCase()]={start:i,mc}; } } }
   const fr=(bs,label,from)=>{ for(let i=(from||bs);i<Math.min(bs+54,V.length);i++){ if((V[i][0]||'').trim().toLowerCase()===label.toLowerCase())return i; } return -1; };
   const monListOf=(mc)=>Object.keys(mc).map(Number).sort((a,b)=>a-b);
   const blkSeries=(mod)=>{ const b=fblocks[mod]; if(!b)return null; const ml=monListOf(b.mc); const S=(r)=>r<0?ml.map(()=>0):ml.map(mi=>num(V[r][b.mc[mi]])); const kg=fr(b.start,'Size');
@@ -951,9 +954,9 @@ async function pageFinancial(){
   ]);
   const areaSel=st.area, isAllArea=areaSel.includes('all');
   const nonRAreas=areaSel.filter(a=>a!=='R'), hasR=areaSel.includes('R');
-  const areaTag = isAllArea?'รวมทั้งฟาร์ม (A+B+C+D)':('Module '+nonRAreas.join('+')+(hasR&&nonRAreas.length?' (ไม่รวม R)':''));
-  if(!isAllArea&&nonRAreas.length===0){ el('app').innerHTML='<div class="card" style="border-left:5px solid #d97706"><h3><span class="dot" style="background:#d97706"></span>ไม่มีข้อมูลการเงินของ Module R (New model)</h3><div class="hint">ชีต Financial มีเฉพาะ Module A · B · C · D และรวมทั้งฟาร์ม — ข้อมูลกลุ่ม R ดูได้ที่หน้า Weekly และ Order Harvest</div></div>'; return; }
-  const fd = isAllArea ? sumAll(['A','B','C','D']) : (nonRAreas.length===1 ? blkSeries(nonRAreas[0]) : sumAll(nonRAreas));
+  const areaTag = isAllArea?'รวมทั้งฟาร์ม (A+B+C+D)':(nonRAreas.length===0&&hasR?'Module R (New model)':('Module '+nonRAreas.join('+')+(hasR&&nonRAreas.length?' (ไม่รวม R)':'')));
+  if(!isAllArea&&nonRAreas.length===0&&!hasR){ el('app').innerHTML='<div class="card"><div class="hint">กรุณาเลือกพื้นที่อย่างน้อย 1 รายการ</div></div>'; return; }
+  const fd = isAllArea ? sumAll(['A','B','C','D']) : (nonRAreas.length===0&&hasR ? blkSeries('R') : (nonRAreas.length===1 ? blkSeries(nonRAreas[0]) : sumAll(nonRAreas)));
   if(!fd){ el('app').innerHTML='<div class="card"><div class="hint">ไม่พบข้อมูลการเงิน</div></div>'; return; }
   const labels=fd.ml.map(mi=>MONTH_TH[mi]);
   const ysum=a=>a.reduce((s,x)=>s+(x||0),0);
