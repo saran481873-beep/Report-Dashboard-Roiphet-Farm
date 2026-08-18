@@ -84,6 +84,12 @@ canvas{max-height:300px}
 .dtable td{padding:7px 9px;border-bottom:1px solid #f1f5f9;text-align:center}
 .dtable td.l{text-align:left}
 .dtable tr:hover td{background:#f8fafc}
+.dtable th.wk-c1,.dtable td.wk-c1{background:var(--green-bg)}
+.dtable th.wk-c2,.dtable td.wk-c2{background:#dbeafe}
+.dtable th.wk-c3,.dtable td.wk-c3{background:#ede9fe}
+.dtable tr:hover td.wk-c1{background:#bbf7d0}
+.dtable tr:hover td.wk-c2{background:#bfdbfe}
+.dtable tr:hover td.wk-c3{background:#ddd6fe}
 .dtable tfoot td{font-weight:800;background:#f0fdfa;border-top:2px solid var(--accent)}
 .pondtag{font-weight:700;font-family:ui-monospace,monospace}
 .pondtag.bad{color:var(--red)}
@@ -132,7 +138,9 @@ canvas{max-height:300px}
 .kpi:hover{transform:translateY(-2px);box-shadow:0 8px 22px rgba(15,23,42,.09)}
 .kpi .ksic{position:absolute;top:14px;right:16px;font-size:20px;opacity:.55}
 .mapcard{background:linear-gradient(180deg,#ffffff,#f8fafb)}
-.maptbl-wrap{overflow-x:auto;padding:4px 2px 8px;border-radius:12px}
+.maptbl-wrap{overflow-x:auto;overflow-y:auto;max-height:560px;padding:4px 2px 8px;border-radius:12px}
+
+@media (max-width:900px){.pnl-layout{grid-template-columns:1fr}}
 .sitgrid{display:grid;grid-auto-rows:30px;gap:3px;width:max-content;margin:6px auto;padding-right:36px;--pw:38px}
 .modcell{justify-content:flex-start}
 .modcell.right span{margin-left:-2px}
@@ -289,8 +297,8 @@ tr.spot-hl td{animation:spotflash 2.3s ease-out}
 .pnl-sechead.teal{background:var(--accent)}
 .pnl-sechead.purple{background:linear-gradient(90deg,#6d28d9,#7c3aed)}
 .pnl-sechead .badge{font-size:10px;background:rgba(255,255,255,.25);padding:2px 8px;border-radius:999px;font-weight:600;white-space:nowrap}
-.pnl-card-body{padding:14px 16px}
-.pnl-kv{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--line);font-size:12.5px}
+.pnl-card-body{padding:11px 14px}
+.pnl-kv{display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--line);font-size:12px}
 .pnl-kv:last-child{border-bottom:none}
 .pnl-kv .k{color:var(--muted)}
 .pnl-kv .v{font-weight:700;color:var(--ink)}
@@ -300,12 +308,12 @@ tr.spot-hl td{animation:spotflash 2.3s ease-out}
 .pnl-banner .plabel{font-size:12px;font-weight:700;color:var(--muted)}
 .pnl-banner .amt{font-size:26px;font-weight:800;margin-top:4px}
 .pnl-sechead.emerald{background:linear-gradient(90deg,var(--head2),var(--accent))}
-.pfield-box{background:#fff;border:1px solid var(--yellow-line);border-radius:10px;padding:10px 12px;margin-bottom:8px}
+.pfield-box{background:#fff;border:1px solid var(--yellow-line);border-radius:8px;padding:7px 10px;margin-bottom:5px}
 .pfield-box .pf-row{display:flex;justify-content:space-between;align-items:center;gap:8px}
 .pfield-box label{font-weight:700;font-size:12px;color:var(--ink)}
 .pfield-box input[type=number]{width:84px;background:var(--yellow-bg);border:1px solid var(--yellow-line);border-radius:6px;padding:4px 6px;font-weight:800;color:var(--yellow);text-align:right}
 .pfield-box input[type=range]{width:100%;margin-top:8px;accent-color:var(--yellow)}
-.pfield-box .pf-hint{font-size:10px;color:var(--muted);margin-top:4px}
+.pfield-box .pf-hint{font-size:9.5px;color:var(--muted);margin-top:2px;line-height:1.3}
 .pnl-week-lbl{font-weight:700;color:var(--muted);font-size:11px;margin:6px 0 2px}
 .pnl-filter-select{padding:8px 10px;border-radius:9px;border:1px solid var(--line);font-family:'Noto Sans Thai',sans-serif;background:#fff}
 
@@ -2286,7 +2294,47 @@ function pnlDrawMultiCharts(rows){
   }
 }
 
-/* ---------- SINGLE-POND VIEW (รายสัปดาห์ 3 สัปดาห์) ---------- */
+/* ---------- SINGLE-POND VIEW (รายสัปดาห์ / ตามวันที่ปิดบ่อ) ---------- */
+let PNL_SINGLE_MODE='week';
+const PNL_MS_DAY=86400000;
+window.pnlSetSingleMode=function(mode){ PNL_SINGLE_MODE=mode; pnlRenderSingle(); };
+function pnlDefaultTargetDate(p){ const d=new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()+21); return d; }
+function pnlFmtDateInput(d){ const y=d.getFullYear(), m=('0'+(d.getMonth()+1)).slice(-2), day=('0'+d.getDate()).slice(-2); return y+'-'+m+'-'+day; }
+window.pnlSetTargetDate=function(pond,val){ PNL_TARGET[pond]=val; pnlRenderSingle(); };
+
+function pnlProjectByDate(p, targetDate, evalDate, ov){
+  const probiotic=(ov && ov.probiotic!=null)?ov.probiotic:p.probiotic;
+  const otherCost=(ov && ov.otherCost!=null)?ov.otherCost:p.otherCost;
+  const wov=(ov && ov.weeks && ov.weeks[0])||{};
+  const daysLeft=Math.max(0, Math.round((targetDate-evalDate)/PNL_MS_DAY));
+  const growthAuto=p.adgCur;
+  const growth=(wov.growth!=null)?wov.growth:growthAuto;
+  const mbw=p.mbwCur+growth*daysLeft;
+  const docTarget=p.docCur+daysLeft;
+  const srAuto=Math.max(5, 100*Math.pow(p.srCur/100, docTarget/Math.max(1,p.docCur)));
+  const sr=(wov.sr!=null)?wov.sr:srAuto;
+  const biomass=p.biomassCur*sr*mbw/(p.mbwCur*p.srCur);
+  const size=mbw>0?1000/mbw:0;
+  const price=pnlPriceLookup(Math.round(size));
+  const costStart=new Date(evalDate.getFullYear(), evalDate.getMonth(), 1);
+  const costDays=Math.max(1, Math.round((targetDate-costStart)/PNL_MS_DAY)+1);
+  const rate0=pnlFRLookup(p.mbwCur)/100, rate1=pnlFRLookup(mbw)/100;
+  const feedTotal=p.feedCumStart+((p.biomassCur*rate0+biomass*rate1)/2)*daysLeft;
+  const feedCost=feedTotal*p.feedPrice;
+  const generalCost=otherCost*p.rai*costDays;
+  const probioticCost=probiotic*p.rai*costDays;
+  const totalCost=p.wip+feedCost+generalCost+probioticCost;
+  const revenue=biomass*price;
+  const profit=revenue-totalCost;
+  const costPerKg=biomass>0?totalCost/biomass:0;
+  const profitPerKg=biomass>0?profit/biomass:0;
+  const profitPerRai=p.rai>0?profit/p.rai:0;
+  return {daysLeft:daysLeft,docTarget:docTarget,mbw:mbw,size:size,sr:sr,biomass:biomass,price:price,
+    feedCost:feedCost,generalCost:generalCost,probioticCost:probioticCost,totalCost:totalCost,
+    revenue:revenue,profit:profit,costPerKg:costPerKg,profitPerKg:profitPerKg,profitPerRai:profitPerRai,
+    growthAuto:growthAuto,srAuto:srAuto};
+}
+
 function pnlRenderSingle(){
   destroyCharts();
   const ponds=PNL_DATA.ponds;
@@ -2299,6 +2347,13 @@ function pnlRenderSingle(){
 
   const ov=PNL_OV[p.pond]||{probiotic:null,otherCost:null,weeks:[{},{},{}]};
   const hasOv=pnlHasOv(p.pond);
+  const modeToggle='<div class="pnl-tabs" style="margin:0 0 10px">'
+    +'<span class="chip'+(PNL_SINGLE_MODE==="week"?" on":"")+'" onclick="pnlSetSingleMode(\'week\')">ประเมินรายสัปดาห์</span>'
+    +'<span class="chip'+(PNL_SINGLE_MODE==="date"?" on":"")+'" onclick="pnlSetSingleMode(\'date\')">ประเมินตามวันที่ปิดบ่อ</span>'
+    +'</div>';
+
+  if(PNL_SINGLE_MODE==='date'){ pnlRenderSingleDate(p, ov, hasOv, selectorHtml, modeToggle); return; }
+
   const proj=pnlProject(p);
   const weeks=proj.weeks;
   const simulated=proj.simulated;
@@ -2358,35 +2413,36 @@ function pnlRenderSingle(){
     +'<div class="pnl-kv"><span class="k">WIP (บาท)</span><span class="v">'+fmt(p.wip)+'</span></div>'
     +'</div></div>';
 
-  const periods=[{lab:'ปัจจุบัน',doc:p.docCur,mbw:p.mbwCur,sr:p.srCur,biomass:p.biomassCur,costKg:null,profitKg:null,profit:null}];
+  const periods=[{lab:'ปัจจุบัน',cls:'',doc:p.docCur,mbw:p.mbwCur,sr:p.srCur,biomass:p.biomassCur,costKg:null,profitKg:null,profit:null}];
+  const weekColClasses=['wk-c1','wk-c2','wk-c3'];
   for(let w=0; w<3; w++){
     const wk=weeks[w];
     const costKg=wk.biomass>0?wk.cumCost/wk.biomass:0;
     const profitKg=wk.biomass>0?wk.profit/wk.biomass:0;
-    periods.push({lab:'สัปดาห์ '+(w+1),doc:wk.doc,mbw:wk.mbw,sr:(wk.srAdjust!=null?wk.srAdjust:wk.srAuto),biomass:wk.biomass,costKg:costKg,profitKg:profitKg,profit:wk.profit});
+    periods.push({lab:'สัปดาห์ '+(w+1),cls:weekColClasses[w],doc:wk.doc,mbw:wk.mbw,sr:(wk.srAdjust!=null?wk.srAdjust:wk.srAuto),biomass:wk.biomass,costKg:costKg,profitKg:profitKg,profit:wk.profit});
   }
   function rowCells(getter,dec,colorize){
     return periods.map(function(x){
       const v=getter(x);
-      if(v==null) return '<td>-</td>';
-      if(colorize) return '<td class="'+(v>=0?'profit-pos':'profit-neg')+'">'+fmt(v,dec)+'</td>';
-      return '<td>'+fmt(v,dec)+'</td>';
+      const clsAttr=x.cls?' class="'+x.cls+(colorize?(v>=0?' profit-pos':' profit-neg'):'')+'"':(colorize?' class="'+(v>=0?'profit-pos':'profit-neg')+'"':'');
+      if(v==null) return '<td'+ (x.cls?' class="'+x.cls+'"':'') +'>-</td>';
+      return '<td'+clsAttr+'>'+fmt(v,dec)+'</td>';
     }).join('');
   }
-  const theadPeriods='<th>รายการ</th>'+periods.map(function(x){return '<th>'+x.lab+'</th>';}).join('');
+  const theadPeriods=periods.map(function(x){return '<th'+(x.cls?' class="'+x.cls+'"':'')+'>'+x.lab+'</th>';}).join('');
   const tableRows=
-    '<tr><td>DOC (วัน)</td>'+rowCells(function(x){return x.doc;},0)+'</tr>'
-    +'<tr><td>MBW (g.)</td>'+rowCells(function(x){return x.mbw;},2)+'</tr>'
-    +'<tr><td>%SR</td>'+rowCells(function(x){return x.sr;},2)+'</tr>'
-    +'<tr><td>Biomass (กก.)</td>'+rowCells(function(x){return x.biomass;},0)+'</tr>'
-    +'<tr><td>ต้นทุน/กก. (บาท)</td>'+rowCells(function(x){return x.costKg;},2)+'</tr>'
-    +'<tr><td>กำไร/ขาดทุน/กก. (บาท)</td>'+rowCells(function(x){return x.profitKg;},2,true)+'</tr>'
-    +'<tr><td>กำไร/ขาดทุน (บาท)</td>'+rowCells(function(x){return x.profit;},0,true)+'</tr>';
+    '<tr><td class="l">DOC (วัน)</td>'+rowCells(function(x){return x.doc;},0)+'</tr>'
+    +'<tr><td class="l">MBW (g.)</td>'+rowCells(function(x){return x.mbw;},2)+'</tr>'
+    +'<tr><td class="l">%SR</td>'+rowCells(function(x){return x.sr;},2)+'</tr>'
+    +'<tr><td class="l">Biomass (กก.)</td>'+rowCells(function(x){return x.biomass;},0)+'</tr>'
+    +'<tr><td class="l">ต้นทุน/กก. (บาท)</td>'+rowCells(function(x){return x.costKg;},2)+'</tr>'
+    +'<tr><td class="l">กำไร/ขาดทุน/กก. (บาท)</td>'+rowCells(function(x){return x.profitKg;},2,true)+'</tr>'
+    +'<tr><td class="l">กำไร/ขาดทุน (บาท)</td>'+rowCells(function(x){return x.profit;},0,true)+'</tr>';
   const sec2='<div class="card">'
     +'<div class="pnl-sechead emerald"><span>2) ผลผลิตและกำไร/ขาดทุนคาดการณ์รายสัปดาห์</span></div>'
     +'<div class="pnl-card-body">'
-    +'<div class="maptbl-wrap"><table class="dtable stripe"><thead><tr>'+theadPeriods+'</tr></thead><tbody>'+tableRows+'</tbody></table></div>'
-    +'</div><div style="padding:0 16px 16px"><canvas id="pnlSingleGrowth" height="220"></canvas></div></div>';
+    +'<div class="maptbl-wrap" style="max-height:none"><table class="dtable stripe"><thead><tr><th class="l">รายการ</th>'+theadPeriods+'</tr></thead><tbody>'+tableRows+'</tbody></table></div>'
+    +'</div><div style="padding:0 16px 14px"><canvas id="pnlSingleGrowth" height="170"></canvas></div></div>';
 
   const wk3=weeks[2];
   const feedCost3=wk3.feedCost;
@@ -2397,9 +2453,9 @@ function pnlRenderSingle(){
     +'<div class="pnl-kv"><span class="k">WIP (ยกมา)</span><span class="v">'+fmt(p.wip)+'</span></div>'
     +'<div class="pnl-kv"><span class="k">ต้นทุนอาหาร</span><span class="v">'+fmt(feedCost3)+'</span></div>'
     +'<div class="pnl-kv"><span class="k">ต้นทุนอื่น (Probiotic+ค่าใช้จ่ายอื่น)</span><span class="v">'+fmt(nonFeedCost3)+'</span></div>'
-    +'<div class="pnl-kv" style="border-top:2px solid var(--line);margin-top:4px;padding-top:10px"><span class="k" style="font-weight:700">ต้นทุนรวมทั้งหมด</span><span class="v" style="color:var(--red)">'+fmt(wk3.cumCost)+'</span></div>'
+    +'<div class="pnl-kv" style="border-top:2px solid var(--line);margin-top:4px;padding-top:8px"><span class="k" style="font-weight:700">ต้นทุนรวมทั้งหมด</span><span class="v" style="color:var(--red)">'+fmt(wk3.cumCost)+'</span></div>'
     +'<div class="pnl-kv"><span class="k" style="font-weight:700">ต้นทุนต่อกก.</span><span class="v">'+fmt(wk3.biomass>0?wk3.cumCost/wk3.biomass:0,2)+' บาท/กก.</span></div>'
-    +'</div><div style="padding:0 16px 16px"><canvas id="pnlSingleCost" height="220"></canvas></div></div>';
+    +'</div><div style="padding:0 16px 14px"><canvas id="pnlSingleCost" height="170"></canvas></div></div>';
 
   const revenue3=wk3.biomass*wk3.price;
   const profitPerKg3=wk3.biomass>0?wk3.profit/wk3.biomass:0;
@@ -2412,13 +2468,111 @@ function pnlRenderSingle(){
       +'<div class="amt" style="color:'+(wk3.profit>=0?'var(--green)':'var(--red)')+'">'+fmt(wk3.profit)+' บาท</div>'
       +'<div class="plabel">กำไร/ขาดทุนคาดการณ์</div>'
     +'</div>'
-    +'<div class="pnl-ctrl" style="margin-top:12px">'
+    +'<div class="pnl-ctrl" style="margin-top:10px">'
       +'<div class="pnl-box"><div class="plabel">กำไร/ขาดทุนต่อกก.</div><div class="pval" style="color:'+(profitPerKg3>=0?'var(--green)':'var(--red)')+'">'+fmt(profitPerKg3,2)+' บาท/กก.</div></div>'
       +'<div class="pnl-box"><div class="plabel">กำไร/ขาดทุนต่อไร่</div><div class="pval" style="color:'+(profitPerRai3>=0?'var(--green)':'var(--red)')+'">'+fmt(profitPerRai3,0)+' บาท/ไร่</div></div>'
     +'</div></div></div>';
 
-  el('pnlBody').innerHTML=selectorHtml+'<div class="pnl-layout"><div class="pnl-col-left">'+ctrl+sec1+'</div><div class="pnl-col-right">'+sec2+sec4+sec5+'</div></div>';
+  el('pnlBody').innerHTML=selectorHtml+modeToggle+'<div class="pnl-layout"><div class="pnl-col-left">'+ctrl+sec1+'</div><div class="pnl-col-right">'+sec2+sec4+sec5+'</div></div>';
   pnlDrawSingleCharts(p,weeks);
+}
+
+function pnlRenderSingleDate(p, ov, hasOv, selectorHtml, modeToggle){
+  const evalDate=new Date(); evalDate.setHours(0,0,0,0);
+  const targetStr=PNL_TARGET[p.pond]||pnlFmtDateInput(pnlDefaultTargetDate(p));
+  const targetDate=new Date(targetStr+'T00:00:00');
+  const res=pnlProjectByDate(p, targetDate, evalDate, ov);
+  const wov=(ov.weeks && ov.weeks[0])||{};
+
+  const gVal=(wov.growth!=null)?wov.growth:'';
+  const gSlider=(wov.growth!=null)?wov.growth:res.growthAuto;
+  const sVal=(wov.sr!=null)?wov.sr:'';
+  const sSlider=(wov.sr!=null)?wov.sr:res.srAuto;
+
+  const ctrl='<div class="card">'
+    +'<div class="pnl-sechead amber"><span>ปรับค่า What-if (จำลองเท่านั้น)</span></div>'
+    +'<div class="pnl-card-body">'
+    +'<div class="hint" style="margin-top:0">เว้นว่างช่องใดให้ใช้ค่าตามสูตร Auto (จำลองในหน้านี้เท่านั้น ไม่กระทบข้อมูลจริง) '+(hasOv?'· <button class="pnl-reset" onclick="pnlResetPond(\''+p.pond+'\')">รีเซ็ตบ่อนี้</button>':'· ยังไม่มีการปรับค่า')+'</div>'
+    +'<div class="pfield-box"><div class="pf-row"><label>วันที่ปิดบ่อ (คาดการณ์)</label>'
+      +'<input type="date" value="'+targetStr+'" onchange="pnlSetTargetDate(\''+p.pond+'\',this.value)" style="font-weight:800;color:var(--yellow);background:var(--yellow-bg);border:1px solid var(--yellow-line);border-radius:6px;padding:4px 6px"></div>'
+      +'<div class="pf-hint">เหลืออีก '+fmt(res.daysLeft)+' วัน (DOC เป้าหมาย '+fmt(res.docTarget)+')</div>'
+    +'</div>'
+    +'<div class="pfield-box"><div class="pf-row"><label>Probiotic (บาท/ไร่/วัน)</label>'
+      +'<input type="number" placeholder="Auto '+fmt(p.probiotic,2)+'" value="'+(ov.probiotic!=null?ov.probiotic:'')+'" onchange="pnlSetOv(\''+p.pond+'\',\'probiotic\',0,this.value)"></div></div>'
+    +'<div class="pfield-box"><div class="pf-row"><label>ค่าใช้จ่ายอื่น (บาท/ไร่/วัน)</label>'
+      +'<input type="number" placeholder="Auto '+fmt(p.otherCost,2)+'" value="'+(ov.otherCost!=null?ov.otherCost:'')+'" onchange="pnlSetOv(\''+p.pond+'\',\'otherCost\',0,this.value)"></div></div>'
+    +'<div class="pfield-box">'
+      +'<div class="pf-row"><label>Growth Adjust (g./วัน)</label>'
+      +'<input id="pfNumGD" type="number" step="0.0001" min="0" max="1.5" placeholder="Auto" value="'+gVal+'" '
+        +'oninput="document.getElementById(\'pfRngGD\').value=(this.value!==\'\'?this.value:'+res.growthAuto+')" '
+        +'onchange="pnlSetOv(\''+p.pond+'\',\'growth\',0,this.value)"></div>'
+      +'<input id="pfRngGD" type="range" min="0" max="1.5" step="0.0001" value="'+gSlider+'" '
+        +'oninput="document.getElementById(\'pfNumGD\').value=this.value" '
+        +'onchange="pnlSetOv(\''+p.pond+'\',\'growth\',0,this.value)">'
+      +'<div class="pf-hint">Auto: '+fmt(res.growthAuto,4)+' g./วัน</div>'
+    +'</div>'
+    +'<div class="pfield-box">'
+      +'<div class="pf-row"><label>%SR Adjust</label>'
+      +'<input id="pfNumSD" type="number" step="0.1" min="0" max="100" placeholder="Auto" value="'+sVal+'" '
+        +'oninput="document.getElementById(\'pfRngSD\').value=(this.value!==\'\'?this.value:'+res.srAuto+')" '
+        +'onchange="pnlSetOv(\''+p.pond+'\',\'sr\',0,this.value)"></div>'
+      +'<input id="pfRngSD" type="range" min="0" max="100" step="0.1" value="'+sSlider+'" '
+        +'oninput="document.getElementById(\'pfNumSD\').value=this.value" '
+        +'onchange="pnlSetOv(\''+p.pond+'\',\'sr\',0,this.value)">'
+      +'<div class="pf-hint">Auto: '+fmt(res.srAuto,2)+'%</div>'
+    +'</div>'
+    +'</div></div>';
+
+  const sec1='<div class="card">'
+    +'<div class="pnl-sechead dark"><span>1) ข้อมูลพื้นฐานบ่อ</span></div>'
+    +'<div class="pnl-card-body">'
+    +'<div class="pnl-kv"><span class="k">Module / ประเภท</span><span class="v">'+p.module+' · '+p.type+'</span></div>'
+    +'<div class="pnl-kv"><span class="k">พื้นที่บ่อ (ไร่)</span><span class="v">'+fmt(p.rai,2)+'</span></div>'
+    +'<div class="pnl-kv"><span class="k">DOC ปัจจุบัน (วัน)</span><span class="v">'+fmt(p.docCur)+'</span></div>'
+    +'<div class="pnl-kv"><span class="k">MBW ปัจจุบัน (g.)</span><span class="v">'+fmt(p.mbwCur,2)+'</span></div>'
+    +'<div class="pnl-kv"><span class="k">Biomass ปัจจุบัน (กก.)</span><span class="v">'+fmt(p.biomassCur)+'</span></div>'
+    +'<div class="pnl-kv"><span class="k">%SR ปัจจุบัน</span><span class="v">'+fmt(p.srCur,2)+'%</span></div>'
+    +'<div class="pnl-kv"><span class="k">ADG ปัจจุบัน (g./วัน)</span><span class="v">'+fmt(p.adgCur,4)+'</span></div>'
+    +'<div class="pnl-kv"><span class="k">WIP (บาท)</span><span class="v">'+fmt(p.wip)+'</span></div>'
+    +'</div></div>';
+
+  const sec2='<div class="card">'
+    +'<div class="pnl-sechead emerald"><span>2) ผลผลิตคาดการณ์ ณ วันที่ปิดบ่อ</span></div>'
+    +'<div class="pnl-card-body">'
+    +'<div class="pnl-kv"><span class="k">MBW คาดการณ์</span><span class="v">'+fmt(res.mbw,2)+' g.</span></div>'
+    +'<div class="pnl-kv"><span class="k">Size คาดการณ์</span><span class="v">'+fmt(res.size,1)+' ตัว/กก.</span></div>'
+    +'<div class="pnl-kv"><span class="k">%SR คาดการณ์</span><span class="v">'+fmt(res.sr,2)+'%</span></div>'
+    +'<div class="pnl-kv"><span class="k">Biomass คาดการณ์</span><span class="v">'+fmt(res.biomass)+' กก.</span></div>'
+    +'<div class="pnl-kv"><span class="k">ผลผลิตเพิ่มขึ้น</span><span class="v">'+fmt(res.biomass-p.biomassCur)+' กก.</span></div>'
+    +'<div class="pnl-kv"><span class="k">Yield คาดการณ์</span><span class="v">'+fmt(p.rai>0?res.biomass/p.rai:0)+' กก./ไร่</span></div>'
+    +'</div><div style="padding:0 16px 14px"><canvas id="pnlSingleGrowth" height="170"></canvas></div></div>';
+
+  const sec3='<div class="card">'
+    +'<div class="pnl-sechead dark"><span>3) ต้นทุนสะสม ณ วันที่ปิดบ่อ</span></div>'
+    +'<div class="pnl-card-body">'
+    +'<div class="pnl-kv"><span class="k">WIP (ยกมา)</span><span class="v">'+fmt(p.wip)+'</span></div>'
+    +'<div class="pnl-kv"><span class="k">ต้นทุนอาหาร</span><span class="v">'+fmt(res.feedCost)+'</span></div>'
+    +'<div class="pnl-kv"><span class="k">ค่าใช้จ่ายอื่น</span><span class="v">'+fmt(res.generalCost)+'</span></div>'
+    +'<div class="pnl-kv"><span class="k">ค่าโปรไบโอติก</span><span class="v">'+fmt(res.probioticCost)+'</span></div>'
+    +'<div class="pnl-kv" style="border-top:2px solid var(--line);margin-top:4px;padding-top:8px"><span class="k" style="font-weight:700">ต้นทุนรวมทั้งหมด</span><span class="v" style="color:var(--red)">'+fmt(res.totalCost)+'</span></div>'
+    +'<div class="pnl-kv"><span class="k" style="font-weight:700">ต้นทุนต่อกก.</span><span class="v">'+fmt(res.costPerKg,2)+' บาท/กก.</span></div>'
+    +'</div><div style="padding:0 16px 14px"><canvas id="pnlSingleCost" height="170"></canvas></div></div>';
+
+  const sec4='<div class="card">'
+    +'<div class="pnl-sechead emerald"><span>4) รายได้ และกำไร/ขาดทุนคาดการณ์</span></div>'
+    +'<div class="pnl-card-body">'
+    +'<div class="pnl-banner '+(res.profit>=0?'pos':'neg')+'">'
+      +'<div class="plabel">ราคากุ้ง ณ Size คาดการณ์ '+fmt(res.price,0)+' บาท/กก. · รายได้คาดการณ์ '+fmt(res.revenue)+' บาท</div>'
+      +'<div class="amt" style="color:'+(res.profit>=0?'var(--green)':'var(--red)')+'">'+fmt(res.profit)+' บาท</div>'
+      +'<div class="plabel">กำไร/ขาดทุนคาดการณ์</div>'
+    +'</div>'
+    +'<div class="pnl-ctrl" style="margin-top:10px">'
+      +'<div class="pnl-box"><div class="plabel">กำไร/ขาดทุนต่อกก.</div><div class="pval" style="color:'+(res.profitPerKg>=0?'var(--green)':'var(--red)')+'">'+fmt(res.profitPerKg,2)+' บาท/กก.</div></div>'
+      +'<div class="pnl-box"><div class="plabel">กำไร/ขาดทุนต่อไร่</div><div class="pval" style="color:'+(res.profitPerRai>=0?'var(--green)':'var(--red)')+'">'+fmt(res.profitPerRai,0)+' บาท/ไร่</div></div>'
+    +'</div></div></div>';
+
+  el('pnlBody').innerHTML=selectorHtml+modeToggle+'<div class="pnl-layout"><div class="pnl-col-left">'+ctrl+sec1+'</div><div class="pnl-col-right">'+sec2+sec3+sec4+'</div></div>';
+  pnlDrawSingleChartsDate(p,res,evalDate,targetDate,ov);
 }
 
 function pnlDrawSingleCharts(p, weeks){
@@ -2436,6 +2590,27 @@ function pnlDrawSingleCharts(p, weeks){
   const nonFeedCost3=wk3.cumCost-p.wip-feedCost3;
   const cC=el('pnlSingleCost');
   if(cC){ charts.push(new Chart(cC,{type:'doughnut',data:{labels:['WIP (ยกมา)','ต้นทุนอาหาร','ต้นทุนอื่น'],datasets:[{data:[p.wip,feedCost3,nonFeedCost3],backgroundColor:['#94a3b8','#f59e0b','#8b5cf6']}]},
+    options:{plugins:{legend:{position:'bottom'}}}}));
+  }
+}
+
+function pnlDrawSingleChartsDate(p, res, evalDate, targetDate, ov){
+  const N=6;
+  const labs=[], mbwArr=[], bioArr=[];
+  for(let i=0;i<=N;i++){
+    const t=new Date(evalDate.getTime()+(targetDate.getTime()-evalDate.getTime())*i/N);
+    if(i===0){ mbwArr.push(p.mbwCur); bioArr.push(p.biomassCur); }
+    else { const r=pnlProjectByDate(p,t,evalDate,ov); mbwArr.push(r.mbw); bioArr.push(r.biomass); }
+    labs.push(t.toLocaleDateString('th-TH',{day:'2-digit',month:'2-digit'}));
+  }
+  const cG=el('pnlSingleGrowth');
+  if(cG){ charts.push(new Chart(cG,{data:{labels:labs,datasets:[
+    {type:'line',label:'MBW (g.)',data:mbwArr,borderColor:'#0ea5e9',backgroundColor:'#0ea5e9',yAxisID:'y',tension:0.3},
+    {type:'line',label:'Biomass (กก.)',data:bioArr,borderColor:'#16a34a',backgroundColor:'#16a34a',yAxisID:'y1',tension:0.3}
+  ]},options:{plugins:{legend:{position:'bottom'}},scales:{y:{type:'linear',position:'left',title:{display:true,text:'g.'}},y1:{type:'linear',position:'right',title:{display:true,text:'กก.'},grid:{drawOnChartArea:false}}}}}));
+  }
+  const cC=el('pnlSingleCost');
+  if(cC){ charts.push(new Chart(cC,{type:'doughnut',data:{labels:['WIP (ยกมา)','ต้นทุนอาหาร','ค่าใช้จ่ายอื่น','โปรไบโอติก'],datasets:[{data:[p.wip,res.feedCost,res.generalCost,res.probioticCost],backgroundColor:['#94a3b8','#f59e0b','#8b5cf6','#0ea5e9']}]},
     options:{plugins:{legend:{position:'bottom'}}}}));
   }
 }
