@@ -280,6 +280,26 @@ tr.spot-hl td{animation:spotflash 2.3s ease-out}
 .pnl-box .pval{font-size:20px;font-weight:800;margin-top:4px}
 .dtable td.profit-pos{color:var(--green);font-weight:700}
 .dtable td.profit-neg{color:var(--red);font-weight:700}
+.pnl-layout{display:grid;grid-template-columns:minmax(280px,360px) 1fr;gap:var(--gap);align-items:start;margin-bottom:var(--gap)}
+.pnl-col-left,.pnl-col-right{display:flex;flex-direction:column;gap:var(--gap)}
+@media(max-width:900px){.pnl-layout{grid-template-columns:1fr}}
+.pnl-sechead{color:#fff;padding:11px 16px;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.pnl-sechead.dark{background:var(--head2)}
+.pnl-sechead.amber{background:linear-gradient(90deg,#d97706,#f59e0b)}
+.pnl-sechead.teal{background:var(--accent)}
+.pnl-sechead.purple{background:linear-gradient(90deg,#6d28d9,#7c3aed)}
+.pnl-sechead .badge{font-size:10px;background:rgba(255,255,255,.25);padding:2px 8px;border-radius:999px;font-weight:600;white-space:nowrap}
+.pnl-card-body{padding:14px 16px}
+.pnl-kv{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--line);font-size:12.5px}
+.pnl-kv:last-child{border-bottom:none}
+.pnl-kv .k{color:var(--muted)}
+.pnl-kv .v{font-weight:700;color:var(--ink)}
+.pnl-banner{border-radius:14px;padding:18px;text-align:center}
+.pnl-banner.pos{background:var(--green-bg);border:1px solid var(--green-line)}
+.pnl-banner.neg{background:var(--red-bg);border:1px solid var(--red-line)}
+.pnl-banner .plabel{font-size:12px;font-weight:700;color:var(--muted)}
+.pnl-banner .amt{font-size:26px;font-weight:800;margin-top:4px}
+
 
 .biomass-form{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;margin-bottom:14px}
 .bfield{display:flex;flex-direction:column;gap:5px}
