@@ -2042,15 +2042,13 @@ window.pnlResetAll=function(){ PNL_OV={}; pnlRender(); };
 window.pnlSwitch=function(mode){ PNL_MODE=mode; pnlRender(); };
 window.pnlSelectPond=function(code){ PNL_SEL=code; pnlRender(); };
 
-function pnlProject(p){
-  const ov=PNL_OV[p.pond];
-  if(!pnlHasOv(p.pond)) return {weeks:p.weeksAuto, simulated:false};
-  const probiotic=(ov.probiotic!=null)?ov.probiotic:p.probiotic;
-  const otherCost=(ov.otherCost!=null)?ov.otherCost:p.otherCost;
+function pnlSimRaw(p, ov){
+  const probiotic=(ov&&ov.probiotic!=null)?ov.probiotic:p.probiotic;
+  const otherCost=(ov&&ov.otherCost!=null)?ov.otherCost:p.otherCost;
   let mbwPrev=p.mbwCur, biomassPrev=p.biomassCur, docPrev=p.docCur, feedCum=p.feedCumStart, nonFeedCum=0;
   const weeks=[];
   for(let w=0;w<3;w++){
-    const wov=(ov.weeks&&ov.weeks[w])||{};
+    const wov=(ov&&ov.weeks&&ov.weeks[w])||{};
     const doc=p.weeksAuto[w].doc;
     const growthAuto=p.adgCur;
     const growth=(wov.growth!=null)?wov.growth:growthAuto;
@@ -2064,15 +2062,37 @@ function pnlProject(p){
     feedCum+=((rate0+rate1)/2)*((biomassPrev+biomass)/2)*(doc-docPrev);
     const feedCost=feedCum*p.feedPrice;
     nonFeedCum+=(probiotic+otherCost)*p.rai*(doc-docPrev);
-    const cumCost=p.wip+feedCost+nonFeedCum;
+    weeks.push({doc:doc,growthAuto:growthAuto,growthAdjust:wov.growth!=null?wov.growth:null,mbw:mbw,
+      srAuto:srAuto,srAdjust:wov.sr!=null?wov.sr:null,biomass:biomass,fcrAuto:fcrAuto,fcrAdjust:wov.fcr!=null?wov.fcr:null,
+      feedUsed:feedCum,feedCost:feedCost,nonFeedCum:nonFeedCum});
+    mbwPrev=mbw; biomassPrev=biomass; docPrev=doc;
+  }
+  return weeks;
+}
+function pnlProject(p){
+  const ov=PNL_OV[p.pond];
+  if(!pnlHasOv(p.pond)) return {weeks:p.weeksAuto, simulated:false};
+  const withOv=pnlSimRaw(p, ov);
+  const noOv=pnlSimRaw(p, null);
+  const weeks=withOv.map(function(w,i){
+    const sheetW=p.weeksAuto[i];
+    const dMbw=w.mbw-noOv[i].mbw;
+    const dBiomass=w.biomass-noOv[i].biomass;
+    const dFeedUsed=w.feedUsed-noOv[i].feedUsed;
+    const dFeedCost=w.feedCost-noOv[i].feedCost;
+    const dNonFeedCost=w.nonFeedCum-noOv[i].nonFeedCum;
+    const mbw=sheetW.mbw+dMbw;
+    const biomass=sheetW.biomass+dBiomass;
+    const feedUsed=sheetW.feedUsed+dFeedUsed;
+    const feedCost=sheetW.feedCost+dFeedCost;
+    const cumCost=sheetW.cumCost+dFeedCost+dNonFeedCost;
     const size=mbw>0?1000/mbw:0;
     const price=pnlPriceLookup(size);
     const profit=biomass*price-cumCost;
-    weeks.push({doc:doc,growthAuto:growthAuto,growthAdjust:wov.growth!=null?wov.growth:null,mbw:mbw,
-      srAuto:srAuto,srAdjust:wov.sr!=null?wov.sr:null,biomass:biomass,fcrAuto:fcrAuto,fcrAdjust:wov.fcr!=null?wov.fcr:null,
-      feedUsed:feedCum,feedCost:feedCost,price:price,cumCost:cumCost,profit:profit});
-    mbwPrev=mbw; biomassPrev=biomass; docPrev=doc;
-  }
+    return {doc:w.doc,growthAuto:w.growthAuto,growthAdjust:w.growthAdjust,mbw:mbw,
+      srAuto:w.srAuto,srAdjust:w.srAdjust,biomass:biomass,fcrAuto:w.fcrAuto,fcrAdjust:w.fcrAdjust,
+      feedUsed:feedUsed,feedCost:feedCost,price:price,cumCost:cumCost,profit:profit};
+  });
   return {weeks:weeks, simulated:true};
 }
 function pnlComputeAll(){
