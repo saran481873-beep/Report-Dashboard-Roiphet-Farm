@@ -263,6 +263,24 @@ tr.spot-hl td{animation:spotflash 2.3s ease-out}
 .mcard.c-ai{border-top-color:#0891b2}
 .mcard.c-biomass{border-top-color:#be123c}
 .mcard.c-prepare{border-top-color:#0d9488}
+.mcard.c-pnl{border-top-color:#7c3aed}
+.pnl-tabs{display:inline-flex;gap:6px;background:var(--head2);padding:6px;border-radius:12px;margin-bottom:var(--gap)}
+.pnl-ctrl{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+.pnl-ctrl .pfield{display:flex;flex-direction:column;gap:5px}
+.pnl-ctrl .pfield label{font-size:11px;color:var(--muted);font-weight:600}
+.pnl-ctrl input,.pnl-ctrl select{padding:8px 10px;border-radius:9px;border:1px solid var(--yellow-line);background:var(--yellow-bg);font-size:13px;font-family:'Noto Sans Thai',sans-serif;outline:none;width:100%}
+.pnl-ctrl input:focus{border-color:var(--yellow)}
+.pinput-sm{width:76px;padding:5px 6px;border-radius:7px;border:1px solid var(--line);font-size:12px;text-align:right;font-family:'Noto Sans Thai',sans-serif}
+.pinput-sm:focus{border-color:var(--accent);outline:none}
+.pinput-sm.ov{background:var(--yellow-bg);border-color:var(--yellow-line)}
+.pnl-reset{background:none;border:1px solid var(--line);border-radius:8px;padding:4px 10px;font-size:11.5px;color:var(--muted);cursor:pointer}
+.pnl-reset:hover{background:#f1f5f9}
+.pnl-box{border-radius:12px;padding:14px 16px;text-align:center;border:1px solid var(--line);background:#f8fafc}
+.pnl-box .plabel{font-size:11.5px;color:var(--muted);font-weight:600}
+.pnl-box .pval{font-size:20px;font-weight:800;margin-top:4px}
+.dtable td.profit-pos{color:var(--green);font-weight:700}
+.dtable td.profit-neg{color:var(--red);font-weight:700}
+
 .biomass-form{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;margin-bottom:14px}
 .bfield{display:flex;flex-direction:column;gap:5px}
 .bfield label{font-size:11.5px;color:var(--muted);font-weight:600}
@@ -325,6 +343,7 @@ const PAGES=[
   ,{id:'ai',label:'8 · AI Assistant'}
   ,{id:'biomass',label:'9 · Estimate Biomass'}
   ,{id:'prepare',label:'10 · Prepare pond'}
+  ,{id:'pnl',label:'11 · Profit & Loss Forecast'}
 ];
 const cache={};
 let charts=[];
@@ -517,6 +536,7 @@ async function renderPage(id){
   else if(id==='ai')await pageAI();
   else if(id==='biomass')await pageBiomass();
   else if(id==='prepare')await pagePrepare();
+  else if(id==='pnl')await pagePnL();
     setLive(true,'ออนไลน์');
     el('asof').textContent=new Date().toLocaleString('th-TH',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
   }catch(e){ el('app').innerHTML='<div class="loading">โหลดข้อมูลไม่สำเร็จ: '+e.message+'</div>'; setLive(false,'ออฟไลน์'); }
@@ -535,6 +555,7 @@ function renderHome(){
     ,{id:'ai',cls:'c-ai',ic:'🤖',t:'8 · AI Assistant',d:'ถาม-ตอบข้อมูลฟาร์มทั้งหมดแบบ Smart Q&A ผู้ช่วยในการเลี้ยงกุ้ง'}
     ,{id:'biomass',cls:'c-biomass',ic:'⚖️',t:'9 · Estimate Biomass',d:'กรอก Feed_amout และ Size_Actual คำนวณ Biomass (kg.) พร้อมแสดง %FR และ Price (BHT/KG) ตามสูตรฟาร์ม'}
     ,{id:'prepare',cls:'c-prepare',ic:'🧹',t:'10 · Prepare pond',d:'สรุปการเตรียมบ่อก่อนลงกุ้ง จำนวนบ่อเตรียม บ่อพร้อมลงกุ้ง และสถานะแต่ละขั้นตอนการเตรียมบ่อ'}
+    ,{id:'pnl',cls:'c-pnl',ic:'💹',t:'11 · Profit & Loss Forecast',d:'พยากรณ์ต้นทุน รายได้ กำไร/ขาดทุนรายบ่อ 3 สัปดาห์ พร้อมช่องจำลองปรับต้นทุน/การเติบโตได้เอง'}
   ];
   el('app').innerHTML=`<div class="home-grid">`+cards.map(c=>{
     const click=c.ext?`onclick="window.open('${c.ext}','_blank')"`:`onclick="location.hash='#${c.id}'"`;
