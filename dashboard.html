@@ -2206,7 +2206,7 @@ function pnlRenderMulti(){
   const totCost3=sum(function(r){return r.weeks[2].cumCost;});
   const totProfit3=totRevenue3-totCost3;
   const kpis='<div class="kpis">'
-    +'<div class="kpi b"><div class="klabel">บ่อที่กำลังเลี้ยง (Culture)</div><div class="kval">'+fmt(n)+'</div><div class="ksub">'+fmt(totRai,1)+' ไร่</div></div>'
+    +'<div class="kpi b"><div class="klabel">บ่อที่กำลังเลี้ยง (Culture)</div><div class="kval">'+fmt(n)+'</div><div class="ksub">'+fmt(totRai,0)+' ไร่</div></div>'
     +'<div class="kpi g"><div class="klabel">Biomass คาดการณ์ (สัปดาห์ 3)</div><div class="kval">'+fmt(totBiomass3)+'</div><div class="ksub">กก.</div></div>'
     +'<div class="kpi b"><div class="klabel">รายได้คาดการณ์ (สัปดาห์ 3)</div><div class="kval">'+fmt(totRevenue3)+'</div><div class="ksub">บาท</div></div>'
     +'<div class="kpi '+(totProfit3>=0?'g':'r')+'"><div class="klabel">กำไร/ขาดทุนคาดการณ์ (สัปดาห์ 3)</div><div class="kval">'+fmt(totProfit3)+'</div><div class="ksub">บาท</div></div>'
@@ -2235,20 +2235,20 @@ function pnlRenderMulti(){
       const wk=w[i];
       const costKg=wk.biomass>0?wk.cumCost/wk.biomass:0;
       const profitKg=wk.biomass>0?wk.profit/wk.biomass:0;
-      weekCells+='<td>'+fmt(wk.mbw,2)+'</td>'
+      weekCells+='<td>'+fmt(wk.mbw,0)+'</td>'
         +'<td>'+fmt(wk.biomass)+'</td>'
-        +'<td>'+fmt(costKg,2)+'</td>'
-        +'<td class="'+(profitKg>=0?'profit-pos':'profit-neg')+'">'+fmt(profitKg,2)+'</td>'
+        +'<td>'+fmt(costKg,0)+'</td>'
+        +'<td class="'+(profitKg>=0?'profit-pos':'profit-neg')+'">'+fmt(profitKg,0)+'</td>'
         +'<td class="'+(wk.profit>=0?'profit-pos':'profit-neg')+'">'+fmt(wk.profit)+'</td>';
     }
     return '<tr>'
       +'<td>'+p.module+'</td>'
       +'<td>'+p.pond+'</td>'
-      +'<td>'+fmt(p.rai,1)+'</td>'
+      +'<td>'+fmt(p.rai,0)+'</td>'
       +'<td>'+fmt(p.docCur)+'</td>'
-      +'<td>'+fmt(p.mbwCur,2)+'</td>'
+      +'<td>'+fmt(p.mbwCur,0)+'</td>'
       +'<td>'+fmt(p.biomassCur)+'</td>'
-      +'<td>'+fmt(p.srCur,1)+'</td>'
+      +'<td>'+fmt(p.srCur,2)+'</td>'
       +'<td>'+fmt(p.wip)+'</td>'
       +weekCells
       +'<td>'+(hasOv?'<button class="pnl-reset" onclick="pnlResetPond(\''+p.pond+'\')">รีเซ็ต</button>':'-')+'</td>'
@@ -2262,7 +2262,7 @@ function pnlRenderMulti(){
       const profit=sum(function(r){return r.weeks[i].profit;});
       const costKg=bio>0?cost/bio:0;
       const profitKg=bio>0?profit/bio:0;
-      cells+='<td>-</td><td>'+fmt(bio)+'</td><td>'+fmt(costKg,2)+'</td><td class="'+(profitKg>=0?'profit-pos':'profit-neg')+'">'+fmt(profitKg,2)+'</td><td class="'+(profit>=0?'profit-pos':'profit-neg')+'">'+fmt(profit)+'</td>';
+      cells+='<td>-</td><td>'+fmt(bio)+'</td><td>'+fmt(costKg,0)+'</td><td class="'+(profitKg>=0?'profit-pos':'profit-neg')+'">'+fmt(profitKg,0)+'</td><td class="'+(profit>=0?'profit-pos':'profit-neg')+'">'+fmt(profit)+'</td>';
     }
     cells+='<td>-</td>';
     return '<tr style="font-weight:700;background:var(--bg)">'+cells+'</tr>';
@@ -2388,7 +2388,7 @@ function pnlRenderSingle(){
         +'<input id="pfRngG'+w+'" type="range" min="0" max="1.5" step="0.0001" value="'+gSlider+'" '
           +'oninput="document.getElementById(\'pfNumG'+w+'\').value=this.value" '
           +'onchange="pnlSetOv(\''+p.pond+'\',\'growth\','+w+',this.value)">'
-        +'<div class="pf-hint">Auto: '+fmt(wk.growthAuto,4)+' g./วัน (เว้นว่าง = ใช้ค่า Auto)</div>'
+        +'<div class="pf-hint">Auto: '+fmt(wk.growthAuto,2)+' g./วัน (เว้นว่าง = ใช้ค่า Auto)</div>'
       +'</div>'
       +'<div class="pfield-box">'
         +'<div class="pf-row"><label>%SR Adjust</label>'
@@ -2407,9 +2407,9 @@ function pnlRenderSingle(){
     +'<div class="pnl-card-body">'
     +'<div class="hint" style="margin-top:0">เว้นว่างช่องใดให้ใช้ค่าตามสูตร Auto ของชีท (จำลองในหน้านี้เท่านั้น ไม่กระทบข้อมูลจริง) '+(hasOv?'· <button class="pnl-reset" onclick="pnlResetPond(\''+p.pond+'\')">รีเซ็ตบ่อนี้</button>':'· ยังไม่มีการปรับค่า')+'</div>'
     +'<div class="pfield-box"><div class="pf-row"><label>Probiotic (บาท/ไร่/วัน)</label>'
-      +'<input type="number" placeholder="Auto '+fmt(p.probiotic,2)+'" value="'+(ov.probiotic!=null?ov.probiotic:'')+'" onchange="pnlSetOv(\''+p.pond+'\',\'probiotic\',0,this.value)"></div></div>'
+      +'<input type="number" placeholder="Auto '+fmt(p.probiotic,0)+'" value="'+(ov.probiotic!=null?ov.probiotic:'')+'" onchange="pnlSetOv(\''+p.pond+'\',\'probiotic\',0,this.value)"></div></div>'
     +'<div class="pfield-box"><div class="pf-row"><label>ค่าใช้จ่ายอื่น (บาท/ไร่/วัน)</label>'
-      +'<input type="number" placeholder="Auto '+fmt(p.otherCost,2)+'" value="'+(ov.otherCost!=null?ov.otherCost:'')+'" onchange="pnlSetOv(\''+p.pond+'\',\'otherCost\',0,this.value)"></div></div>'
+      +'<input type="number" placeholder="Auto '+fmt(p.otherCost,0)+'" value="'+(ov.otherCost!=null?ov.otherCost:'')+'" onchange="pnlSetOv(\''+p.pond+'\',\'otherCost\',0,this.value)"></div></div>'
     +weekBlocks
     +'</div></div>';
 
@@ -2417,12 +2417,12 @@ function pnlRenderSingle(){
     +'<div class="pnl-sechead dark"><span>1) ข้อมูลพื้นฐานบ่อ</span></div>'
     +'<div class="pnl-card-body">'
     +'<div class="pnl-kv"><span class="k">Module / ประเภท</span><span class="v">'+p.module+' · '+p.type+'</span></div>'
-    +'<div class="pnl-kv"><span class="k">พื้นที่บ่อ (ไร่)</span><span class="v">'+fmt(p.rai,2)+'</span></div>'
+    +'<div class="pnl-kv"><span class="k">พื้นที่บ่อ (ไร่)</span><span class="v">'+fmt(p.rai,0)+'</span></div>'
     +'<div class="pnl-kv"><span class="k">DOC ปัจจุบัน (วัน)</span><span class="v">'+fmt(p.docCur)+'</span></div>'
-    +'<div class="pnl-kv"><span class="k">MBW ปัจจุบัน (g.)</span><span class="v">'+fmt(p.mbwCur,2)+'</span></div>'
+    +'<div class="pnl-kv"><span class="k">MBW ปัจจุบัน (g.)</span><span class="v">'+fmt(p.mbwCur,0)+'</span></div>'
     +'<div class="pnl-kv"><span class="k">Biomass ปัจจุบัน (กก.)</span><span class="v">'+fmt(p.biomassCur)+'</span></div>'
     +'<div class="pnl-kv"><span class="k">%SR ปัจจุบัน</span><span class="v">'+fmt(p.srCur,2)+'%</span></div>'
-    +'<div class="pnl-kv"><span class="k">ADG ปัจจุบัน (g./วัน)</span><span class="v">'+fmt(p.adgCur,4)+'</span></div>'
+    +'<div class="pnl-kv"><span class="k">ADG ปัจจุบัน (g./วัน)</span><span class="v">'+fmt(p.adgCur,2)+'</span></div>'
     +'<div class="pnl-kv"><span class="k">WIP (บาท)</span><span class="v">'+fmt(p.wip)+'</span></div>'
     +'</div></div>';
 
@@ -2467,7 +2467,7 @@ function pnlRenderSingle(){
     +'<div class="pnl-kv"><span class="k">ต้นทุนอาหาร</span><span class="v">'+fmt(feedCost3)+'</span></div>'
     +'<div class="pnl-kv"><span class="k">ต้นทุนอื่น (Probiotic+ค่าใช้จ่ายอื่น)</span><span class="v">'+fmt(nonFeedCost3)+'</span></div>'
     +'<div class="pnl-kv" style="border-top:2px solid var(--line);margin-top:4px;padding-top:8px"><span class="k" style="font-weight:700">ต้นทุนรวมทั้งหมด</span><span class="v" style="color:var(--red)">'+fmt(wk3.cumCost)+'</span></div>'
-    +'<div class="pnl-kv"><span class="k" style="font-weight:700">ต้นทุนต่อกก.</span><span class="v">'+fmt(wk3.biomass>0?wk3.cumCost/wk3.biomass:0,2)+' บาท/กก.</span></div>'
+    +'<div class="pnl-kv"><span class="k" style="font-weight:700">ต้นทุนต่อกก.</span><span class="v">'+fmt(wk3.biomass>0?wk3.cumCost/wk3.biomass:0,0)+' บาท/กก.</span></div>'
     +'</div><div style="padding:0 16px 14px"><canvas id="pnlSingleCost" height="170"></canvas></div></div>';
 
   const revenue3=wk3.biomass*wk3.price;
@@ -2482,7 +2482,7 @@ function pnlRenderSingle(){
       +'<div class="plabel">กำไร/ขาดทุนคาดการณ์</div>'
     +'</div>'
     +'<div class="pnl-ctrl" style="margin-top:10px">'
-      +'<div class="pnl-box"><div class="plabel">กำไร/ขาดทุนต่อกก.</div><div class="pval" style="color:'+(profitPerKg3>=0?'var(--green)':'var(--red)')+'">'+fmt(profitPerKg3,2)+' บาท/กก.</div></div>'
+      +'<div class="pnl-box"><div class="plabel">กำไร/ขาดทุนต่อกก.</div><div class="pval" style="color:'+(profitPerKg3>=0?'var(--green)':'var(--red)')+'">'+fmt(profitPerKg3,0)+' บาท/กก.</div></div>'
       +'<div class="pnl-box"><div class="plabel">กำไร/ขาดทุนต่อไร่</div><div class="pval" style="color:'+(profitPerRai3>=0?'var(--green)':'var(--red)')+'">'+fmt(profitPerRai3,0)+' บาท/ไร่</div></div>'
     +'</div></div></div>';
 
@@ -2511,9 +2511,9 @@ function pnlRenderSingleDate(p, ov, hasOv, selectorHtml, modeToggle){
       +'<div class="pf-hint">เหลืออีก '+fmt(res.daysLeft)+' วัน (DOC เป้าหมาย '+fmt(res.docTarget)+')</div>'
     +'</div>'
     +'<div class="pfield-box"><div class="pf-row"><label>Probiotic (บาท/ไร่/วัน)</label>'
-      +'<input type="number" placeholder="Auto '+fmt(p.probiotic,2)+'" value="'+(ov.probiotic!=null?ov.probiotic:'')+'" onchange="pnlSetOv(\''+p.pond+'\',\'probiotic\',0,this.value)"></div></div>'
+      +'<input type="number" placeholder="Auto '+fmt(p.probiotic,0)+'" value="'+(ov.probiotic!=null?ov.probiotic:'')+'" onchange="pnlSetOv(\''+p.pond+'\',\'probiotic\',0,this.value)"></div></div>'
     +'<div class="pfield-box"><div class="pf-row"><label>ค่าใช้จ่ายอื่น (บาท/ไร่/วัน)</label>'
-      +'<input type="number" placeholder="Auto '+fmt(p.otherCost,2)+'" value="'+(ov.otherCost!=null?ov.otherCost:'')+'" onchange="pnlSetOv(\''+p.pond+'\',\'otherCost\',0,this.value)"></div></div>'
+      +'<input type="number" placeholder="Auto '+fmt(p.otherCost,0)+'" value="'+(ov.otherCost!=null?ov.otherCost:'')+'" onchange="pnlSetOv(\''+p.pond+'\',\'otherCost\',0,this.value)"></div></div>'
     +'<div class="pfield-box">'
       +'<div class="pf-row"><label>Growth Adjust (g./วัน)</label>'
       +'<input id="pfNumGD" type="number" step="0.0001" min="0" max="1.5" placeholder="Auto" value="'+gVal+'" '
@@ -2522,7 +2522,7 @@ function pnlRenderSingleDate(p, ov, hasOv, selectorHtml, modeToggle){
       +'<input id="pfRngGD" type="range" min="0" max="1.5" step="0.0001" value="'+gSlider+'" '
         +'oninput="document.getElementById(\'pfNumGD\').value=this.value" '
         +'onchange="pnlSetOv(\''+p.pond+'\',\'growth\',0,this.value)">'
-      +'<div class="pf-hint">Auto: '+fmt(res.growthAuto,4)+' g./วัน</div>'
+      +'<div class="pf-hint">Auto: '+fmt(res.growthAuto,2)+' g./วัน</div>'
     +'</div>'
     +'<div class="pfield-box">'
       +'<div class="pf-row"><label>%SR Adjust</label>'
@@ -2540,20 +2540,20 @@ function pnlRenderSingleDate(p, ov, hasOv, selectorHtml, modeToggle){
     +'<div class="pnl-sechead dark"><span>1) ข้อมูลพื้นฐานบ่อ</span></div>'
     +'<div class="pnl-card-body">'
     +'<div class="pnl-kv"><span class="k">Module / ประเภท</span><span class="v">'+p.module+' · '+p.type+'</span></div>'
-    +'<div class="pnl-kv"><span class="k">พื้นที่บ่อ (ไร่)</span><span class="v">'+fmt(p.rai,2)+'</span></div>'
+    +'<div class="pnl-kv"><span class="k">พื้นที่บ่อ (ไร่)</span><span class="v">'+fmt(p.rai,0)+'</span></div>'
     +'<div class="pnl-kv"><span class="k">DOC ปัจจุบัน (วัน)</span><span class="v">'+fmt(p.docCur)+'</span></div>'
-    +'<div class="pnl-kv"><span class="k">MBW ปัจจุบัน (g.)</span><span class="v">'+fmt(p.mbwCur,2)+'</span></div>'
+    +'<div class="pnl-kv"><span class="k">MBW ปัจจุบัน (g.)</span><span class="v">'+fmt(p.mbwCur,0)+'</span></div>'
     +'<div class="pnl-kv"><span class="k">Biomass ปัจจุบัน (กก.)</span><span class="v">'+fmt(p.biomassCur)+'</span></div>'
     +'<div class="pnl-kv"><span class="k">%SR ปัจจุบัน</span><span class="v">'+fmt(p.srCur,2)+'%</span></div>'
-    +'<div class="pnl-kv"><span class="k">ADG ปัจจุบัน (g./วัน)</span><span class="v">'+fmt(p.adgCur,4)+'</span></div>'
+    +'<div class="pnl-kv"><span class="k">ADG ปัจจุบัน (g./วัน)</span><span class="v">'+fmt(p.adgCur,2)+'</span></div>'
     +'<div class="pnl-kv"><span class="k">WIP (บาท)</span><span class="v">'+fmt(p.wip)+'</span></div>'
     +'</div></div>';
 
   const sec2='<div class="card">'
     +'<div class="pnl-sechead emerald"><span>2) ผลผลิตคาดการณ์ ณ วันที่ปิดบ่อ</span></div>'
     +'<div class="pnl-card-body">'
-    +'<div class="pnl-kv"><span class="k">MBW คาดการณ์</span><span class="v">'+fmt(res.mbw,2)+' g.</span></div>'
-    +'<div class="pnl-kv"><span class="k">Size คาดการณ์</span><span class="v">'+fmt(res.size,1)+' ตัว/กก.</span></div>'
+    +'<div class="pnl-kv"><span class="k">MBW คาดการณ์</span><span class="v">'+fmt(res.mbw,0)+' g.</span></div>'
+    +'<div class="pnl-kv"><span class="k">Size คาดการณ์</span><span class="v">'+fmt(res.size,0)+' ตัว/กก.</span></div>'
     +'<div class="pnl-kv"><span class="k">%SR คาดการณ์</span><span class="v">'+fmt(res.sr,2)+'%</span></div>'
     +'<div class="pnl-kv"><span class="k">Biomass คาดการณ์</span><span class="v">'+fmt(res.biomass)+' กก.</span></div>'
     +'<div class="pnl-kv"><span class="k">ผลผลิตเพิ่มขึ้น</span><span class="v">'+fmt(res.biomass-p.biomassCur)+' กก.</span></div>'
@@ -2568,7 +2568,7 @@ function pnlRenderSingleDate(p, ov, hasOv, selectorHtml, modeToggle){
     +'<div class="pnl-kv"><span class="k">ค่าใช้จ่ายอื่น</span><span class="v">'+fmt(res.generalCost)+'</span></div>'
     +'<div class="pnl-kv"><span class="k">ค่าโปรไบโอติก</span><span class="v">'+fmt(res.probioticCost)+'</span></div>'
     +'<div class="pnl-kv" style="border-top:2px solid var(--line);margin-top:4px;padding-top:8px"><span class="k" style="font-weight:700">ต้นทุนรวมทั้งหมด</span><span class="v" style="color:var(--red)">'+fmt(res.totalCost)+'</span></div>'
-    +'<div class="pnl-kv"><span class="k" style="font-weight:700">ต้นทุนต่อกก.</span><span class="v">'+fmt(res.costPerKg,2)+' บาท/กก.</span></div>'
+    +'<div class="pnl-kv"><span class="k" style="font-weight:700">ต้นทุนต่อกก.</span><span class="v">'+fmt(res.costPerKg,0)+' บาท/กก.</span></div>'
     +'</div><div style="padding:0 16px 14px"><canvas id="pnlSingleCost" height="170"></canvas></div></div>';
 
   const sec4='<div class="card">'
@@ -2580,7 +2580,7 @@ function pnlRenderSingleDate(p, ov, hasOv, selectorHtml, modeToggle){
       +'<div class="plabel">กำไร/ขาดทุนคาดการณ์</div>'
     +'</div>'
     +'<div class="pnl-ctrl" style="margin-top:10px">'
-      +'<div class="pnl-box"><div class="plabel">กำไร/ขาดทุนต่อกก.</div><div class="pval" style="color:'+(res.profitPerKg>=0?'var(--green)':'var(--red)')+'">'+fmt(res.profitPerKg,2)+' บาท/กก.</div></div>'
+      +'<div class="pnl-box"><div class="plabel">กำไร/ขาดทุนต่อกก.</div><div class="pval" style="color:'+(res.profitPerKg>=0?'var(--green)':'var(--red)')+'">'+fmt(res.profitPerKg,0)+' บาท/กก.</div></div>'
       +'<div class="pnl-box"><div class="plabel">กำไร/ขาดทุนต่อไร่</div><div class="pval" style="color:'+(res.profitPerRai>=0?'var(--green)':'var(--red)')+'">'+fmt(res.profitPerRai,0)+' บาท/ไร่</div></div>'
     +'</div></div></div>';
 
