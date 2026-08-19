@@ -1344,13 +1344,14 @@ async function pageStocking(){
   const curMonthLabel=isAllMonth?'ทุกเดือน':monthSel.map(m=>MONTH_TH[Number(m)-1]||m).join(', ');
   const tbl=`<div class='card'><h3><span class='dot'></span>ตารางลงกุ้ง (${curMonthLabel})</h3><div class='hint'>รายการลงกุ้งตามเดือนที่เลือก · เลือกได้มากกว่า 1 เดือน · คลิกหัวตาราง วันที่ลงกุ้ง เพื่อเรียงลำดับ</div><div class='maptbl-wrap'><table id='stkTable' class='dtable stripe'><thead><tr><th>ชื่อบ่อ</th><th id='stkDateTh' style='cursor:pointer' onclick='sortStkDate()'>วันที่ลงกุ้ง</th><th>สัปดาห์</th><th>ประเภท</th><th>Module</th><th>จำนวน (ตัว)</th></tr></thead><tbody>${curBody||`<tr><td colspan='6'>ไม่มีการลงกุ้งในเดือนที่เลือก</td></tr>`}</tbody><tfoot><tr><td class='l' colspan='5'>รวม</td><td>${fmt(curTotalPcs)}</td></tr></tfoot></table></div></div>`;
   const monthEndRaw=[];
-  for(let i=1;i<V.length;i++){ const rr=V[i]; const mo=parseInt(rr[9])||0; if(!mo)continue; monthEndRaw.push({month:mo,area:(rr[10]||'').trim(),carry:num(rr[11]),stocked:num(rr[12]),stockedM:num(rr[13]),caught:num(rr[14]),endPonds:num(rr[15]),endPct:(rr[16]||'').toString().trim()}); }
-  monthEndRaw.sort(function(a,b){ return a.month-b.month || a.area.localeCompare(b.area); });
-  const monthEndRows=monthEndRaw.map(function(x){
+  for(let i=1;i<V.length;i++){ const rr=V[i]; const mo=parseInt(rr[9])||0; if(!mo)continue; monthEndRaw.push({month:mo,area:(rr[10]||'').trim(),year:parseInt(rr[17])||0,carry:num(rr[11]),stocked:num(rr[12]),stockedM:num(rr[13]),caught:num(rr[14]),endPonds:num(rr[15]),endPct:(rr[16]||'').toString().trim()}); }
+  const monthEndFiltered=monthEndRaw.filter(function(x){ return (isAllArea||areaSel.includes(x.area))&&(isAllMonth||monthSel.includes(String(x.month)))&&(isAllYear||yearSel.includes(String(x.year))); });
+  monthEndFiltered.sort(function(a,b){ return a.month-b.month || a.area.localeCompare(b.area); });
+  const monthEndRows=monthEndFiltered.map(function(x){
     const cls='stk-mo-'+(x.month%2===0?'b':'a');
     return '<tr class="'+cls+'"><td>'+(MONTH_TH[x.month-1]||x.month)+'</td><td>'+x.area+'</td><td>'+fmt(x.carry)+'</td><td>'+fmt(x.stocked)+'</td><td>'+fmt(x.stockedM,2)+'</td><td>'+fmt(x.caught)+'</td><td>'+fmt(x.endPonds)+'</td><td>'+x.endPct+'</td></tr>';
   }).join('');
-  const monthEndTable='<div class="card"><h3><span class="dot"></span>มีกุ้งเหลือ ณ สิ้นเดือน (รายพื้นที่)</h3><div class="hint">สรุปจำนวนบ่อและกุ้งคงเหลือแต่ละเดือน แยกตามพื้นที่ · สีสลับตามเดือนให้แยกแยะง่าย</div><div class="maptbl-wrap"><table class="dtable"><thead><tr><th>เดือน</th><th>พื้นที่</th><th>มีกุ้งยกมา (บ่อ)</th><th>ลงกุ้ง (บ่อ)</th><th>ลงกุ้ง (ล้านตัว)</th><th>จับกุ้ง (บ่อ)</th><th>มีกุ้งสิ้นเดือน (บ่อ)</th><th>มีกุ้งสิ้นเดือน (%)</th></tr></thead><tbody>'+(monthEndRows||'<tr><td colspan="8">ไม่พบข้อมูล</td></tr>')+'</tbody></table></div></div>';
+  const monthEndTable='<div class="card"><h3><span class="dot"></span>มีกุ้งเหลือ ณ สิ้นเดือน (รายพื้นที่)</h3><div class="hint">สรุปจำนวนบ่อและกุ้งคงเหลือแต่ละเดือน แยกตามพื้นที่ · สีสลับตามเดือนให้แยกแยะง่าย · เชื่อมกับตัวกรองด้านบน (เลือกพื้นที่/เดือน/ปีได้มากกว่า 1 รายการ)</div><div class="maptbl-wrap"><table class="dtable"><thead><tr><th>เดือน</th><th>พื้นที่</th><th>มีกุ้งยกมา (บ่อ)</th><th>ลงกุ้ง (บ่อ)</th><th>ลงกุ้ง (ล้านตัว)</th><th>จับกุ้ง (บ่อ)</th><th>มีกุ้งสิ้นเดือน (บ่อ)</th><th>มีกุ้งสิ้นเดือน (%)</th></tr></thead><tbody>'+(monthEndRows||'<tr><td colspan="8">ไม่พบข้อมูล</td></tr>')+'</tbody></table></div></div>';
   el('app').innerHTML=planReport+modTable+monthEndTable+tbl;
   decorateWidgets('stocking');
 }
