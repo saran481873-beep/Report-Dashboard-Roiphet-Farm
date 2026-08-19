@@ -1993,8 +1993,9 @@ async function pageBiomass(){
 
 async function renderBiomassTable(){
   const j=await getTab('Estimate Biomass');
-  const head=(j&&j.values&&j.values[0])||['Feed_amout','Size_Actual','%FR','Biomass (kg.)','Price (BHT/KG)'];
-  const rows=((j&&j.values)||[]).slice(1).filter(r=>r.some(c=>String(c).trim()!==''));
+  const rawHead=(j&&j.values&&j.values[0])||['Feed_amout','Size_Actual','%FR','Biomass (kg.)','Price (BHT/KG)'];
+  const head=rawHead.slice(0,5);
+  const rows=((j&&j.values)||[]).slice(1).map(r=>r.slice(0,5)).filter(r=>String(r[0]||'').trim()!=='');
   let html='<table class="dtable"><thead><tr>'+head.map(h=>`<th>${h}</th>`).join('')+'</tr></thead><tbody>';
   if(!rows.length){ html+=`<tr><td colspan="${head.length}">ยังไม่มีข้อมูล</td></tr>`; }
   else{
@@ -2160,7 +2161,7 @@ function pnlRender(){
     +'<span class="chip'+(PNL_MODE==='multi'?' on':'')+'" onclick="pnlSwitch(\'multi\')">ประมาณการณ์ทุกบ่อ (3 สัปดาห์)</span>'
     +'<span class="chip'+(PNL_MODE==='single'?' on':'')+'" onclick="pnlSwitch(\'single\')">ประเมินรายบ่อ</span>'
     +'</div>';
-  const note='<div class="card" style="border-left:5px solid #7c3aed;padding:10px 16px;margin-bottom:10px"><div class="hint" style="margin:0">📌 ช่องกรอก Probiotic / ค่าใช้จ่ายอื่น / Growth Adjust / %SR Adjust / FCR Adjust เป็นการ<b>จำลองคำนวณในหน้า Dashboard นี้เท่านั้น</b> — ไม่กระทบข้อมูลจริงใน Google Sheet · หากไม่กรอกจะใช้ค่าตามสูตร Auto ของชีทเดิม</div></div>';
+  const note='<div class="card" style="border-left:5px solid #7c3aed;padding:10px 16px;margin-bottom:10px"><div class="hint" style="margin:0">📌 ช่องกรอก Probiotic / ค่าใช้จ่ายคงที่ / Growth Adjust / %SR Adjust / FCR Adjust เป็นการ<b>จำลองคำนวณในหน้า Dashboard นี้เท่านั้น</b> — ไม่กระทบข้อมูลจริงใน Google Sheet · หากไม่กรอกจะใช้ค่าตามสูตร Auto ของชีทเดิม</div></div>';
   el('app').innerHTML='<div class="pnl-head">'+tabs+'</div>'+note+'<div id="pnlBody"></div>';
   if(PNL_MODE==='multi') pnlRenderMulti(); else pnlRenderSingle();
   decorateWidgets('pnl');
@@ -2408,7 +2409,7 @@ function pnlRenderSingle(){
     +'<div class="hint" style="margin-top:0">เว้นว่างช่องใดให้ใช้ค่าตามสูตร Auto ของชีท (จำลองในหน้านี้เท่านั้น ไม่กระทบข้อมูลจริง) '+(hasOv?'· <button class="pnl-reset" onclick="pnlResetPond(\''+p.pond+'\')">รีเซ็ตบ่อนี้</button>':'· ยังไม่มีการปรับค่า')+'</div>'
     +'<div class="pfield-box"><div class="pf-row"><label>Probiotic (บาท/ไร่/วัน)</label>'
       +'<input type="number" placeholder="Auto '+fmt(p.probiotic,0)+'" value="'+(ov.probiotic!=null?ov.probiotic:'')+'" onchange="pnlSetOv(\''+p.pond+'\',\'probiotic\',0,this.value)"></div></div>'
-    +'<div class="pfield-box"><div class="pf-row"><label>ค่าใช้จ่ายอื่น (บาท/ไร่/วัน)</label>'
+    +'<div class="pfield-box"><div class="pf-row"><label>ค่าใช้จ่ายคงที่ (บาท/ไร่/วัน)</label>'
       +'<input type="number" placeholder="Auto '+fmt(p.otherCost,0)+'" value="'+(ov.otherCost!=null?ov.otherCost:'')+'" onchange="pnlSetOv(\''+p.pond+'\',\'otherCost\',0,this.value)"></div></div>'
     +weekBlocks
     +'</div></div>';
@@ -2465,7 +2466,7 @@ function pnlRenderSingle(){
     +'<div class="pnl-card-body">'
     +'<div class="pnl-kv"><span class="k">WIP (ยกมา)</span><span class="v">'+fmt(p.wip)+'</span></div>'
     +'<div class="pnl-kv"><span class="k">ต้นทุนอาหาร</span><span class="v">'+fmt(feedCost3)+'</span></div>'
-    +'<div class="pnl-kv"><span class="k">ต้นทุนอื่น (Probiotic+ค่าใช้จ่ายอื่น)</span><span class="v">'+fmt(nonFeedCost3)+'</span></div>'
+    +'<div class="pnl-kv"><span class="k">ต้นทุนอื่น (Probiotic+ค่าใช้จ่ายคงที่)</span><span class="v">'+fmt(nonFeedCost3)+'</span></div>'
     +'<div class="pnl-kv" style="border-top:2px solid var(--line);margin-top:4px;padding-top:8px"><span class="k" style="font-weight:700">ต้นทุนรวมทั้งหมด</span><span class="v" style="color:var(--red)">'+fmt(wk3.cumCost)+'</span></div>'
     +'<div class="pnl-kv"><span class="k" style="font-weight:700">ต้นทุนต่อกก.</span><span class="v">'+fmt(wk3.biomass>0?wk3.cumCost/wk3.biomass:0,0)+' บาท/กก.</span></div>'
     +'</div><div style="padding:0 16px 14px"><canvas id="pnlSingleCost" height="170"></canvas></div></div>';
@@ -2512,7 +2513,7 @@ function pnlRenderSingleDate(p, ov, hasOv, selectorHtml, modeToggle){
     +'</div>'
     +'<div class="pfield-box"><div class="pf-row"><label>Probiotic (บาท/ไร่/วัน)</label>'
       +'<input type="number" placeholder="Auto '+fmt(p.probiotic,0)+'" value="'+(ov.probiotic!=null?ov.probiotic:'')+'" onchange="pnlSetOv(\''+p.pond+'\',\'probiotic\',0,this.value)"></div></div>'
-    +'<div class="pfield-box"><div class="pf-row"><label>ค่าใช้จ่ายอื่น (บาท/ไร่/วัน)</label>'
+    +'<div class="pfield-box"><div class="pf-row"><label>ค่าใช้จ่ายคงที่ (บาท/ไร่/วัน)</label>'
       +'<input type="number" placeholder="Auto '+fmt(p.otherCost,0)+'" value="'+(ov.otherCost!=null?ov.otherCost:'')+'" onchange="pnlSetOv(\''+p.pond+'\',\'otherCost\',0,this.value)"></div></div>'
     +'<div class="pfield-box">'
       +'<div class="pf-row"><label>Growth Adjust (g./วัน)</label>'
@@ -2565,7 +2566,7 @@ function pnlRenderSingleDate(p, ov, hasOv, selectorHtml, modeToggle){
     +'<div class="pnl-card-body">'
     +'<div class="pnl-kv"><span class="k">WIP (ยกมา)</span><span class="v">'+fmt(p.wip)+'</span></div>'
     +'<div class="pnl-kv"><span class="k">ต้นทุนอาหาร</span><span class="v">'+fmt(res.feedCost)+'</span></div>'
-    +'<div class="pnl-kv"><span class="k">ค่าใช้จ่ายอื่น</span><span class="v">'+fmt(res.generalCost)+'</span></div>'
+    +'<div class="pnl-kv"><span class="k">ค่าใช้จ่ายคงที่</span><span class="v">'+fmt(res.generalCost)+'</span></div>'
     +'<div class="pnl-kv"><span class="k">ค่าโปรไบโอติก</span><span class="v">'+fmt(res.probioticCost)+'</span></div>'
     +'<div class="pnl-kv" style="border-top:2px solid var(--line);margin-top:4px;padding-top:8px"><span class="k" style="font-weight:700">ต้นทุนรวมทั้งหมด</span><span class="v" style="color:var(--red)">'+fmt(res.totalCost)+'</span></div>'
     +'<div class="pnl-kv"><span class="k" style="font-weight:700">ต้นทุนต่อกก.</span><span class="v">'+fmt(res.costPerKg,0)+' บาท/กก.</span></div>'
@@ -2623,7 +2624,7 @@ function pnlDrawSingleChartsDate(p, res, evalDate, targetDate, ov){
   ]},options:{plugins:{legend:{position:'bottom'}},scales:{y:{type:'linear',position:'left',title:{display:true,text:'g.'}},y1:{type:'linear',position:'right',title:{display:true,text:'กก.'},grid:{drawOnChartArea:false}}}}}));
   }
   const cC=el('pnlSingleCost');
-  if(cC){ charts.push(new Chart(cC,{type:'doughnut',data:{labels:['WIP (ยกมา)','ต้นทุนอาหาร','ค่าใช้จ่ายอื่น','โปรไบโอติก'],datasets:[{data:[p.wip,res.feedCost,res.generalCost,res.probioticCost],backgroundColor:['#94a3b8','#f59e0b','#8b5cf6','#0ea5e9']}]},
+  if(cC){ charts.push(new Chart(cC,{type:'doughnut',data:{labels:['WIP (ยกมา)','ต้นทุนอาหาร','ค่าใช้จ่ายคงที่','โปรไบโอติก'],datasets:[{data:[p.wip,res.feedCost,res.generalCost,res.probioticCost],backgroundColor:['#94a3b8','#f59e0b','#8b5cf6','#0ea5e9']}]},
     options:{plugins:{legend:{position:'bottom'}}}}));
   }
 }
