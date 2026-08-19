@@ -417,7 +417,7 @@ window.addEventListener('hashchange',route);
 /* ---------- MODAL ---------- */
 function openModal(title,html){el('mTitle').innerHTML=title;el('mBody').innerHTML=html;el('overlay').classList.add('show');}
 function closeModal(){el('overlay').classList.remove('show');}
-el('overlay').addEventListener('click',e=>{if(e.target===el('overlay'))closeModal();});
+(function(){var _ov=el('overlay'); if(_ov) _ov.addEventListener('click',e=>{if(e.target===el('overlay'))closeModal();});})();
 
 /* ---------- SPOTLIGHT SEARCH ---------- */
 let spotIndex=null, spotItems=[], spotSel=0, spotlightTarget=null;
