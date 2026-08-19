@@ -2445,11 +2445,11 @@ function pnlRenderSingle(){
   const theadPeriods=periods.map(function(x){return '<th'+(x.cls?' class="'+x.cls+'"':'')+'>'+x.lab+'</th>';}).join('');
   const tableRows=
     '<tr><td class="l">DOC (วัน)</td>'+rowCells(function(x){return x.doc;},0)+'</tr>'
-    +'<tr><td class="l">MBW (g.)</td>'+rowCells(function(x){return x.mbw;},2)+'</tr>'
+    +'<tr><td class="l">MBW (g.)</td>'+rowCells(function(x){return x.mbw;},0)+'</tr>'
     +'<tr><td class="l">%SR</td>'+rowCells(function(x){return x.sr;},2)+'</tr>'
     +'<tr><td class="l">Biomass (กก.)</td>'+rowCells(function(x){return x.biomass;},0)+'</tr>'
-    +'<tr><td class="l">ต้นทุน/กก. (บาท)</td>'+rowCells(function(x){return x.costKg;},2)+'</tr>'
-    +'<tr><td class="l">กำไร/ขาดทุน/กก. (บาท)</td>'+rowCells(function(x){return x.profitKg;},2,true)+'</tr>'
+    +'<tr><td class="l">ต้นทุน/กก. (บาท)</td>'+rowCells(function(x){return x.costKg;},0)+'</tr>'
+    +'<tr><td class="l">กำไร/ขาดทุน/กก. (บาท)</td>'+rowCells(function(x){return x.profitKg;},0,true)+'</tr>'
     +'<tr><td class="l">กำไร/ขาดทุน (บาท)</td>'+rowCells(function(x){return x.profit;},0,true)+'</tr>';
   const sec2='<div class="card">'
     +'<div class="pnl-sechead emerald"><span>2) ผลผลิตและกำไร/ขาดทุนคาดการณ์รายสัปดาห์</span></div>'
