@@ -1363,7 +1363,11 @@ async function pageStocking(){
   const monthOverviewRows = monthOverviewList.map(function(x){
     const cls = 'stk-mo-'+(x.month%2===0?'b':'a');
     const pctStr = x.denom>0 ? Math.round(x.endPonds/x.denom*100)+'%' : '-';
-    return '<tr class="'+cls+'"><td>'+(MONTH_TH[x.month-1]||x.month)+'</td><td>'+fmt(x.carry)+'</td><td>'+fmt(x.stocked)+'</td><td>'+fmt(x.stockedM,2)+'</td><td>'+fmt(x.caught)+'</td><td>'+fmt(x.endPonds)+'</td><td>'+pctStr+'</td></tr>';
+    const areaRows = monthEndFiltered.filter(function(y){return y.month===x.month;}).sort(function(a,b){return a.area.localeCompare(b.area);}).map(function(y){
+      return '<tr><td>'+y.area+'</td><td>'+fmt(y.carry)+'</td><td>'+fmt(y.stocked)+'</td><td>'+fmt(y.stockedM,2)+'</td><td>'+fmt(y.caught)+'</td><td>'+fmt(y.endPonds)+'</td><td>'+y.endPct+'</td></tr>';
+    }).join('');
+    const detailRow = '<tr id="stkmodetail'+x.month+'" class="stk-mo-detail" style="display:none"><td colspan="7"><table class="dtable" style="margin:4px 0 4px 20px;width:calc(100% - 20px)"><thead><tr><th>พื้นที่</th><th>มีกุ้งยกมา (บ่อ)</th><th>ลงกุ้ง (บ่อ)</th><th>ลงกุ้ง (ล้านตัว)</th><th>จับกุ้ง (บ่อ)</th><th>มีกุ้งสิ้นเดือน (บ่อ)</th><th>มีกุ้งสิ้นเดือน (%)</th></tr></thead><tbody>'+(areaRows||'<tr><td colspan="7">ไม่พบข้อมูล</td></tr>')+'</tbody></table></td></tr>';
+    return '<tr class="'+cls+' stk-mo-main" style="cursor:pointer" onclick="stkMoToggle('+x.month+')"><td>'+(MONTH_TH[x.month-1]||x.month)+' <span class="mo-arrow" id="stkmoarrow'+x.month+'">▼</span></td><td>'+fmt(x.carry)+'</td><td>'+fmt(x.stocked)+'</td><td>'+fmt(x.stockedM,2)+'</td><td>'+fmt(x.caught)+'</td><td>'+fmt(x.endPonds)+'</td><td>'+pctStr+'</td></tr>'+detailRow;
   }).join('');
   const monthOverviewTable = '<div class="card"><h3><span class="dot"></span>มีกุ้งเหลือ ณ สิ้นเดือน (ภาพรวมทุกพื้นที่)</h3><div class="hint">สรุปจำนวนบ่อและกุ้งคงเหลือแต่ละเดือน รวมทุกพื้นที่เข้าด้วยกัน · เชื่อมกับตัวกรองด้านบน (เลือกพื้นที่/เดือน/ปีได้มากกว่า 1 รายการ)</div><div class="maptbl-wrap"><table class="dtable"><thead><tr><th>เดือน</th><th>มีกุ้งยกมา (บ่อ)</th><th>ลงกุ้ง (บ่อ)</th><th>ลงกุ้ง (ล้านตัว)</th><th>จับกุ้ง (บ่อ)</th><th>มีกุ้งสิ้นเดือน (บ่อ)</th><th>มีกุ้งสิ้นเดือน (%)</th></tr></thead><tbody>'+(monthOverviewRows||'<tr><td colspan="7">ไม่พบข้อมูล</td></tr>')+'</tbody></table></div></div>';
   const monthEndTable='<div class="card"><h3><span class="dot"></span>มีกุ้งเหลือ ณ สิ้นเดือน (รายพื้นที่)</h3><div class="hint">สรุปจำนวนบ่อและกุ้งคงเหลือแต่ละเดือน แยกตามพื้นที่ · สีสลับตามเดือนให้แยกแยะง่าย · เชื่อมกับตัวกรองด้านบน (เลือกพื้นที่/เดือน/ปีได้มากกว่า 1 รายการ)</div><div class="maptbl-wrap"><table class="dtable"><thead><tr><th>เดือน</th><th>พื้นที่</th><th>มีกุ้งยกมา (บ่อ)</th><th>ลงกุ้ง (บ่อ)</th><th>ลงกุ้ง (ล้านตัว)</th><th>จับกุ้ง (บ่อ)</th><th>มีกุ้งสิ้นเดือน (บ่อ)</th><th>มีกุ้งสิ้นเดือน (%)</th></tr></thead><tbody>'+(monthEndRows||'<tr><td colspan="8">ไม่พบข้อมูล</td></tr>')+'</tbody></table></div></div>';
@@ -1372,6 +1376,14 @@ async function pageStocking(){
 }
 window.stkTip=function(e){ const mod=e.target.getAttribute('data-mod'); const s=((window.__stkPonds||{})[mod]||{}).pondPcs||{}; let tip=document.getElementById('ohtip'); if(!tip){tip=document.createElement('div');tip.id='ohtip';tip.className='ohtip';document.body.appendChild(tip);} const ponds=Object.keys(s); if(!ponds.length){tip.style.display='none';return;} tip.innerHTML=`<div class='ohtip-h'>รายชื่อบ่อ Module ${mod} · ${ponds.length} บ่อ</div>`+ponds.sort().map(p=>`<div class='ohtip-r'><span>${p}</span><b>${fmt(s[p])} ตัว</b></div>`).join(''); tip.style.display='block'; const pad=14,w=tip.offsetWidth,h=tip.offsetHeight; let x=e.clientX+pad,y=e.clientY+pad; if(x+w>window.innerWidth)x=e.clientX-w-pad; if(y+h>window.innerHeight)y=Math.max(6,window.innerHeight-h-6); tip.style.left=x+'px'; tip.style.top=y+'px'; };
 window.stkHide=function(){ const t=document.getElementById('ohtip'); if(t)t.style.display='none'; };
+window.stkMoToggle=function(m){
+  const row=document.getElementById('stkmodetail'+m);
+  const arrow=document.getElementById('stkmoarrow'+m);
+  if(!row) return;
+  const show = row.style.display==='none';
+  row.style.display = show ? '' : 'none';
+  if(arrow) arrow.textContent = show ? '▲' : '▼';
+};
 
 
 /* ---------- AI ASSISTANT (Smart Q&A, no external LLM) ---------- */
