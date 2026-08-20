@@ -1351,8 +1351,24 @@ async function pageStocking(){
     const cls='stk-mo-'+(x.month%2===0?'b':'a');
     return '<tr class="'+cls+'"><td>'+(MONTH_TH[x.month-1]||x.month)+'</td><td>'+x.area+'</td><td>'+fmt(x.carry)+'</td><td>'+fmt(x.stocked)+'</td><td>'+fmt(x.stockedM,2)+'</td><td>'+fmt(x.caught)+'</td><td>'+fmt(x.endPonds)+'</td><td>'+x.endPct+'</td></tr>';
   }).join('');
+  const monthOverviewMap = {};
+  monthEndFiltered.forEach(function(x){
+    const k = x.month;
+    if(!monthOverviewMap[k]) monthOverviewMap[k] = {month:x.month, carry:0, stocked:0, stockedM:0, caught:0, endPonds:0, denom:0};
+    const o = monthOverviewMap[k];
+    o.carry += x.carry; o.stocked += x.stocked; o.stockedM += x.stockedM; o.caught += x.caught; o.endPonds += x.endPonds;
+    const pctNum = parseFloat(String(x.endPct).replace('%','')) || 0;
+    if(pctNum>0 && x.endPonds>0){ o.denom += x.endPonds/(pctNum/100); }
+  });
+  const monthOverviewList = Object.keys(monthOverviewMap).map(function(k){return monthOverviewMap[k];}).sort(function(a,b){return a.month-b.month;});
+  const monthOverviewRows = monthOverviewList.map(function(x){
+    const cls = 'stk-mo-'+(x.month%2===0?'b':'a');
+    const pctStr = x.denom>0 ? Math.round(x.endPonds/x.denom*100)+'%' : '-';
+    return '<tr class="'+cls+'"><td>'+(MONTH_TH[x.month-1]||x.month)+'</td><td>'+fmt(x.carry)+'</td><td>'+fmt(x.stocked)+'</td><td>'+fmt(x.stockedM,2)+'</td><td>'+fmt(x.caught)+'</td><td>'+fmt(x.endPonds)+'</td><td>'+pctStr+'</td></tr>';
+  }).join('');
+  const monthOverviewTable = '<div class="card"><h3><span class="dot"></span>มีกุ้งเหลือ ณ สิ้นเดือน (ภาพรวมทุกพื้นที่)</h3><div class="hint">สรุปจำนวนบ่อและกุ้งคงเหลือแต่ละเดือน รวมทุกพื้นที่เข้าด้วยกัน · เชื่อมกับตัวกรองด้านบน (เลือกพื้นที่/เดือน/ปีได้มากกว่า 1 รายการ)</div><div class="maptbl-wrap"><table class="dtable"><thead><tr><th>เดือน</th><th>มีกุ้งยกมา (บ่อ)</th><th>ลงกุ้ง (บ่อ)</th><th>ลงกุ้ง (ล้านตัว)</th><th>จับกุ้ง (บ่อ)</th><th>มีกุ้งสิ้นเดือน (บ่อ)</th><th>มีกุ้งสิ้นเดือน (%)</th></tr></thead><tbody>'+(monthOverviewRows||'<tr><td colspan="7">ไม่พบข้อมูล</td></tr>')+'</tbody></table></div></div>';
   const monthEndTable='<div class="card"><h3><span class="dot"></span>มีกุ้งเหลือ ณ สิ้นเดือน (รายพื้นที่)</h3><div class="hint">สรุปจำนวนบ่อและกุ้งคงเหลือแต่ละเดือน แยกตามพื้นที่ · สีสลับตามเดือนให้แยกแยะง่าย · เชื่อมกับตัวกรองด้านบน (เลือกพื้นที่/เดือน/ปีได้มากกว่า 1 รายการ)</div><div class="maptbl-wrap"><table class="dtable"><thead><tr><th>เดือน</th><th>พื้นที่</th><th>มีกุ้งยกมา (บ่อ)</th><th>ลงกุ้ง (บ่อ)</th><th>ลงกุ้ง (ล้านตัว)</th><th>จับกุ้ง (บ่อ)</th><th>มีกุ้งสิ้นเดือน (บ่อ)</th><th>มีกุ้งสิ้นเดือน (%)</th></tr></thead><tbody>'+(monthEndRows||'<tr><td colspan="8">ไม่พบข้อมูล</td></tr>')+'</tbody></table></div></div>';
-  el('app').innerHTML=planReport+modTable+monthEndTable+tbl;
+  el('app').innerHTML=planReport+modTable+monthOverviewTable+monthEndTable+tbl;
   decorateWidgets('stocking');
 }
 window.stkTip=function(e){ const mod=e.target.getAttribute('data-mod'); const s=((window.__stkPonds||{})[mod]||{}).pondPcs||{}; let tip=document.getElementById('ohtip'); if(!tip){tip=document.createElement('div');tip.id='ohtip';tip.className='ohtip';document.body.appendChild(tip);} const ponds=Object.keys(s); if(!ponds.length){tip.style.display='none';return;} tip.innerHTML=`<div class='ohtip-h'>รายชื่อบ่อ Module ${mod} · ${ponds.length} บ่อ</div>`+ponds.sort().map(p=>`<div class='ohtip-r'><span>${p}</span><b>${fmt(s[p])} ตัว</b></div>`).join(''); tip.style.display='block'; const pad=14,w=tip.offsetWidth,h=tip.offsetHeight; let x=e.clientX+pad,y=e.clientY+pad; if(x+w>window.innerWidth)x=e.clientX-w-pad; if(y+h>window.innerHeight)y=Math.max(6,window.innerHeight-h-6); tip.style.left=x+'px'; tip.style.top=y+'px'; };
