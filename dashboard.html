@@ -2343,6 +2343,38 @@ function pnlDefaultTargetDate(p){ const d=new Date(); d.setHours(0,0,0,0); d.set
 function pnlFmtDateInput(d){ const y=d.getFullYear(), m=('0'+(d.getMonth()+1)).slice(-2), day=('0'+d.getDate()).slice(-2); return y+'-'+m+'-'+day; }
 window.pnlSetTargetDate=function(pond,val){ PNL_TARGET[pond]=val; pnlRenderSingle(); };
 
+function pnlFmtDateThai(d){ return ('0'+d.getDate()).slice(-2)+'/'+('0'+(d.getMonth()+1)).slice(-2)+'/'+d.getFullYear(); }
+function pnlComputeRecommendation(p, evalDate, ov, maxDays){
+  maxDays = maxDays || 110;
+  var best = null;
+  for(var d=0; d<=maxDays; d++){
+    var dt = new Date(evalDate.getTime()+d*PNL_MS_DAY);
+    var r = pnlProjectByDate(p, dt, evalDate, ov);
+    if(best===null || r.profit>best.res.profit){ best = {date:dt, res:r, day:d}; }
+  }
+  return best;
+}
+function pnlRecoCardHtml(p, evalDate, ov, curRes, curTargetDate){
+  var reco = pnlComputeRecommendation(p, evalDate, ov, 110);
+  if(!reco) return '';
+  var diff = reco.res.profit - curRes.profit;
+  var statusTxt = reco.res.profit>0 ? '✓ มีกำไรสูงสุด (Best Profit)' : '⚠ ขาดทุนน้อยที่สุด (Min Loss)';
+  var statusColor = reco.res.profit>0 ? 'var(--green)' : 'var(--red)';
+  return '<div class="card">'
+    +'<div class="pnl-sechead amber"><span>คำแนะนำ: วันจับที่เหมาะสมที่สุด (อ้างอิงต้นทุน/ADG/%SR ชุดเดียวกัน)</span></div>'
+    +'<div class="pnl-card-body">'
+    +'<div class="pnl-banner '+(reco.res.profit>0?'pos':'neg')+'">'
+      +'<div class="plabel">'+statusTxt+' · Day '+reco.day+' นับจากวันนี้ (วันที่ '+pnlFmtDateThai(reco.date)+')</div>'
+      +'<div class="amt" style="color:'+statusColor+'">'+fmt(reco.res.profit)+' บาท</div>'
+    +'</div>'
+    +'<div class="pnl-kv"><span class="k">Size ณ วันแนะนำ</span><span class="v">'+fmt(reco.res.size)+' ตัว/กก.</span></div>'
+    +'<div class="pnl-kv"><span class="k">%SR ณ วันแนะนำ</span><span class="v">'+fmt(reco.res.sr,2)+'%</span></div>'
+    +'<div class="pnl-kv"><span class="k">Biomass ณ วันแนะนำ</span><span class="v">'+fmt(reco.res.biomass)+' กก.</span></div>'
+    +'<div class="pnl-kv"><span class="k">ต้นทุนรวม ณ วันแนะนำ</span><span class="v">'+fmt(reco.res.totalCost)+' บาท</span></div>'
+    +'<div class="pnl-kv"><span class="k">กำไรต่อกก.</span><span class="v">'+fmt(reco.res.profitPerKg,0)+' บาท/กก.</span></div>'
+    +'<div class="pnl-kv" style="border-top:2px solid var(--line);margin-top:4px;padding-top:8px"><span class="k" style="font-weight:700">เทียบกับวันที่เลือกไว้ ('+pnlFmtDateThai(curTargetDate)+')</span><span class="v" style="font-weight:700;color:'+(diff>=0?'var(--green)':'var(--red)')+'">'+(diff>=0?'+':'')+fmt(diff)+' บาท</span></div>'
+    +'</div></div>';
+}
 function pnlProjectByDate(p, targetDate, evalDate, ov){
   const probiotic=(ov && ov.probiotic!=null)?ov.probiotic:p.probiotic;
   const otherCost=(ov && ov.otherCost!=null)?ov.otherCost:p.otherCost;
@@ -2523,6 +2555,7 @@ function pnlRenderSingleDate(p, ov, hasOv, selectorHtml, modeToggle){
   const targetStr=PNL_TARGET[p.pond]||pnlFmtDateInput(pnlDefaultTargetDate(p));
   const targetDate=new Date(targetStr+'T00:00:00');
   const res=pnlProjectByDate(p, targetDate, evalDate, ov);
+  const reco=pnlRecoCardHtml(p, evalDate, ov, res, targetDate);
   const wov=(ov.weeks && ov.weeks[0])||{};
 
   const gVal=(wov.growth!=null)?wov.growth:'';
@@ -2535,7 +2568,7 @@ function pnlRenderSingleDate(p, ov, hasOv, selectorHtml, modeToggle){
     +'<div class="pnl-card-body">'
     +'<div class="hint" style="margin-top:0">เว้นว่างช่องใดให้ใช้ค่าตามสูตร Auto (จำลองในหน้านี้เท่านั้น ไม่กระทบข้อมูลจริง) '+(hasOv?'· <button class="pnl-reset" onclick="pnlResetPond(\''+p.pond+'\')">รีเซ็ตบ่อนี้</button>':'· ยังไม่มีการปรับค่า')+'</div>'
     +'<div class="pfield-box"><div class="pf-row"><label>วันที่ปิดบ่อ (คาดการณ์)</label>'
-      +'<input type="date" value="'+targetStr+'" onchange="pnlSetTargetDate(\''+p.pond+'\',this.value)" style="font-weight:800;color:var(--yellow);background:var(--yellow-bg);border:1px solid var(--yellow-line);border-radius:6px;padding:4px 6px"></div>'
+      +'<input type="date" lang="en-GB" value="'+targetStr+'" onchange="pnlSetTargetDate(\''+p.pond+'\',this.value)" style="font-weight:800;color:var(--yellow);background:var(--yellow-bg);border:1px solid var(--yellow-line);border-radius:6px;padding:4px 6px"></div>'
       +'<div class="pf-hint">เหลืออีก '+fmt(res.daysLeft)+' วัน (DOC เป้าหมาย '+fmt(res.docTarget)+')</div>'
     +'</div>'
     +'<div class="pfield-box"><div class="pf-row"><label>Probiotic (บาท/ไร่/วัน)</label>'
@@ -2612,7 +2645,7 @@ function pnlRenderSingleDate(p, ov, hasOv, selectorHtml, modeToggle){
       +'<div class="pnl-box"><div class="plabel">กำไร/ขาดทุนต่อไร่</div><div class="pval" style="color:'+(res.profitPerRai>=0?'var(--green)':'var(--red)')+'">'+fmt(res.profitPerRai,0)+' บาท/ไร่</div></div>'
     +'</div></div></div>';
 
-  el('pnlBody').innerHTML=selectorHtml+modeToggle+'<div class="pnl-layout"><div class="pnl-col-left">'+ctrl+sec1+'</div><div class="pnl-col-right">'+sec2+sec3+sec4+'</div></div>';
+  el('pnlBody').innerHTML=selectorHtml+modeToggle+'<div class="pnl-layout"><div class="pnl-col-left">'+ctrl+sec1+'</div><div class="pnl-col-right">'+sec2+sec3+reco+sec4+'</div></div>';
   pnlDrawSingleChartsDate(p,res,evalDate,targetDate,ov);
 }
 
