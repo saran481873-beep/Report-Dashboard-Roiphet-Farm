@@ -2488,13 +2488,13 @@ function pnlRenderSingle(){
     +'<div class="pnl-kv"><span class="k">WIP (บาท)</span><span class="v">'+fmt(p.wip)+'</span></div>'
     +'</div></div>';
 
-  const periods=[{lab:'ปัจจุบัน',cls:'',doc:p.docCur,mbw:p.mbwCur,sr:p.srCur,biomass:p.biomassCur,costKg:null,profitKg:null,profit:null}];
+  const periods=[{lab:'ปัจจุบัน',cls:'',doc:p.docCur,mbw:p.mbwCur,size:(p.mbwCur>0?1000/p.mbwCur:null),sr:p.srCur,biomass:p.biomassCur,price:(p.mbwCur>0?pnlPriceLookup(1000/p.mbwCur):null),costKg:null,profitKg:null,profit:null}];
   const weekColClasses=['wk-c1','wk-c2','wk-c3'];
   for(let w=0; w<3; w++){
     const wk=weeks[w];
     const costKg=wk.biomass>0?wk.cumCost/wk.biomass:0;
     const profitKg=wk.biomass>0?wk.profit/wk.biomass:0;
-    periods.push({lab:'สัปดาห์ '+(w+1),cls:weekColClasses[w],doc:wk.doc,mbw:wk.mbw,sr:(wk.srAdjust!=null?wk.srAdjust:wk.srAuto),biomass:wk.biomass,costKg:costKg,profitKg:profitKg,profit:wk.profit});
+    periods.push({lab:'สัปดาห์ '+(w+1),cls:weekColClasses[w],doc:wk.doc,mbw:wk.mbw,size:(wk.mbw>0?1000/wk.mbw:null),sr:(wk.srAdjust!=null?wk.srAdjust:wk.srAuto),biomass:wk.biomass,price:wk.price,costKg:costKg,profitKg:profitKg,profit:wk.profit});
   }
   function rowCells(getter,dec,colorize){
     return periods.map(function(x){
@@ -2508,8 +2508,10 @@ function pnlRenderSingle(){
   const tableRows=
     '<tr><td class="l">DOC (วัน)</td>'+rowCells(function(x){return x.doc;},0)+'</tr>'
     +'<tr><td class="l">MBW (g.)</td>'+rowCells(function(x){return x.mbw;},0)+'</tr>'
+    +'<tr><td class="l">Size (ตัว/กก.)</td>'+rowCells(function(x){return x.size;},0)+'</tr>'
     +'<tr><td class="l">%SR</td>'+rowCells(function(x){return x.sr;},2)+'</tr>'
     +'<tr><td class="l">Biomass (กก.)</td>'+rowCells(function(x){return x.biomass;},0)+'</tr>'
+    +'<tr><td class="l">ราคาขาย/กก. (บาท)</td>'+rowCells(function(x){return x.price;},0)+'</tr>'
     +'<tr><td class="l">ต้นทุน/กก. (บาท)</td>'+rowCells(function(x){return x.costKg;},0)+'</tr>'
     +'<tr><td class="l">กำไร/ขาดทุน/กก. (บาท)</td>'+rowCells(function(x){return x.profitKg;},0,true)+'</tr>'
     +'<tr><td class="l">กำไร/ขาดทุน (บาท)</td>'+rowCells(function(x){return x.profit;},0,true)+'</tr>';
