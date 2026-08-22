@@ -2548,12 +2548,7 @@ function pnlRenderSingle(){
       +'<div class="pnl-box"><div class="plabel">กำไร/ขาดทุนต่อไร่</div><div class="pval" style="color:'+(profitPerRai3>=0?'var(--green)':'var(--red)')+'">'+fmt(profitPerRai3,0)+' บาท/ไร่</div></div>'
     +'</div></div></div>';
 
-  const sec6='<div class="card">'
-    +'<div class="pnl-sechead dark"><span>5) แนวโน้ม Net-profit และ Biomass รายสัปดาห์</span></div>'
-    +'<div style="padding:14px 16px"><canvas id="pnlSingleProfitBiomass" height="170"></canvas></div>'
-    +'</div>';
-
-  el('pnlBody').innerHTML=selectorHtml+modeToggle+'<div class="pnl-layout"><div class="pnl-col-left">'+ctrl+sec1+'</div><div class="pnl-col-right">'+sec2+sec4+sec5+sec6+'</div></div>';
+  el('pnlBody').innerHTML=selectorHtml+modeToggle+'<div class="pnl-layout"><div class="pnl-col-left">'+ctrl+sec1+'</div><div class="pnl-col-right">'+sec2+sec4+sec5+'</div></div>';
   pnlDrawSingleCharts(p,weeks);
 }
 
@@ -2665,13 +2660,6 @@ function pnlDrawSingleCharts(p, weeks){
     {type:'line',label:'MBW (g.)',data:mbwArr,borderColor:'#0ea5e9',backgroundColor:'#0ea5e9',yAxisID:'y',tension:0.3},
     {type:'line',label:'Biomass (กก.)',data:bioArr,borderColor:'#16a34a',backgroundColor:'#16a34a',yAxisID:'y1',tension:0.3}
   ]},options:{plugins:{legend:{position:'bottom'}},scales:{y:{type:'linear',position:'left',title:{display:true,text:'g.'}},y1:{type:'linear',position:'right',title:{display:true,text:'กก.'},grid:{drawOnChartArea:false}}}}}));
-  }
-  const profitArr=weeks.map(function(w){return w.profit;});
-  const cP=el('pnlSingleProfitBiomass');
-  if(cP){ charts.push(new Chart(cP,{data:{labels:labs.slice(1),datasets:[
-    {type:'bar',label:'Net-profit (บาท)',data:profitArr,backgroundColor:profitArr.map(function(v){return v>=0?'#16a34a':'#dc2626';}),yAxisID:'y'},
-    {type:'line',label:'Biomass (กก.)',data:bioArr.slice(1),borderColor:'#0ea5e9',backgroundColor:'#0ea5e9',yAxisID:'y1',tension:0.3}
-  ]},options:{plugins:{legend:{position:'bottom'}},scales:{y:{type:'linear',position:'left',title:{display:true,text:'บาท'}},y1:{type:'linear',position:'right',title:{display:true,text:'กก.'},grid:{drawOnChartArea:false}}}}}));
   }
   const priceArr=weeks.map(function(w){return w.price;});
   const costKgArr=weeks.map(function(w){return w.biomass>0?w.cumCost/w.biomass:0;});
