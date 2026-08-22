@@ -2076,9 +2076,18 @@ function pnlPriceLookup(size){
   for(let i=1;i<t.length;i++){ const s=num(t[i][0]); if(!isNaN(s)&&s<=size) best=t[i]; else if(!isNaN(s)&&s>size) break; }
   return num(best[1]);
 }
+function pnlPriceLookupByDate(size, date){
+  const t=PNL_DATA.priceMonthly; if(!t) return pnlPriceLookup(size);
+  let best=t[2];
+  for(let i=2;i<t.length;i++){ const s=num(t[i][0]); if(!isNaN(s)&&s<=size) best=t[i]; else if(!isNaN(s)&&s>size) break; }
+  const now=new Date();
+  const sameMonth=date.getFullYear()===now.getFullYear() && date.getMonth()===now.getMonth();
+  if(sameMonth) return num(best[1]);
+  return num(best[2+date.getMonth()]);
+}
 async function pnlLoadData(){
   if(PNL_DATA) return PNL_DATA;
-  const [ew,fr,pr]=await Promise.all([getTab('EST Net-profit Week'),getTab('%FR'),getTab('ราคากุ้ง')]);
+  const [ew,fr,pr,prm]=await Promise.all([getTab('EST Net-profit Week'),getTab('%FR'),getTab('ราคากุ้ง'),getTab('ราคารายเดือน')]);
   const V=ew.values; const ponds=[];
   for(let i=2;i<V.length;i++){
     const r=V[i]; if(!(r[1]||'').toString().trim())continue;
@@ -2100,7 +2109,7 @@ async function pnlLoadData(){
     }
     ponds.push(Object.assign({},base,{weeksAuto:weeksAuto}));
   }
-  PNL_DATA={ponds:ponds, fr:fr.values, price:pr.values};
+  PNL_DATA={ponds:ponds, fr:fr.values, price:pr.values, priceMonthly:prm.values};
   return PNL_DATA;
 }
 function pnlHasOv(pond){
@@ -2167,7 +2176,8 @@ function pnlProject(p){
     const feedCost=sheetW.feedCost+dFeedCost;
     const cumCost=sheetW.cumCost+dFeedCost+dNonFeedCost;
     const size=mbw>0?1000/mbw:0;
-    const price=pnlPriceLookup(size);
+    const wkDate=new Date(Date.now()+(w.doc-p.docCur)*PNL_MS_DAY);
+    const price=pnlPriceLookupByDate(size, wkDate);
     const profit=biomass*price-cumCost;
     return {doc:w.doc,growthAuto:w.growthAuto,growthAdjust:w.growthAdjust,mbw:mbw,
       srAuto:w.srAuto,srAdjust:w.srAdjust,biomass:biomass,fcrAuto:w.fcrAuto,fcrAdjust:w.fcrAdjust,
@@ -2390,7 +2400,7 @@ function pnlProjectByDate(p, targetDate, evalDate, ov){
   const sr=(wov.sr!=null)?wov.sr:srAuto;
   const biomass=p.biomassCur*sr*mbw/(p.mbwCur*p.srCur);
   const size=mbw>0?1000/mbw:0;
-  const price=pnlPriceLookup(Math.round(size));
+  const price=pnlPriceLookupByDate(Math.round(size), targetDate);
   const costStart=new Date(evalDate.getFullYear(), evalDate.getMonth(), 1);
   const costDays=Math.max(1, Math.round((targetDate-costStart)/PNL_MS_DAY)+1);
   const rate0=pnlFRLookup(p.mbwCur)/100, rate1=pnlFRLookup(mbw)/100;
@@ -2488,7 +2498,7 @@ function pnlRenderSingle(){
     +'<div class="pnl-kv"><span class="k">WIP (บาท)</span><span class="v">'+fmt(p.wip)+'</span></div>'
     +'</div></div>';
 
-  const periods=[{lab:'ปัจจุบัน',cls:'',doc:p.docCur,mbw:p.mbwCur,size:(p.mbwCur>0?1000/p.mbwCur:null),sr:p.srCur,biomass:p.biomassCur,price:(p.mbwCur>0?pnlPriceLookup(1000/p.mbwCur):null),costKg:null,profitKg:null,profit:null}];
+  const periods=[{lab:'ปัจจุบัน',cls:'',doc:p.docCur,mbw:p.mbwCur,size:(p.mbwCur>0?1000/p.mbwCur:null),sr:p.srCur,biomass:p.biomassCur,price:(p.mbwCur>0?pnlPriceLookupByDate(1000/p.mbwCur, new Date()):null),costKg:null,profitKg:null,profit:null}];
   const weekColClasses=['wk-c1','wk-c2','wk-c3'];
   for(let w=0; w<3; w++){
     const wk=weeks[w];
