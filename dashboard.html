@@ -338,6 +338,40 @@ tr.spot-hl td{animation:spotflash 2.3s ease-out}
 </style>
 </head>
 <body>
+<div id="rfLoginGate" style="position:fixed;inset:0;z-index:999999;background:#0f172a;display:flex;align-items:center;justify-content:center;font-family:'Segoe UI',sans-serif;">
+  <div style="background:#fff;padding:32px 28px;border-radius:12px;width:320px;max-width:90vw;box-shadow:0 10px 40px rgba(0,0,0,.3);">
+    <h2 style="margin:0 0 18px;font-size:18px;color:#0f172a;text-align:center;">Roiphet Farm Dashboard</h2>
+    <input id="rfLoginUser" type="text" placeholder="Username" autocomplete="off" style="width:100%;box-sizing:border-box;padding:10px 12px;margin-bottom:10px;border:1px solid #cbd5e1;border-radius:8px;font-size:14px;">
+    <input id="rfLoginPass" type="password" placeholder="Password" autocomplete="off" style="width:100%;box-sizing:border-box;padding:10px 12px;margin-bottom:14px;border:1px solid #cbd5e1;border-radius:8px;font-size:14px;">
+    <button id="rfLoginBtn" style="width:100%;padding:10px;border:none;border-radius:8px;background:#0f172a;color:#fff;font-size:14px;cursor:pointer;">เข้าสู่ระบบ</button>
+    <div id="rfLoginErr" style="color:#dc2626;font-size:13px;margin-top:10px;text-align:center;display:none;">Username หรือ Password ไม่ถูกต้อง</div>
+  </div>
+</div>
+<script>
+(function(){
+  var RF_USER = 'RP01';
+  var RF_PASS = '1234567890';
+  if (sessionStorage.getItem('rfUnlocked') === '1') {
+    var g = document.getElementById('rfLoginGate');
+    if (g) g.remove();
+  } else {
+    function tryLogin(){
+      var u = document.getElementById('rfLoginUser').value;
+      var p = document.getElementById('rfLoginPass').value;
+      if (u === RF_USER && p === RF_PASS) {
+        sessionStorage.setItem('rfUnlocked','1');
+        document.getElementById('rfLoginGate').remove();
+      } else {
+        document.getElementById('rfLoginErr').style.display = 'block';
+      }
+    }
+    document.getElementById('rfLoginBtn').addEventListener('click', tryLogin);
+    document.getElementById('rfLoginPass').addEventListener('keydown', function(e){ if (e.key === 'Enter') tryLogin(); });
+    document.getElementById('rfLoginUser').addEventListener('keydown', function(e){ if (e.key === 'Enter') tryLogin(); });
+  }
+})();
+</script>
+
 <div class="wrap">
   <div class="head">
     <div class="head-top">
