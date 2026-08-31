@@ -1440,6 +1440,8 @@ const AI_SUGGEST = [
 ];
 
 
+window.prepSort = function(){ var st=F.prepare; st.sortDir = (st.sortDir===1)?-1:1; renderPage('prepare'); };
+
 async function pagePrepare(){
   el('subtitle').textContent='สรุปการเตรียมบ่อ (Prepare) · สถานะและความคืบหน้าการเตรียมบ่อก่อนลงกุ้ง เฉพาะบ่อสถานะ Close';
   var d=await getTab('prepare'); var V=d.values;
@@ -1447,7 +1449,7 @@ async function pagePrepare(){
   for(var i=2;i<V.length;i++){
     var r=V[i]; if(!(r[1]||'').trim())continue;
     if((r[4]||'').trim()!=='Close')continue;
-    rows.push({mod:(r[0]||'').trim(),pond:(r[1]||'').trim(),type:(r[2]||'').trim(),unit:(r[3]||'').trim(),day:num(r[5]),stage:(r[6]||'').trim(),update:(r[8]||'').trim()});
+    rows.push({mod:(r[0]||'').trim(),pond:(r[1]||'').trim(),type:(r[2]||'').trim(),unit:(r[3]||'').trim(),day:num(r[5]),stage:(r[6]||'').trim(),update:(r[8]||'').trim(),target:(r[9]||'').trim(),plan:(r[10]||'').trim()});
   }
   var mods=[...new Set(rows.map(function(r){return r.mod;}))].filter(Boolean).sort();
   var types=[...new Set(rows.map(function(r){return r.type;}))].filter(Boolean).sort();
@@ -1467,7 +1469,7 @@ async function pagePrepare(){
   var shownMods=modOrder.filter(function(m){return isAllArea||areaSel.includes(m);});
 
   var dayRowsAll={A:3,B:4,C:5,D:6,R:7};
-  var dayRows=shownMods.map(function(m){var r=V[dayRowsAll[m]]; return {m:m,b1:num(r[12]),b2:num(r[13]),b3:num(r[14])};});
+  var dayRows=shownMods.map(function(m){var r=V[dayRowsAll[m]]; return {m:m,b1:num(r[25]),b2:num(r[26]),b3:num(r[27])};});
   var dayTotal=dayRows.reduce(function(a,r){return {b1:a.b1+(r.b1||0),b2:a.b2+(r.b2||0),b3:a.b3+(r.b3||0)};},{b1:0,b2:0,b3:0});
   var t1Rows=dayRows.map(function(r){
     return '<tr><td class="l"><span class="mod-badge">'+r.m+'</span></td><td>'+fmt(r.b1)+'</td><td>'+fmt(r.b2)+'</td><td>'+fmt(r.b3)+'</td></tr>';
@@ -1476,7 +1478,7 @@ async function pagePrepare(){
 
   var stageDefs=[];
   for(var i2=12;i2<=26;i2++){
-    stageDefs.push({idx:i2, label:(V[i2][11]||'').trim(), vals:{A:num(V[i2][16]),B:num(V[i2][17]),C:num(V[i2][18]),D:num(V[i2][19]),R:num(V[i2][20])}});
+    stageDefs.push({idx:i2, label:(V[i2][24]||'').trim(), vals:{A:num(V[i2][29]),B:num(V[i2][30]),C:num(V[i2][31]),D:num(V[i2][32]),R:num(V[i2][33])}});
   }
   var matrixRows=stageDefs.filter(function(s){return s.idx>=13 && s.idx<=23 && s.label;});
   var totalRowDef=null, readyRowDef=null;
@@ -1511,11 +1513,12 @@ async function pagePrepare(){
     +'<div class="kpi g"><div class="klabel">บ่อที่พร้อมลงกุ้ง</div><div class="kval">'+fmt(readyToStock)+'</div><div class="ksub">บ่อ ・ ขั้นตอน 7. พร้อมปล่อยกุ้ง</div></div>'
     +'</div>';
 
-  var detailRows=filtered.slice().sort(function(a,b){return (b.day||0)-(a.day||0);});
+  var psd=(st.sortDir===1)?1:-1;
+  var detailRows=filtered.slice().sort(function(a,b){return psd===1?(a.day||0)-(b.day||0):(b.day||0)-(a.day||0);});
   var detailBody=detailRows.map(function(r){
-    return '<tr><td class="l">'+r.pond+'</td><td>'+(r.day?fmt(r.day):'–')+'</td><td class="l">'+(r.stage||'–')+'</td><td>'+(r.update||'–')+'</td></tr>';
+    return '<tr><td class="l">'+r.pond+'</td><td>'+(r.day?fmt(r.day):'–')+'</td><td class="l">'+(r.stage||'–')+'</td><td>'+(r.update||'–')+'</td><td>'+(r.target||'–')+'</td><td>'+(r.plan||'–')+'</td></tr>';
   }).join('');
-  var t4='<div class="card"><h3><span class="dot"></span>รายละเอียดสถานะการเตรียมบ่อรายบ่อ</h3><div class="hint">เฉพาะบ่อ Status Close ตามตัวกรองด้านบน ・ เรียงตามวันเตรียมบ่อมาก→น้อย</div><table class="dtable stripe"><thead><tr><th>ชื่อบ่อ</th><th>Prepare (day)</th><th>สถานะเตรียมบ่อ</th><th>UPDATE</th></tr></thead><tbody>'+(detailBody||'<tr><td colspan="4">ไม่พบข้อมูล</td></tr>')+'</tbody></table></div>';
+  var t4='<div class="card"><h3><span class="dot"></span>รายละเอียดสถานะการเตรียมบ่อรายบ่อ</h3><div class="hint">เฉพาะบ่อ Status Close ตามตัวกรองด้านบน ・ คลิกหัวตาราง Prepare (day) เพื่อเรียงลำดับ</div><table class="dtable stripe"><thead><tr><th>ชื่อบ่อ</th><th onclick="prepSort()" style="cursor:pointer;user-select:none" title="คลิกเพื่อเรียงลำดับ">Prepare (day)'+(psd===1?' ▲':' ▼')+'</th><th>สถานะเตรียมบ่อ</th><th>UPDATE</th><th>กำหนดเสร็จ</th><th>เทียบแผน</th></tr></thead><tbody>'+(detailBody||'<tr><td colspan="6">ไม่พบข้อมูล</td></tr>')+'</tbody></table></div>';
 
   el('app').innerHTML=kpis+t1+t2+t4;
   decorateWidgets('prepare');
