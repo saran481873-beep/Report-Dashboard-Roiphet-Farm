@@ -537,7 +537,7 @@ document.addEventListener('keydown',e=>{
 
 /* ---------- LIVE STATUS ---------- */
 function setLive(ok,txt){el('livedot').classList.toggle('on',ok);el('livetext').textContent=txt;}
-el('refresh').onclick=()=>{for(const k in cache)delete cache[k];route();};
+el('refresh').onclick=()=>{for(const k in cache)delete cache[k];PNL_DATA=null;route();};
 
 /* ---------- WIDGET HIDE/SHOW (per-page, persisted) ---------- */
 function getHidden(page){ try{ return JSON.parse(localStorage.getItem('hiddenWidgets_'+page)||'[]'); }catch(e){ return []; } }
