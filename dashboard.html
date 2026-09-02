@@ -2130,6 +2130,7 @@ async function pnlLoadData(){
   const V=ew.values; const ponds=[];
   for(let i=2;i<V.length;i++){
     const r=V[i]; if(!(r[1]||'').toString().trim())continue;
+    const status=(r[57]||'').toString().trim(); if(status!=='Culture')continue;
     const base={
       module:(r[0]||'').toString().trim(), pond:(r[1]||'').toString().trim(), type:(r[2]||'').toString().trim(),
       rai:num(r[3]), docCur:num(r[4]), mbwCur:num(r[5]), biomassCur:num(r[6]),
