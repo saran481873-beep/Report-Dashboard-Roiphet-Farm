@@ -1481,12 +1481,14 @@ async function pagePrepare(){
   for(var i2=12;i2<=26;i2++){
     stageDefs.push({idx:i2, label:(V[i2][24]||'').trim(), vals:{A:num(V[i2][29]),B:num(V[i2][30]),C:num(V[i2][31]),D:num(V[i2][32]),R:num(V[i2][33])}});
   }
-  var matrixRows=stageDefs.filter(function(s){return s.idx>=13 && s.idx<=23 && s.label;});
+  var matrixRows=stageDefs.filter(function(s){return s.idx>=13 && s.idx<=24 && s.label;});
   var totalRowDef=null, readyRowDef=null;
   stageDefs.forEach(function(s){
     if(s.label.indexOf('จำนวนเตรียมบ่อ')===0) totalRowDef=s;
-    if(s.label.indexOf('เตรียมบ่อพร้อมปล่อยกุ้ง (บ่อ')===0 && s.idx===23) readyRowDef=s;
+    if(s.label.indexOf('เตรียมบ่อพร้อมปล่อยกุ้ง (บ่อ')===0 && s.idx===25) readyRowDef=s;
   });
+  var planOnRowDef=stageDefs.find(function(s){return s.idx===23;});
+  var planDelayRowDef=stageDefs.find(function(s){return s.idx===24;});
   var totalAllRowDef=stageDefs.find(function(s){return s.idx===25;});
   var pctAllRowDef=stageDefs.find(function(s){return s.idx===26;});
 
@@ -1505,11 +1507,7 @@ async function pagePrepare(){
   }
   var sumTotal=shownMods.reduce(function(s,m){return s+((totalRowDef&&totalRowDef.vals[m])||0);},0);
   var sumReady=shownMods.reduce(function(s,m){return s+((readyRowDef&&readyRowDef.vals[m])||0);},0);
-  var planOnCount=filtered.filter(function(r){return r.plan==='ตามแผน';}).length;
-  var planDelayCount=filtered.filter(function(r){return r.plan==='ล่าช้า';}).length;
-  var planOnPct=sumTotal?fmt(planOnCount/sumTotal*100,0):'0';
-  var planDelayPct=sumTotal?fmt(planDelayCount/sumTotal*100,0):'0';
-  var t2='<div class="card"><h3><span class="dot"></span>สถานะขั้นตอนการเตรียมบ่อแต่ละพื้นที่</h3><div class="hint">จำนวนบ่อในแต่ละขั้นตอนการเตรียมบ่อ (เฉพาะบ่อ Status Close)</div><div class="maptbl-wrap"><table class="dtable stripe"><thead><tr>'+t2Head+'</tr></thead><tbody>'+(t2Body||'<tr><td colspan="'+(shownMods.length+2)+'">ไม่พบข้อมูล</td></tr>')+'<tr><td class="l">เตรียมบ่อพร้อมปล่อยกุ้ง (%)</td>'+pctCells+'</tr>'+((totalRowDef&&readyRowDef)?'<tr><td class="l" style="font-weight:700">เตรียมบ่อพร้อมปล่อยกุ้งทั้งหมด (บ่อ)</td><td colspan="'+(shownMods.length+1)+'" style="font-weight:700">'+fmt(sumReady)+'</td></tr>':'')+((totalRowDef&&readyRowDef)?'<tr><td class="l" style="font-weight:700">เตรียมบ่อพร้อมปล่อยกุ้งทั้งหมด (%)</td><td colspan="'+(shownMods.length+1)+'" style="font-weight:700">'+(sumTotal?fmt(sumReady/sumTotal*100,0):'0')+'%</td></tr>':'')+'<tr><td class="l" style="font-weight:700">เตรียมบ่อตามแผน (บ่อ/%)</td><td colspan="'+(shownMods.length+1)+'" style="font-weight:700">'+fmt(planOnCount)+' ('+planOnPct+'%)</td></tr>'+'<tr><td class="l" style="font-weight:700">เตรียมบ่อล่าช้า (บ่อ/%)</td><td colspan="'+(shownMods.length+1)+'" style="font-weight:700">'+fmt(planDelayCount)+' ('+planDelayPct+'%)</td></tr>'+'</tbody><tfoot><tr><td class="l" colspan="'+(shownMods.length+2)+'">รวมทั้งหมด: พร้อมปล่อยกุ้ง '+fmt(sumReady)+' / เตรียมบ่อ '+fmt(sumTotal)+' บ่อ ('+(sumTotal?fmt(sumReady/sumTotal*100,0):'0')+'%)</td></tr></tfoot></table></div></div>';
+  var t2='<div class="card"><h3><span class="dot"></span>สถานะขั้นตอนการเตรียมบ่อแต่ละพื้นที่</h3><div class="hint">จำนวนบ่อในแต่ละขั้นตอนการเตรียมบ่อ (เฉพาะบ่อ Status Close)</div><div class="maptbl-wrap"><table class="dtable stripe"><thead><tr>'+t2Head+'</tr></thead><tbody>'+(t2Body||'<tr><td colspan="'+(shownMods.length+2)+'">ไม่พบข้อมูล</td></tr>')+'<tr><td class="l">เตรียมบ่อพร้อมปล่อยกุ้ง (%)</td>'+pctCells+'</tr>'+((totalRowDef&&readyRowDef)?'<tr><td class="l" style="font-weight:700">เตรียมบ่อพร้อมปล่อยกุ้งทั้งหมด (บ่อ)</td><td colspan="'+(shownMods.length+1)+'" style="font-weight:700">'+fmt(sumReady)+'</td></tr>':'')+((totalRowDef&&readyRowDef)?'<tr><td class="l" style="font-weight:700">เตรียมบ่อพร้อมปล่อยกุ้งทั้งหมด (%)</td><td colspan="'+(shownMods.length+1)+'" style="font-weight:700">'+(sumTotal?fmt(sumReady/sumTotal*100,0):'0')+'%</td></tr>':'')+((planOnRowDef&&planDelayRowDef)?'<tr><td class="l" style="font-weight:700">'+planOnRowDef.label+'</td><td colspan="'+(shownMods.length+1)+'" style="font-weight:700">'+fmt(shownMods.reduce(function(s,m){return s+(planOnRowDef.vals[m]||0);},0))+' ('+(sumTotal?fmt(shownMods.reduce(function(s,m){return s+(planOnRowDef.vals[m]||0);},0)/sumTotal*100,0):'0')+'%)</td></tr>':'')+((planOnRowDef&&planDelayRowDef)?'<tr><td class="l" style="font-weight:700">'+planDelayRowDef.label+'</td><td colspan="'+(shownMods.length+1)+'" style="font-weight:700">'+fmt(shownMods.reduce(function(s,m){return s+(planDelayRowDef.vals[m]||0);},0))+' ('+(sumTotal?fmt(shownMods.reduce(function(s,m){return s+(planDelayRowDef.vals[m]||0);},0)/sumTotal*100,0):'0')+'%)</td></tr>':'')+'</tbody><tfoot><tr><td class="l" colspan="'+(shownMods.length+2)+'">รวมทั้งหมด: พร้อมปล่อยกุ้ง '+fmt(sumReady)+' / เตรียมบ่อ '+fmt(sumTotal)+' บ่อ ('+(sumTotal?fmt(sumReady/sumTotal*100,0):'0')+'%)</td></tr></tfoot></table></div></div>';
 
   var totalPrepared=filtered.length;
   var readyToStock=shownMods.reduce(function(s,m){return s+((readyRowDef&&readyRowDef.vals[m])||0);},0);
