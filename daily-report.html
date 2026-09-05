@@ -212,12 +212,15 @@ const DATA_URL = "https://script.google.com/macros/s/AKfycbyNznon22ahA9zsdkxSM4D
    c=[feed,ph,alk,tan,no2,mort] colors G/Y/R,  s=[...] scores,  overall, total */
 let RAW = [];
 
-const KEYS=["module","pond","type","unit","status","mbw","biomass","feed","sal","ph","alk","tan","no2","mort","stdFeed","diffKg","diffPct","cstr","s","overall","total"];
+const KEYS=["module","pond","type","unit","status","mbw","biomass","feed","sal","ph","alk","tan","no2","mort","stdFeed","diffKg","diffPct","cstr","s","overall","total","tvcWater","tvcLiver"];
 let DATA = [];
 function buildData(){
   DATA = RAW.map(r=>{const o={};KEYS.forEach((k,i)=>o[k]=r[i]);
     const cc=String(o.cstr||"").split("");o.c={feed:cc[0]||"",ph:cc[1]||"",alk:cc[2]||"",tan:cc[3]||"",no2:cc[4]||"",mort:cc[5]||""};
     if(typeof o.mort==="number")o.mort=Math.round(o.mort);
+    const isCultureRow=o.status==="Culture";
+    o.c.tvcWater=isCultureRow?tvcColor(o.tvcWater,"water"):"";
+    o.c.tvcLiver=isCultureRow?tvcColor(o.tvcLiver,"liver"):"";
     return o;});
   // รายชื่อ Module ดึงจากข้อมูลจริงอัตโนมัติ (รองรับ Module ใหม่ เช่น R)
   const present=[...new Set(DATA.map(d=>d.module).filter(m=>m!==""&&m!=null))].sort();
@@ -234,13 +237,42 @@ function buildData(){
    29 overall(Red/Yellow/Green) */
 function colorLetter(x){x=String(x==null?"":x).trim().toLowerCase();return x==="green"?"G":x==="yellow"?"Y":x==="red"?"R":"-";}
 function overallWord(x){x=String(x==null?"":x).trim().toLowerCase();return x==="green"?"Green":x==="yellow"?"Yellow":x==="red"?"Red":"";}
-function apiRowToRaw(r){
+function findNth(header,label,n){
+  let count=-1;
+  for(let i=0;i<header.length;i++){ if(header[i]===label){ count++; if(count===n) return i; } }
+  return -1;
+}
+function tvcColor(v,kind){
+  const n=Number(v);
+  if(v===""||v===null||v===undefined||isNaN(n))return "";
+  if(kind==="water")return n<=10000?"G":(n<=100000?"Y":"R");
+  return n<=100000?"G":(n<=1000000?"Y":"R");
+}
+function apiRowToRaw(r,header){
+  const H=header||[];
+  const idxFeedC=(()=>{const i=findNth(H,"Feed (kg)",1);return i>=0?i:19;})();
+  const idxPhC=(()=>{const i=findNth(H,"Avg pH",1);return i>=0?i:20;})();
+  const idxAlkC=(()=>{const i=findNth(H,"Alk (ppm)",1);return i>=0?i:21;})();
+  const idxTanC=(()=>{const i=findNth(H,"TAN (ppm)",1);return i>=0?i:22;})();
+  const idxNo2C=(()=>{const i=findNth(H,"No-2 (ppm)",1);return i>=0?i:23;})();
+  const idxMortC=(()=>{const i=findNth(H,"Motarlity (Pcs/day)",1);return i>=0?i:24;})();
+  const idxFeedS=(()=>{const i=findNth(H,"Feed (kg)",2);return i>=0?i:27;})();
+  const idxPhS=(()=>{const i=findNth(H,"Avg pH",2);return i>=0?i:28;})();
+  const idxAlkS=(()=>{const i=findNth(H,"Alk (ppm)",2);return i>=0?i:29;})();
+  const idxTanS=(()=>{const i=findNth(H,"TAN (ppm)",2);return i>=0?i:30;})();
+  const idxNo2S=(()=>{const i=findNth(H,"No-2 (ppm)",2);return i>=0?i:31;})();
+  const idxMortS=(()=>{const i=findNth(H,"Motarlity (Pcs/day)",2);return i>=0?i:32;})();
+  const idxOverall=(()=>{const i=findNth(H,"Status",1);return i>=0?i:35;})();
+  const idxTvcW=(()=>{const i=findNth(H,"TVC ในน้ำ (cfu/ml)",0);return i>=0?i:17;})();
+  const idxTvcL=(()=>{const i=findNth(H,"TVC ในตับ (cfu/ml)",0);return i>=0?i:18;})();
   const isCulture=String(r[4]).trim().toLowerCase()==="culture";
-  const cstr=isCulture?[r[17],r[18],r[19],r[20],r[21],r[22]].map(colorLetter).join(""):"";
-  const scores=isCulture?[r[23],r[24],r[25],r[26],r[27],r[28]].map(x=>{const n=Number(x);return isNaN(n)?0:n;}):[];
-  const overall=isCulture?overallWord(r[29]):"";
+  const cstr=isCulture?[r[idxFeedC],r[idxPhC],r[idxAlkC],r[idxTanC],r[idxNo2C],r[idxMortC]].map(colorLetter).join(""):"";
+  const scores=isCulture?[r[idxFeedS],r[idxPhS],r[idxAlkS],r[idxTanS],r[idxNo2S],r[idxMortS]].map(x=>{const n=Number(x);return isNaN(n)?0:n;}):[];
+  const overall=isCulture?overallWord(r[idxOverall]):"";
   const total=scores.reduce((a,b)=>a+b,0);
-  return [r[0],r[1],r[2],r[3],r[4],r[5],r[6],r[7],r[8],r[9],r[10],r[11],r[12],r[13],r[14],r[15],r[16],cstr,scores,overall,total];
+  const tvcWater=r[idxTvcW];
+  const tvcLiver=r[idxTvcL];
+  return [r[0],r[1],r[2],r[3],r[4],r[5],r[6],r[7],r[8],r[9],r[10],r[11],r[12],r[13],r[14],r[15],r[16],cstr,scores,overall,total,tvcWater,tvcLiver];
 }
 
 const PARAMS=[
@@ -249,7 +281,9 @@ const PARAMS=[
   {key:"alk",name:"T.Alk",sub:"ppm",unit:"ppm",val:d=>d.alk,ref:d=>"เป้า 150 (120–180)"},
   {key:"tan",name:"TAN",sub:"ppm",unit:"ppm",val:d=>d.tan,ref:d=>"เป้า 0 (≤3)"},
   {key:"no2",name:"NO₂-N",sub:"ppm",unit:"ppm",val:d=>d.no2,ref:d=>"เป้า 0.5 (≤3)"},
-  {key:"mort",name:"ตัวตาย/วัน",sub:"pcs/day",unit:"pcs",val:d=>d.mort,ref:d=>"ยิ่งต่ำยิ่งดี"}
+  {key:"mort",name:"ตัวตาย/วัน",sub:"pcs/day",unit:"pcs",val:d=>d.mort,ref:d=>"ยิ่งต่ำยิ่งดี"},
+  {key:"tvcWater",name:"TVC ในน้ำ",sub:"cfu/ml",unit:"cfu/ml",val:d=>d.tvcWater,ref:d=>"เกณฑ์ ≤10,000 (เหลือง ≤100,000)"},
+  {key:"tvcLiver",name:"TVC ในตับ",sub:"cfu/ml",unit:"cfu/ml",val:d=>d.tvcLiver,ref:d=>"เกณฑ์ ≤100,000 (เหลือง ≤1,000,000)"}
 ];
 const CMAP={G:"var(--green)",Y:"var(--yellow)",R:"var(--red)"};
 const CNAME={G:"ปกติ",Y:"เฝ้าระวัง",R:"ผิดเกณฑ์"};
@@ -375,7 +409,7 @@ function renderUrgent(){
   const scored=set.slice().sort((a,b)=>(b.total-a.total)||((b.mort||0)-(a.mort||0))).slice(0,10);
   const cchip=(d,k)=>`<span class="pill ${CCLASS[d.c[k]]||"g"}">${fmt(PARAMS.find(p=>p.key===k).val(d))}</span>`;
   document.getElementById("urg").innerHTML=`
-    <thead><tr><th>#</th><th>บ่อ</th><th>Module</th><th>สถานะ</th><th>อาหาร</th><th>pH</th><th>Alk</th><th>TAN</th><th>NO₂-N</th><th>ตัวตาย/วัน</th></tr></thead>
+    <thead><tr><th>#</th><th>บ่อ</th><th>Module</th><th>สถานะ</th><th>อาหาร</th><th>pH</th><th>Alk</th><th>TAN</th><th>NO₂-N</th><th>ตัวตาย/วัน</th><th>TVC น้ำ</th><th>TVC ตับ</th></tr></thead>
     <tbody>${scored.map((d,i)=>`<tr>
       <td><span class="rank ${i<3?"top":""}">${i+1}</span></td>
       <td><span class="pondtag">${d.pond}</span></td>
@@ -383,6 +417,7 @@ function renderUrgent(){
       <td><span class="st ${d.overall}">${d.overall==="Red"?"แดง":d.overall==="Yellow"?"เหลือง":"เขียว"}</span></td>
       <td>${cchip(d,"feed")}</td><td>${cchip(d,"ph")}</td><td>${cchip(d,"alk")}</td>
       <td>${cchip(d,"tan")}</td><td>${cchip(d,"no2")}</td><td>${cchip(d,"mort")}</td>
+      <td>${cchip(d,"tvcWater")}</td><td>${cchip(d,"tvcLiver")}</td>
     </tr>`).join("")}</tbody>`;
 }
 
@@ -392,6 +427,7 @@ const COLS=[
   {k:"module",t:"Mod",l:true},{k:"pond",t:"บ่อ",l:true},{k:"type",t:"ชนิด",l:true},{k:"status",t:"สถานะบ่อ",l:true},
   {k:"feed",t:"อาหาร",c:"feed"},{k:"ph",t:"pH",c:"ph"},{k:"alk",t:"Alk",c:"alk"},
   {k:"tan",t:"TAN",c:"tan"},{k:"no2",t:"NO₂",c:"no2"},{k:"mort",t:"ตัวตาย",c:"mort"},
+  {k:"tvcWater",t:"TVC น้ำ",c:"tvcWater"},{k:"tvcLiver",t:"TVC ตับ",c:"tvcLiver"},
   {k:"overall",t:"รวม"},{k:"total",t:"คะแนน"}
 ];
 function renderDetail(){
@@ -447,7 +483,7 @@ async function loadLive(){
     if(!res.ok)throw new Error("HTTP "+res.status);
     const j=await res.json();
     if(j.error)throw new Error(j.error);
-    RAW=(j.rows||[]).map(apiRowToRaw);
+    RAW=(j.rows||[]).map(r=>apiRowToRaw(r,j.header));
     buildData();
     document.getElementById("asof").textContent=fmtThai(j.updated);
     render();
