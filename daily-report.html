@@ -295,6 +295,18 @@ let MODS=["A","B","C","D"];
 const STS=["Red","Yellow","Green"], PONDS=["Culture","Close"];
 
 function fmt(n){if(n===null||n===undefined||n==="")return "–";return (typeof n==="number")?(Number.isInteger(n)?n.toLocaleString():n.toLocaleString(undefined,{maximumFractionDigits:2})):n;}
+function fmtSci(n){
+  const num=Number(n);
+  if(n===null||n===undefined||n===""||isNaN(num))return "–";
+  if(num===0)return "0";
+  const exp=Math.floor(Math.log10(Math.abs(num)));
+  const mantissa=num/Math.pow(10,exp);
+  const sup={"-":"⁻","0":"⁰","1":"¹","2":"²","3":"³","4":"⁴","5":"⁵","6":"⁶","7":"⁷","8":"⁸","9":"⁹"};
+  const expStr=String(exp).split("").map(c=>sup[c]||c).join("");
+  return mantissa.toFixed(2)+"×10"+expStr;
+}
+const SCI_KEYS=new Set(["tvcWater","tvcLiver"]);
+function fmtVal(k,v){return SCI_KEYS.has(k)?fmtSci(v):fmt(v);}
 
 /* filtered full set (respects pond-status filter, includes Close if chosen) */
 function filteredAll(){
@@ -395,7 +407,7 @@ function openDrill(pkey,color){
   document.getElementById("mbody").innerHTML= set.length? set.map(d=>`
     <div class="mrow" style="border-left:5px solid ${CMAP[color]}">
       <div><span class="mp">${d.pond}</span> <span class="mod-badge">Module ${d.module}</span><small>${p.ref(d)}</small></div>
-      <div style="text-align:right"><span class="mv" style="color:${CMAP[color]}">${fmt(p.val(d))} ${p.unit}</span></div>
+      <div style="text-align:right"><span class="mv" style="color:${CMAP[color]}">${fmtVal(pkey,p.val(d))} ${p.unit}</span></div>
     </div>`).join("") : `<p style="color:var(--muted);text-align:center;padding:20px">ไม่มีบ่อในสถานะนี้</p>`;
   document.getElementById("overlay").classList.add("show");
 }
@@ -407,7 +419,7 @@ function renderUrgent(){
   const set=analysisSet();
   // จัดอันดับจากความรุนแรงรวมทุกพารามิเตอร์ (total risk score) แล้ว tie-break ด้วยตัวตาย
   const scored=set.slice().sort((a,b)=>(b.total-a.total)||((b.mort||0)-(a.mort||0))).slice(0,10);
-  const cchip=(d,k)=>`<span class="pill ${CCLASS[d.c[k]]||"g"}">${fmt(PARAMS.find(p=>p.key===k).val(d))}</span>`;
+  const cchip=(d,k)=>`<span class="pill ${CCLASS[d.c[k]]||"g"}">${fmtVal(k,PARAMS.find(p=>p.key===k).val(d))}</span>`;
   document.getElementById("urg").innerHTML=`
     <thead><tr><th>#</th><th>บ่อ</th><th>Module</th><th>สถานะ</th><th>อาหาร</th><th>pH</th><th>Alk</th><th>TAN</th><th>NO₂-N</th><th>ตัวตาย/วัน</th><th>TVC น้ำ</th><th>TVC ตับ</th></tr></thead>
     <tbody>${scored.map((d,i)=>`<tr>
@@ -441,7 +453,7 @@ function renderDetail(){
   const body=rows.map(d=>{
     const isClose=d.status==="Close";
     const cell=(c)=>{
-      const v=fmt(d[c.k]);
+      const v=fmtVal(c.k,d[c.k]);
       if(c.c && !isClose){const col=d.c[c.c];return `<td><span class="cell ${CCLASS[col]||""}">${v}</span></td>`;}
       if(c.k==="overall"){return isClose?`<td><span class="st Close">ปิด</span></td>`:`<td><span class="st ${d.overall}">${d.overall==="Red"?"แดง":d.overall==="Yellow"?"เหลือง":"เขียว"}</span></td>`;}
       if(c.k==="status"){return `<td class="l"><span class="st ${isClose?"Close":""}">${isClose?"ปิดบ่อ":"เลี้ยงอยู่"}</span></td>`;}
