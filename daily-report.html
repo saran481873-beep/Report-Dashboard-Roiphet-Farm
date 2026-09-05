@@ -245,8 +245,8 @@ function findNth(header,label,n){
 function tvcColor(v,kind){
   const n=Number(v);
   if(v===""||v===null||v===undefined||isNaN(n))return "";
-  if(kind==="water")return n<=10000?"G":(n<=100000?"Y":"R");
-  return n<=100000?"G":(n<=1000000?"Y":"R");
+  if(kind==="water")return n<=999?"G":(n<=4999?"Y":"R");
+  return n<=50000?"G":(n<=60000?"Y":"R");
 }
 function apiRowToRaw(r,header){
   const H=header||[];
@@ -282,8 +282,8 @@ const PARAMS=[
   {key:"tan",name:"TAN",sub:"ppm",unit:"ppm",val:d=>d.tan,ref:d=>"เป้า 0 (≤3)"},
   {key:"no2",name:"NO₂-N",sub:"ppm",unit:"ppm",val:d=>d.no2,ref:d=>"เป้า 0.5 (≤3)"},
   {key:"mort",name:"ตัวตาย/วัน",sub:"pcs/day",unit:"pcs",val:d=>d.mort,ref:d=>"ยิ่งต่ำยิ่งดี"},
-  {key:"tvcWater",name:"TVC ในน้ำ",sub:"cfu/ml",unit:"cfu/ml",val:d=>d.tvcWater,ref:d=>"เกณฑ์ ≤10,000 (เหลือง ≤100,000)"},
-  {key:"tvcLiver",name:"TVC ในตับ",sub:"cfu/ml",unit:"cfu/ml",val:d=>d.tvcLiver,ref:d=>"เกณฑ์ ≤100,000 (เหลือง ≤1,000,000)"}
+  {key:"tvcWater",name:"TVC ในน้ำ",sub:"cfu/ml",unit:"cfu/ml",val:d=>d.tvcWater,ref:d=>"เกณฑ์ ≤999 (เหลือง 1,000-4,999)"},
+  {key:"tvcLiver",name:"TVC ในตับ",sub:"cfu/ml",unit:"cfu/ml",val:d=>d.tvcLiver,ref:d=>"เกณฑ์ ≤50,000 (เหลือง 50,001-60,000)"}
 ];
 const CMAP={G:"var(--green)",Y:"var(--yellow)",R:"var(--red)"};
 const CNAME={G:"ปกติ",Y:"เฝ้าระวัง",R:"ผิดเกณฑ์"};
