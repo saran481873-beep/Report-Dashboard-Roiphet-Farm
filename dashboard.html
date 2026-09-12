@@ -929,7 +929,7 @@ async function pageWaterPlan(){
       var rai = (SV[r]||[])[bs+1]||'';
       var cells='';
       for(var m=1;m<=12;m++){ var v=(SV[r]||[])[bs+1+m]||''; cells+='<td>'+(v||'')+'</td>'; }
-      body += '<tr><td class="l"><span style="cursor:pointer;color:#94a3b8;margin-right:6px" title="ซ่อนบ่อนี้" onclick="toggleWpPondHidden(\''+a+'\',\''+lbl+'\')">✕</span>'+lbl+'</td><td>'+rai+'</td>'+cells+'</tr>';
+      body += '<tr><td class="l"><span style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px" title="กดชื่อบ่อเพื่อซ่อน" onclick="toggleWpPondHidden(\''+a+'\',\''+lbl+'\')">'+lbl+'</span></td><td>'+rai+'</td>'+cells+'</tr>';
     }
     function statRow(label, rowIdx){
       var cells='';
