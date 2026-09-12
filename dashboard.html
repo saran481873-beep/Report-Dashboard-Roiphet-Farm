@@ -655,13 +655,32 @@ function wpInScope(dObj,startObj,endObj){
   var te=endObj? (endObj.y*10000+endObj.mo*100+endObj.d) : 99999999;
   return t>=ts && t<=te;
 }
-window.setWaterPrice=function(v){
+function fmtM(n,d){ return fmt((n||0)/1000000, d==null?2:d); }
+var WP_COLORS={A:'#0ea5e9',B:'#0d9488',C:'#8b5cf6',D:'#f59e0b',R:'#f43f5e'};
+function wpFindCapacityBlock(UV){
+  for(var i=0;i<UV.length;i++){
+    if(String((UV[i]||[])[1]||'').indexOf('Water Capacity')!==-1){
+      var out={};
+      for(var j=i+1;j<UV.length;j++){
+        var lbl=String((UV[j]||[])[0]||'').trim();
+        if(!lbl || lbl==='Total') break;
+        out[lbl]={ water: wpNum(UV[j][1]), ground: wpNum(UV[j][2]) };
+      }
+      return out;
+    }
+  }
+  return {};
+}
+window.setWaterAreaPrice=function(area,v){
   var n=parseFloat(v); if(isNaN(n)||n<0) n=0;
-  F.waterplan.price=n;
-  try{ localStorage.setItem('wp_price', String(n)); }catch(e){}
+  F.waterplan.priceByArea[area]=n;
+  try{ localStorage.setItem('wp_priceByArea', JSON.stringify(F.waterplan.priceByArea)); }catch(e){}
   renderPage('waterplan');
 };
 window.setWaterGran=function(g){ F.waterplan.gran=g; renderPage('waterplan'); };
+window.toggleWpCap=function(){ F.waterplan.capVisible=!F.waterplan.capVisible; renderPage('waterplan'); };
+window.toggleWpGround=function(){ F.waterplan.capIncludeGround=!F.waterplan.capIncludeGround; renderPage('waterplan'); };
+
 async function pageWaterPlan(){
   el('subtitle').textContent='แผนการใช้น้ำ (Water plan) · ปริมาณน้ำที่ใช้เทียบกำลังผลิต และประมาณค่าใช้จ่ายค่าน้ำ · ที่มา: Use Water + summary Water';
   var res = await Promise.all([getTab('usewater'), getTab('summarywater'), getTab('stocking')]);
@@ -680,10 +699,16 @@ async function pageWaterPlan(){
       cycles:[[wpParseDMY(row[3]),wpParseDMY(row[4])],[wpParseDMY(row[6]),wpParseDMY(row[7])],[wpParseDMY(row[9]),wpParseDMY(row[10])]]});
   }
   var years=[...new Set(dateCols.map(function(d){return d.y;}))].sort(function(a,b){return a-b;});
+  var capBlock = wpFindCapacityBlock(UV);
 
   var st=F.waterplan;
-  if(st.price==null){ var sp=parseFloat((function(){try{return localStorage.getItem('wp_price');}catch(e){return null;}})()); st.price=isNaN(sp)?5:sp; }
   if(!st.gran) st.gran='month';
+  if(!st.priceByArea){
+    var saved=null; try{ saved=JSON.parse(localStorage.getItem('wp_priceByArea')||'null'); }catch(e){}
+    st.priceByArea = saved || {A:5,B:5,C:5,D:5,R:5};
+  }
+  if(st.capVisible==null) st.capVisible=true;
+  if(st.capIncludeGround==null) st.capIncludeGround=true;
 
   filterBar('waterplan',[
     {label:'พื้นที่ (Module)',key:'area',multi:true,opts:[{v:'all',t:'ทั้งหมด'}].concat(areasAll.map(function(m){return {v:m,t:m};}))},
@@ -713,23 +738,26 @@ async function pageWaterPlan(){
       var v=wpNum(p.row[dc.idx]);
       var mk=dc.y+'-'+String(dc.mo).padStart(2,'0');
       var dk=wpDateKey(dc);
-      if(v){ usageByArea[p.mod]+=v; usageByMonthKey[mk]=(usageByMonthKey[mk]||0)+v; usageByDay[dk]=(usageByDay[dk]||0)+v; }
+      if(v){
+        usageByArea[p.mod]+=v;
+        usageByMonthKey[mk]=(usageByMonthKey[mk]||0)+v;
+        usageByDay[dk]=(usageByDay[dk]||0)+v;
+      }
       var active=p.cycles.some(function(cy){return wpInScope(dc,cy[0],cy[1]);});
       if(active) activeByDay[dk]=(activeByDay[dk]||0)+1;
     });
   });
   var grandUsage=scopeAreas.reduce(function(s,a){return s+usageByArea[a];},0);
-  var price=st.price||0;
-  var grandCost=grandUsage*price;
+  var costByArea={}; scopeAreas.forEach(function(a){ costByArea[a]=usageByArea[a]*(st.priceByArea[a]||0); });
+  var grandCost=scopeAreas.reduce(function(s,a){return s+costByArea[a];},0);
   var distinctMonths=Object.keys(usageByMonthKey).length||1;
   var avgMonthlyCost=grandCost/distinctMonths;
-  var avgMonthlyUsage=grandUsage/distinctMonths;
 
   var headerRow1=SV[1]||[];
   var modBlockStart={};
   areasAll.forEach(function(a){ var idx=headerRow1.findIndex(function(v){return String(v||'').trim()===a;}); if(idx>=0) modBlockStart[a]=idx; });
   function swFindRow(label,fallback){ for(var i=0;i<SV.length;i++){ if(String((SV[i]||[])[0]||'').trim()===label) return i; } return fallback; }
-  var rowMaster=swFindRow('Master pond',20), rowShrimp=swFindRow('Shrimp (มีกุ้ง)',21), rowUtil=swFindRow('Utilization',22);
+  var rowMaster=swFindRow('Master pond',20), rowShrimp=swFindRow('Shrimp (มีกุ้ง)',21), rowUtil=swFindRow('Utilization',22), rowCapPct=swFindRow('CAP น้ำ ( ลบ./วัน )',23), rowSum=swFindRow('Sum',25), rowAvg=swFindRow('Avg',26), rowMax=swFindRow('Max',27), rowMin=swFindRow('Min',28);
   function swVal(mod,rowIdx,m){
     var bs=modBlockStart[mod]; if(bs==null) return null;
     return (SV[rowIdx]||[])[bs+1+m];
@@ -756,6 +784,7 @@ async function pageWaterPlan(){
   var stkScope=stkRows.filter(function(rw){ return scopeAreas.indexOf(rw.mod)!==-1 && (isAllYear||yearSel.indexOf(String(rw.year))!==-1) && (isAllMonth||monthSel.indexOf(String(rw.month))!==-1); });
   var stkByArea={}; areasAll.forEach(function(a){stkByArea[a]={pcs:0,ponds:new Set()};});
   stkScope.forEach(function(rw){ stkByArea[rw.mod].pcs+=rw.pcs; stkByArea[rw.mod].ponds.add(rw.pond); });
+  var grandPcs=scopeAreas.reduce(function(s,a){return s+stkByArea[a].pcs;},0);
 
   var periodLabel=(isAllArea?'ทุกพื้นที่':scopeAreas.join(', '))+' · '+(isAllMonth?'ทุกเดือน':monthsInScope.map(function(m){return MONTH_TH[m-1];}).join(', '))+' · '+(isAllYear?'ทุกปี':yearSel.join(', '));
 
@@ -763,7 +792,7 @@ async function pageWaterPlan(){
   var f1Rows=scopeAreas.map(function(a){
     var byY={}; yearsForF1.forEach(function(y){ byY[y]=usageByAreaYear[a][y]||0; });
     var total=yearsForF1.reduce(function(s,y){return s+byY[y];},0);
-    return {mod:a, byY:byY, total:total};
+    return {mod:a, total:total};
   });
 
   var gran=st.gran;
@@ -786,29 +815,46 @@ async function pageWaterPlan(){
     chartProd=dkList.map(function(dk){ return activeByDay[dk]||0; });
   }
 
+  var capMkList = Object.keys(usageByMonthKey).sort();
+  var capLabels = capMkList.map(function(mk){ var parts=mk.split('-'); return MONTH_TH[parseInt(parts[1])-1]+' '+parts[0]; });
+  var capDatasets = [];
+  scopeAreas.forEach(function(a){
+    var data = capMkList.map(function(mk){
+      var parts=mk.split('-'); var mm=parseInt(parts[1]);
+      var v = swVal(a, rowAvg, mm);
+      return (v==null||v==='') ? null : wpNum(v);
+    });
+    capDatasets.push({type:'bar', label:'ใช้น้ำเฉลี่ย/วัน - '+a, data:data, backgroundColor:WP_COLORS[a], borderRadius:4, order:2});
+  });
+  if(st.capVisible){
+    scopeAreas.forEach(function(a){
+      var cb=capBlock[a]||{water:0,ground:0};
+      var totalCap = cb.water + (st.capIncludeGround? cb.ground : 0);
+      capDatasets.push({type:'line', label:'กำลังผลิตน้ำ (Total) - '+a, data:capLabels.map(function(){return totalCap;}), borderColor:WP_COLORS[a], borderDash:[6,4], borderWidth:2, pointRadius:0, yAxisID:'y', order:1, spanGaps:true});
+    });
+  }
+
   var P={teal:'#0d9488',emer:'#10b981',viol:'#8b5cf6',sky:'#0ea5e9',rose:'#f43f5e',amber:'#f59e0b',slate:'#94a3b8',mint:'#5eead4'};
   var gfill=function(cx,hex){ var g=cx.createLinearGradient(0,0,0,300); g.addColorStop(0,hex+'44'); g.addColorStop(1,hex+'03'); return g; };
 
   var kpis='<div class="kpis">'+
     '<div class="kpi b"><div class="klabel">น้ำที่ใช้รวม (ช่วงที่เลือก)</div><div class="kval">'+fmt(grandUsage,0)+'</div><div class="ksub">ลบ.ม. · '+periodLabel+'</div></div>'+
-    '<div class="kpi g"><div class="klabel">ค่าน้ำประมาณรวม</div><div class="kval">'+fmt(grandCost,0)+'</div><div class="ksub">บาท · ที่ '+fmt(price,2)+' บาท/ลบ.ม.</div></div>'+
+    '<div class="kpi g"><div class="klabel">ค่าน้ำประมาณรวม</div><div class="kval">'+fmtM(grandCost)+'</div><div class="ksub">ล้านบาท · ราคาต่อพื้นที่ (ปรับได้ด้านล่าง)</div></div>'+
     '<div class="kpi y"><div class="klabel">ค่าน้ำเฉลี่ย/เดือน</div><div class="kval">'+fmt(avgMonthlyCost,0)+'</div><div class="ksub">บาท (จาก '+distinctMonths+' เดือนในช่วงที่เลือก)</div></div>'+
-    '<div class="kpi v"><div class="klabel">กุ้งที่ลงในช่วง</div><div class="kval">'+fmt(scopeAreas.reduce(function(s,a){return s+stkByArea[a].pcs;},0),0)+'</div><div class="ksub">ตัว</div></div>'+
+    '<div class="kpi v"><div class="klabel">กุ้งที่ลงในช่วง</div><div class="kval">'+fmtM(grandPcs)+'</div><div class="ksub">ล้านตัว</div></div>'+
   '</div>';
 
-  var priceCard='<div class="card"><h3><span class="dot"></span>ราคาน้ำ (บาท/ลบ.ม.)</h3>'+
-    '<div class="hint">กรอกราคาน้ำต่อคิว เพื่อคำนวณค่าใช้จ่ายค่าน้ำของช่วงที่เลือกอยู่ตอนนี้ (ปรับตาม Filter ด้านบน)</div>'+
-    '<div style="display:flex;align-items:center;gap:10px;margin:10px 0 16px">'+
-      '<input type="number" id="wpPriceInput" value="'+price+'" step="0.5" min="0" style="font-size:20px;font-weight:700;padding:8px 12px;border:1px solid var(--line);border-radius:8px;width:120px" onchange="setWaterPrice(this.value)">'+
-      '<span style="color:var(--muted);font-weight:600">บาท / ลบ.ม.</span>'+
-    '</div>'+
-    '<table class="dtable" style="width:100%"><thead><tr><th class="l">พื้นที่</th><th>น้ำที่ใช้ (ลบ.ม.)</th><th>ค่าน้ำประมาณ (บาท)</th></tr></thead><tbody>'+
-    scopeAreas.map(function(a){ return '<tr><td class="l">'+a+'</td><td>'+fmt(usageByArea[a],0)+'</td><td>'+fmt(usageByArea[a]*price,0)+'</td></tr>'; }).join('')+
-    '<tr style="font-weight:800;background:#f8fafc"><td class="l">รวม</td><td>'+fmt(grandUsage,0)+'</td><td>'+fmt(grandCost,0)+'</td></tr>'+
+  var priceCard='<div class="card"><h3><span class="dot"></span>ราคาน้ำ (บาท/ลบ.ม.) ต่อพื้นที่</h3>'+
+    '<div class="hint">กรอกราคาน้ำแยกตามพื้นที่ เพื่อคำนวณค่าใช้จ่ายค่าน้ำของช่วงที่เลือกอยู่ตอนนี้</div>'+
+    '<table class="dtable" style="width:100%"><thead><tr><th class="l">พื้นที่</th><th>ราคา (บาท/ลบ.ม.)</th><th>น้ำที่ใช้ (ลบ.ม.)</th><th>ค่าน้ำประมาณ (บาท)</th></tr></thead><tbody>'+
+    scopeAreas.map(function(a){ return '<tr><td class="l" style="border-left:4px solid '+WP_COLORS[a]+'">'+a+'</td>'+
+      '<td><input type="number" value="'+(st.priceByArea[a]!=null?st.priceByArea[a]:5)+'" step="0.5" min="0" style="width:80px;padding:4px 6px;border:1px solid var(--line);border-radius:6px;text-align:center" onchange="setWaterAreaPrice(\''+a+'\',this.value)"></td>'+
+      '<td>'+fmt(usageByArea[a],0)+'</td><td>'+fmt(costByArea[a],0)+'</td></tr>'; }).join('')+
+    '<tr style="font-weight:800;background:#f8fafc"><td class="l">รวม</td><td>-</td><td>'+fmt(grandUsage,0)+'</td><td>'+fmt(grandCost,0)+'</td></tr>'+
     '</tbody></table></div>';
 
   var f1Card='<div class="card"><h3><span class="dot"></span>สรุปการใช้น้ำรายปีของแต่ละพื้นที่</h3>'+
-    '<div class="hint">ผลรวมทั้งปี (ไม่กรองตามเดือน แต่กรองตามพื้นที่/ปีที่เลือก) · หน่วย: ลบ.ม.</div>'+
+    '<div class="hint">ผลรวมทั้งปี (ไม่กรองตามเดือน แต่กรองตามพื้นที่/ปีที่เลือก) · หน่วย: ลบ.ม. · สีต่างกันตามพื้นที่</div>'+
     '<canvas id="wpAnnual"></canvas></div>';
 
   var chart2Card='<div class="card"><h3><span class="dot"></span>การใช้น้ำเทียบกำลังผลิต · '+(gran==='month'?'รายเดือน':'รายวัน')+'</h3>'+
@@ -819,15 +865,23 @@ async function pageWaterPlan(){
     '</div>'+
     '<canvas id="wpTrend"></canvas></div>';
 
+  var capCard='<div class="card"><h3><span class="dot"></span>การใช้น้ำเทียบกำลังผลิตน้ำ รายเดือน แยกตามพื้นที่</h3>'+
+    '<div class="hint">แท่ง = ใช้น้ำเฉลี่ย/วัน (ลบ.ม./วัน) ต่อพื้นที่ (จาก summary Water) · เส้นประ = กำลังผลิตน้ำสูงสุด (ลบ.ม./วัน) ต่อพื้นที่ (จาก Use Water A80:D86)</div>'+
+    '<div style="text-align:right;margin-bottom:8px">'+
+      '<span class="chip '+(st.capVisible?'on':'')+'" onclick="toggleWpCap()">'+(st.capVisible?'✓ ':'')+'แสดงกำลังผลิตน้ำ</span> '+
+      '<span class="chip '+(st.capIncludeGround?'on':'')+'" onclick="toggleWpGround()">'+(st.capIncludeGround?'✓ ':'')+'รวม Ground Water</span>'+
+    '</div>'+
+    '<canvas id="wpCap"></canvas></div>';
+
   var tblRows=scopeAreas.map(function(a){
     var s=areaStats[a], sk=stkByArea[a];
-    return '<tr><td class="l">'+a+'</td>'+
+    return '<tr><td class="l" style="border-left:4px solid '+WP_COLORS[a]+'">'+a+'</td>'+
       '<td>'+(s.master!=null?fmt(s.master,0):'–')+'</td>'+
       '<td>'+(s.shrimp!=null?fmt(s.shrimp,1):'–')+'</td>'+
       '<td>'+(s.util!=null?fmt(s.util,0)+'%':'–')+'</td>'+
       '<td>'+fmt(usageByArea[a],0)+'</td>'+
-      '<td>'+fmt(usageByArea[a]*price,0)+'</td>'+
-      '<td>'+fmt(sk.pcs,0)+'</td>'+
+      '<td>'+fmtM(costByArea[a])+'</td>'+
+      '<td>'+fmtM(sk.pcs)+'</td>'+
       '<td>'+sk.ponds.size+'</td></tr>';
   }).join('');
   var tblTotal='<tr style="font-weight:800;background:#f8fafc"><td class="l">รวม/เฉลี่ย</td>'+
@@ -835,23 +889,52 @@ async function pageWaterPlan(){
     '<td>'+fmt(scopeAreas.reduce(function(s,a){return s+(areaStats[a].shrimp||0);},0),1)+'</td>'+
     '<td>–</td>'+
     '<td>'+fmt(grandUsage,0)+'</td>'+
-    '<td>'+fmt(grandCost,0)+'</td>'+
-    '<td>'+fmt(scopeAreas.reduce(function(s,a){return s+stkByArea[a].pcs;},0),0)+'</td>'+
+    '<td>'+fmtM(grandCost)+'</td>'+
+    '<td>'+fmtM(grandPcs)+'</td>'+
     '<td>'+scopeAreas.reduce(function(s,a){return s+stkByArea[a].ponds.size;},0)+'</td></tr>';
   var tblCard='<div class="tablecard"><h3 style="margin-bottom:10px"><span class="dot"></span>ตารางสรุปการใช้น้ำและการลงกุ้ง</h3>'+
-    '<table class="dtable"><thead><tr><th class="l">พื้นที่</th><th>บ่อทั้งหมด</th><th>บ่อมีกุ้ง (เฉลี่ย)</th><th>Utilization (เฉลี่ย)</th><th>น้ำที่ใช้ (ลบ.ม.)</th><th>ค่าน้ำประมาณ (บาท)</th><th>กุ้งที่ลง (ตัว)</th><th>บ่อที่ลง (บ่อ)</th></tr></thead>'+
+    '<table class="dtable"><thead><tr><th class="l">พื้นที่</th><th>บ่อทั้งหมด</th><th>บ่อมีกุ้ง (เฉลี่ย)</th><th>Utilization (เฉลี่ย)</th><th>น้ำที่ใช้ (ลบ.ม.)</th><th>ค่าน้ำประมาณ (ล้านบาท)</th><th>กุ้งที่ลง (ล้านตัว)</th><th>บ่อที่ลง (บ่อ)</th></tr></thead>'+
     '<tbody>'+tblRows+tblTotal+'</tbody></table></div>';
 
-  el('app').innerHTML = kpis + '<div class="grid2">'+f1Card+priceCard+'</div>' + chart2Card + tblCard;
+  var pondRowEnd = rowMaster - 2;
+  function buildAreaDetailTable(a){
+    var bs = modBlockStart[a]; if(bs==null) return '';
+    var monthsHdr = Array.from({length:12},function(_,i){return MONTH_TH[i];}).map(function(mt){return '<th>'+mt+'</th>';}).join('');
+    var body='';
+    for(var r=3;r<=pondRowEnd;r++){
+      var lbl = String((SV[r]||[])[bs]||'').trim();
+      if(!lbl) continue;
+      var rai = (SV[r]||[])[bs+1]||'';
+      var cells='';
+      for(var m=1;m<=12;m++){ var v=(SV[r]||[])[bs+1+m]||''; cells+='<td>'+(v||'')+'</td>'; }
+      body += '<tr><td class="l">'+lbl+'</td><td>'+rai+'</td>'+cells+'</tr>';
+    }
+    function statRow(label, rowIdx){
+      var cells='';
+      for(var m=1;m<=12;m++){ var v=swVal(a,rowIdx,m); cells+='<td>'+(v!=null?v:'')+'</td>'; }
+      return '<tr style="font-weight:700;background:#f0fdfa"><td class="l" colspan="2">'+label+'</td>'+cells+'</tr>';
+    }
+    var stats = statRow('Master pond', rowMaster) + statRow('บ่อมีกุ้ง (Shrimp)', rowShrimp) + statRow('Utilization', rowUtil) + statRow('CAP น้ำ (%)', rowCapPct) + statRow('รวมใช้น้ำ (Sum)', rowSum) + statRow('เฉลี่ย/วัน (Avg)', rowAvg) + statRow('สูงสุด (Max)', rowMax) + statRow('ต่ำสุด (Min)', rowMin);
+    return '<div class="tablecard" style="margin-bottom:14px">'+
+      '<h3 style="margin-bottom:10px"><span class="dot" style="background:'+WP_COLORS[a]+'"></span>พื้นที่ '+a+' · ตารางลงกุ้งและการใช้น้ำรายเดือน (จาก summary Water)</h3>'+
+      '<div style="overflow-x:auto"><table class="dtable" style="min-width:900px"><thead><tr><th class="l" style="position:sticky;left:0;background:#f8fafc;z-index:2">บ่อ</th><th>ไร่</th>'+monthsHdr+'</tr></thead>'+
+      '<tbody>'+body+stats+'</tbody></table></div></div>';
+  }
+  var detailTables = scopeAreas.map(buildAreaDetailTable).join('');
+
+  el('app').innerHTML = kpis + '<div class="grid2">'+f1Card+priceCard+'</div>' + chart2Card + capCard + tblCard + detailTables;
 
   var c1=el('wpAnnual');
-  if(c1){ charts.push(new Chart(c1,{type:'bar',data:{labels:scopeAreas,datasets:[{label:'น้ำที่ใช้ทั้งปี (ลบ.ม.)',data:scopeAreas.map(function(a){return f1Rows.find(function(rr){return rr.mod===a;}).total;}),backgroundColor:P.sky,borderRadius:6}]},options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}})); }
+  if(c1){ charts.push(new Chart(c1,{type:'bar',data:{labels:scopeAreas,datasets:[{label:'น้ำที่ใช้ทั้งปี (ลบ.ม.)',data:scopeAreas.map(function(a){return f1Rows.find(function(rr){return rr.mod===a;}).total;}),backgroundColor:scopeAreas.map(function(a){return WP_COLORS[a];}),borderRadius:6}]},options:{plugins:{legend:{display:false},datalabels:{display:true,anchor:'end',align:'top',color:'#0f172a',font:{weight:'800',size:12},formatter:function(v){return fmt(v,0);}}},scales:{y:{beginAtZero:true}}}})); }
 
   var c2=el('wpTrend');
   if(c2){ var cx=c2.getContext('2d'); charts.push(new Chart(c2,{data:{labels:chartLabels,datasets:[
     {type:'bar',label:'น้ำที่ใช้ (ลบ.ม.)',data:chartUsage,backgroundColor:gfill(cx,P.sky),borderColor:P.sky,borderWidth:1,yAxisID:'y',order:2},
     {type:'line',label:prodLabel,data:chartProd,borderColor:P.amber,backgroundColor:P.amber,tension:.3,yAxisID:'y1',order:1,spanGaps:true}
-  ]},options:{interaction:{mode:'index',intersect:false},scales:{y:{beginAtZero:true,title:{display:true,text:'ลบ.ม.'}},y1:{beginAtZero:true,position:'right',grid:{drawOnChartArea:false},title:{display:true,text:prodLabel}}}}})); }
+  ]},options:{interaction:{mode:'index',intersect:false},plugins:{datalabels:{display:false}},scales:{y:{beginAtZero:true,title:{display:true,text:'ลบ.ม.'}},y1:{beginAtZero:true,position:'right',grid:{drawOnChartArea:false},title:{display:true,text:prodLabel}}}}})); }
+
+  var c3=el('wpCap');
+  if(c3){ charts.push(new Chart(c3,{data:{labels:capLabels,datasets:capDatasets},options:{interaction:{mode:'index',intersect:false},plugins:{datalabels:{display:false}},scales:{y:{beginAtZero:true,title:{display:true,text:'ลบ.ม./วัน'}}}}})); }
 }
 
 /* ---------- filter bar helper ---------- */
