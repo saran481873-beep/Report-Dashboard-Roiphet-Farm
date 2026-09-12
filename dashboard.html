@@ -945,7 +945,10 @@ async function pageWaterPlan(){
   }
   var detailAreaTabs = scopeAreas.map(function(a){
            var on = st.detailArea===a;
-           return '<span class="chip'+(on?' on':'')+'" style="cursor:pointer'+(on?';background:'+WP_COLORS[a]+';border-color:'+WP_COLORS[a]+';color:#fff':'')+'" onclick="setWpDetailArea(\''+a+'\')">พื้นที่ '+a+'</span>';
+           var wpTabStyle = on
+             ? ('cursor:pointer;background:'+WP_COLORS[a]+';border-color:'+WP_COLORS[a]+';color:#fff')
+             : ('cursor:pointer;background:#fff;border:1.5px solid '+WP_COLORS[a]+';color:'+WP_COLORS[a]);
+           return '<span class="chip'+(on?' on':'')+'" style="'+wpTabStyle+'" onclick="setWpDetailArea(\''+a+'\')">พื้นที่ '+a+'</span>';
          }).join(' ');
          var detailTables = '<div class="tablecard" style="margin-bottom:14px"><h3 style="margin-bottom:10px"><span class="dot"></span>เลือกพื้นที่ (ตารางลงกุ้ง/ใช้น้ำรายเดือน)</h3><div>'+detailAreaTabs+'</div></div>' + (st.detailArea ? buildAreaDetailTable(st.detailArea) : '');
 
