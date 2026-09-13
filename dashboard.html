@@ -702,15 +702,19 @@ async function pageWaterPlan(){
   var UV=uw.values, SV=sw.values, STV=stk.values;
   var areasAll=['A','B','C','D','R'];
   var header=UV[0];
+  var dateColsStart=header.length;
+  for(var c=3;c<header.length;c++){ if(wpParseDMY(header[c])){ dateColsStart=c; break; } }
   var dateCols=[];
-  for(var c=12;c<header.length;c++){ var p=wpParseDMY(header[c]); if(p){ p.idx=c; dateCols.push(p); } }
+  for(var c=dateColsStart;c<header.length;c++){ var p=wpParseDMY(header[c]); if(p){ p.idx=c; dateCols.push(p); } }
+  var stockingCols=[];
+  for(var c=3;c<dateColsStart;c++){ if(/stocking/i.test(String(header[c]||''))) stockingCols.push(c); }
   var ponds=[];
   for(var r=1;r<UV.length;r++){
     var row=UV[r]; var mod=(row[0]||'').trim();
     if(areasAll.indexOf(mod)===-1) continue;
     var pond=(row[1]||'').trim(); if(!pond) continue;
     ponds.push({mod:mod,pond:pond,type:(row[2]||'').trim(),row:row,
-      cycles:[[wpParseDMY(row[3]),wpParseDMY(row[4])],[wpParseDMY(row[6]),wpParseDMY(row[7])],[wpParseDMY(row[9]),wpParseDMY(row[10])]]});
+      cycles: stockingCols.map(function(sc){ return [wpParseDMY(row[sc]), wpParseDMY(row[sc+1])]; })});
   }
   var years=[...new Set(dateCols.map(function(d){return d.y;}))].sort(function(a,b){return a-b;});
   var capBlock = wpFindCapacityBlock(UV);
