@@ -418,7 +418,7 @@ const PAGES=[
   ,{id:'biomass',label:'9 · Estimate Biomass'}
   ,{id:'prepare',label:'10 · Prepare pond'}
   ,{id:'pnl',label:'11 · Profit & Loss Forecast'}
-  ,{id:'waterplan',label:'12 · Water plan'}
+  ,{id:'waterplan',label:'12 · Plan Water'}
 ];
 const cache={};
 let charts=[];
@@ -696,7 +696,7 @@ window.resetWpHiddenPonds=function(a){
 };
 
 async function pageWaterPlan(){
-  el('subtitle').textContent='แผนการใช้น้ำ (Water plan) · ปริมาณน้ำที่ใช้เทียบกำลังผลิต และประมาณค่าใช้จ่ายค่าน้ำ · ที่มา: Use Water + summary Water';
+  el('subtitle').textContent='แผนการใช้น้ำ (Plan Water) · ปริมาณน้ำที่ใช้เทียบกำลังผลิต และประมาณค่าใช้จ่ายค่าน้ำ · ที่มา: Use Water + summary Water';
   var res = await Promise.all([getTab('usewater'), getTab('summarywater'), getTab('stocking')]);
   var uw=res[0], sw=res[1], stk=res[2];
   var UV=uw.values, SV=sw.values, STV=stk.values;
