@@ -419,6 +419,7 @@ const PAGES=[
   ,{id:'prepare',label:'10 · Prepare pond'}
   ,{id:'pnl',label:'11 · Profit & Loss Forecast'}
   ,{id:'waterplan',label:'12 · Plan Water'}
+  ,{id:'feedplan',label:'13 · Plan Feed'}
 ];
 const cache={};
 let charts=[];
@@ -595,7 +596,7 @@ window.showAllWidgets=function(page){
 };
 
 /* filter state per page */
-const F={situation:{type:'all',area:['all']},performance:{month:['all'],area:['all']},weekly:{type:'all',status:'all',area:['all'],sortKey:null,sortDir:1},financial:{month:['all'],area:['all']},orderharvest:{size:'all',area:['all']},stocking:{area:['all'],month:['all'],type:['all'],week:['all'],year:['all']},prepare:{area:['all'],type:['all'],unit:['all']},waterplan:{area:['all'],month:['all'],year:['all']}};
+const F={situation:{type:'all',area:['all']},performance:{month:['all'],area:['all']},weekly:{type:'all',status:'all',area:['all'],sortKey:null,sortDir:1},financial:{month:['all'],area:['all']},orderharvest:{size:'all',area:['all']},stocking:{area:['all'],month:['all'],type:['all'],week:['all'],year:['all']},prepare:{area:['all'],type:['all'],unit:['all']},waterplan:{area:['all'],month:['all'],year:['all']},feedplan:{area:['all'],month:['all'],year:['all']}};
 
 /* ---------- PAGE DISPATCH ---------- */
 async function renderPage(id){
@@ -614,6 +615,7 @@ async function renderPage(id){
   else if(id==='prepare')await pagePrepare();
   else if(id==='pnl')await pagePnL();
     else if(id==='waterplan')await pageWaterPlan();
+    else if(id==='feedplan')await pageFeedPlan();
     setLive(true,'ออนไลน์');
     el('asof').textContent=new Date().toLocaleString('th-TH',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
   }catch(e){ el('app').innerHTML='<div class="loading">โหลดข้อมูลไม่สำเร็จ: '+e.message+'</div>'; setLive(false,'ออฟไลน์'); }
@@ -693,6 +695,28 @@ window.resetWpHiddenPonds=function(a){
   F.waterplan.hiddenPonds[a]={};
   try{ localStorage.setItem('wp_hiddenPonds', JSON.stringify(F.waterplan.hiddenPonds)); }catch(e){}
   renderPage('waterplan');
+};
+
+window.setFeedAreaPrice=function(area,v){
+  var n=parseFloat(v); if(isNaN(n)||n<0) n=0;
+  F.feedplan.priceByArea[area]=n;
+  try{ localStorage.setItem('fp_priceByArea', JSON.stringify(F.feedplan.priceByArea)); }catch(e){}
+  renderPage('feedplan');
+};
+window.setFeedGran=function(g){ F.feedplan.gran=g; renderPage('feedplan'); };
+window.setFeedDetailArea=function(a){ F.feedplan.detailArea=a; renderPage('feedplan'); };
+window.toggleFeedPondHidden=function(a,pond){
+  if(!F.feedplan.hiddenPonds) F.feedplan.hiddenPonds={};
+  if(!F.feedplan.hiddenPonds[a]) F.feedplan.hiddenPonds[a]={};
+  F.feedplan.hiddenPonds[a][pond]=!F.feedplan.hiddenPonds[a][pond];
+  try{ localStorage.setItem('fp_hiddenPonds', JSON.stringify(F.feedplan.hiddenPonds)); }catch(e){}
+  renderPage('feedplan');
+};
+window.resetFeedHiddenPonds=function(a){
+  if(!F.feedplan.hiddenPonds) F.feedplan.hiddenPonds={};
+  F.feedplan.hiddenPonds[a]={};
+  try{ localStorage.setItem('fp_hiddenPonds', JSON.stringify(F.feedplan.hiddenPonds)); }catch(e){}
+  renderPage('feedplan');
 };
 
 async function pageWaterPlan(){
@@ -970,6 +994,285 @@ async function pageWaterPlan(){
   var c3=el('wpCap');
   if(c3){ charts.push(new Chart(c3,{data:{labels:capLabels,datasets:capDatasets},options:{interaction:{mode:'index',intersect:false},plugins:{datalabels:{display:false}},scales:{y:{beginAtZero:true,title:{display:true,text:'ลบ.ม./วัน'}}}}})); }
 }
+
+async function pageFeedPlan(){
+  el('subtitle').textContent='แผนการใช้อาหาร (Plan Feed) · ปริมาณอาหารที่ใช้แยกตามช่วงการเจริญเติบโต และประมาณค่าใช้จ่ายอาหาร · ที่มา: Use feed + summary feed';
+  var res = await Promise.all([getTab('usefeed'), getTab('summaryfeed'), getTab('stocking'), getTab('summarywater')]);
+  var uf=res[0], sf=res[1], stk=res[2], sw=res[3];
+  var UV=uf.values, SFV=sf.values, STV=stk.values, SV=sw.values;
+  var areasAll=['A','B','C','D','R'];
+  var header=UV[0];
+  var dateColsStart=header.length;
+  for(var c=3;c<header.length;c++){ if(wpParseDMY(header[c])){ dateColsStart=c; break; } }
+  var dateCols=[];
+  for(var c=dateColsStart;c<header.length;c++){ var p=wpParseDMY(header[c]); if(p){ p.idx=c; dateCols.push(p); } }
+  var stockingCols=[];
+  for(var c=3;c<dateColsStart;c++){ if(/stocking/i.test(String(header[c]||''))) stockingCols.push(c); }
+
+  var ponds=[];
+  for(var r=1;r<UV.length;r++){
+    var row=UV[r]; var mod=(row[0]||'').trim(); var pond=(row[1]||'').trim();
+    if(mod && areasAll.indexOf(mod)!==-1 && pond){
+      ponds.push({mod:mod,pond:pond,type:(row[2]||'').trim(),row:row.slice(),
+        cycles: stockingCols.map(function(sc){ return [wpParseDMY(row[sc]), wpParseDMY(row[sc+1])]; })});
+    } else if(!mod && !pond && ponds.length){
+      var cp=ponds[ponds.length-1];
+      dateCols.forEach(function(dc){ var v=wpNum(row[dc.idx]); if(v){ cp.row[dc.idx]=(wpNum(cp.row[dc.idx])||0)+v; } });
+    }
+  }
+  var years=[...new Set(dateCols.map(function(d){return d.y;}))].sort(function(a,b){return a-b;});
+
+  var st=F.feedplan;
+  if(!st.gran) st.gran='month';
+  if(!st.priceByArea){
+    var saved=null; try{ saved=JSON.parse(localStorage.getItem('fp_priceByArea')||'null'); }catch(e){}
+    st.priceByArea = saved || {A:35,B:35,C:35,D:35,R:35};
+  }
+  if(!st.hiddenPonds){
+    var savedHidden=null; try{ savedHidden=JSON.parse(localStorage.getItem('fp_hiddenPonds')||'null'); }catch(e){}
+    st.hiddenPonds = savedHidden || {};
+  }
+
+  filterBar('feedplan',[
+    {label:'พื้นที่ (Module)',key:'area',multi:true,opts:[{v:'all',t:'ทั้งหมด'}].concat(areasAll.map(function(m){return {v:m,t:m};}))},
+    {label:'ปี',key:'year',multi:true,hint:'เลือกได้หลายปี',opts:[{v:'all',t:'ทั้งหมด'}].concat(years.map(function(y){return {v:String(y),t:String(y)};}))},
+    {label:'เดือน',key:'month',multi:true,hint:'เลือกได้หลายเดือน',opts:[{v:'all',t:'ทั้งหมด'}].concat(Array.from({length:12},function(_,i){return i+1;}).map(function(m){return {v:String(m),t:MONTH_TH[m-1]};}))}
+  ]);
+
+  var areaSel=st.area, isAllArea=areaSel.indexOf('all')!==-1;
+  var yearSel=st.year, isAllYear=yearSel.indexOf('all')!==-1;
+  var monthSel=st.month, isAllMonth=monthSel.indexOf('all')!==-1;
+  var scopeAreas=isAllArea?areasAll:areasAll.filter(function(a){return areaSel.indexOf(a)!==-1;});
+  if(!st.detailArea || scopeAreas.indexOf(st.detailArea)===-1) st.detailArea = scopeAreas[0] || areasAll[0];
+  var scopeCols=dateCols.filter(function(dc){return (isAllYear||yearSel.indexOf(String(dc.y))!==-1)&&(isAllMonth||monthSel.indexOf(String(dc.mo))!==-1);});
+  var scopePonds=ponds.filter(function(p){return scopeAreas.indexOf(p.mod)!==-1;});
+
+  var usageByArea={}; areasAll.forEach(function(a){usageByArea[a]=0;});
+  var usageByAreaYear={}; areasAll.forEach(function(a){usageByAreaYear[a]={};});
+  var usageByMonthKey={}, usageByDay={}, activeByDay={};
+
+  ponds.filter(function(p){return scopeAreas.indexOf(p.mod)!==-1;}).forEach(function(p){
+    dateCols.forEach(function(dc){
+      var v=wpNum(p.row[dc.idx]);
+      var mk=dc.y+'-'+String(dc.mo).padStart(2,'0');
+      var dk=wpDateKey(dc);
+      if(v){
+        usageByArea[p.mod]+=v;
+        usageByAreaYear[p.mod][dc.y]=(usageByAreaYear[p.mod][dc.y]||0)+v;
+        usageByMonthKey[mk]=(usageByMonthKey[mk]||0)+v;
+        usageByDay[dk]=(usageByDay[dk]||0)+v;
+      }
+      var active=p.cycles.some(function(cy){return wpInScope(dc,cy[0],cy[1]);});
+      if(active) activeByDay[dk]=(activeByDay[dk]||0)+1;
+    });
+  });
+  var grandUsage=scopeAreas.reduce(function(s,a){return s+usageByArea[a];},0);
+  var costByArea={}; scopeAreas.forEach(function(a){ costByArea[a]=usageByArea[a]*(st.priceByArea[a]||0); });
+  var grandCost=scopeAreas.reduce(function(s,a){return s+costByArea[a];},0);
+  var distinctMonths=Object.keys(usageByMonthKey).length||1;
+  var avgMonthlyCost=grandCost/distinctMonths;
+
+  var headerRow1=SV[1]||[];
+  var modBlockStart={};
+  areasAll.forEach(function(a){ var idx=headerRow1.findIndex(function(v){return String(v||'').trim()===a;}); if(idx>=0) modBlockStart[a]=idx; });
+  function swFindRow(label,fallback){ for(var i=0;i<SV.length;i++){ if(String((SV[i]||[])[0]||'').trim()===label) return i; } return fallback; }
+  var rowMaster=swFindRow('Master pond',20), rowShrimp=swFindRow('Shrimp (มีกุ้ง)',21), rowUtil=swFindRow('Utilization',22);
+  function swVal(mod,rowIdx,m){
+    var bs=modBlockStart[mod]; if(bs==null) return null;
+    return (SV[rowIdx]||[])[bs+1+m];
+  }
+  function pctNum(s){ if(s==null||s==='') return null; var n=parseFloat(String(s).replace('%','')); return isNaN(n)?null:n; }
+
+  var headerRow0F=SFV[0]||[];
+  var modBlockStartFeed={};
+  areasAll.forEach(function(a){ var idx=headerRow0F.findIndex(function(v){return String(v||'').trim()===a;}); if(idx>=0) modBlockStartFeed[a]=idx; });
+  function sfFindRow(label,fallback){ for(var i=0;i<SFV.length;i++){ if(String((SFV[i]||[])[0]||'').trim()===String(label).trim()) return i; } return fallback; }
+  var row01=sfFindRow('#01',2), row02=sfFindRow('#02',3), row3S=sfFindRow('#3S',4), row3P=sfFindRow('#3P',5), row4S=sfFindRow('#4S',6), rowTotalF=sfFindRow('Total',7);
+  function sfVal(mod,rowIdx,m){
+    var bs=modBlockStartFeed[mod]; if(bs==null) return null;
+    return (SFV[rowIdx]||[])[bs+1+m];
+  }
+
+  var monthsInScope=[]; for(var m=1;m<=12;m++){ if(isAllMonth||monthSel.indexOf(String(m))!==-1) monthsInScope.push(m); }
+
+  var areaStats={};
+  areasAll.forEach(function(a){
+    var masterVals=[], shrimpVals=[], utilVals=[];
+    monthsInScope.forEach(function(m){
+      var mv=swVal(a,rowMaster,m), sv=swVal(a,rowShrimp,m), uv=pctNum(swVal(a,rowUtil,m));
+      if(mv!=null&&mv!=='') masterVals.push(wpNum(mv));
+      if(sv!=null&&sv!=='') shrimpVals.push(wpNum(sv));
+      if(uv!=null) utilVals.push(uv);
+    });
+    var avg=function(arr){ return arr.length? arr.reduce(function(s,x){return s+x;},0)/arr.length : null; };
+    areaStats[a]={ master: masterVals.length?avg(masterVals):null, shrimp: shrimpVals.length?avg(shrimpVals):null, util: utilVals.length?avg(utilVals):null };
+  });
+
+  var stkRows=[];
+  for(var i=1;i<STV.length;i++){ var rr=STV[i]; if(!(rr[1]||'').trim()) continue;
+    stkRows.push({mod:(rr[0]||'').trim(),pond:(rr[1]||'').trim(),month:parseInt(rr[3])||0,year:parseInt(rr[4])||0,pcs:num(rr[5])||0}); }
+  var stkScope=stkRows.filter(function(rw){ return scopeAreas.indexOf(rw.mod)!==-1 && (isAllYear||yearSel.indexOf(String(rw.year))!==-1) && (isAllMonth||monthSel.indexOf(String(rw.month))!==-1); });
+  var stkByArea={}; areasAll.forEach(function(a){stkByArea[a]={pcs:0,ponds:new Set()};});
+  stkScope.forEach(function(rw){ stkByArea[rw.mod].pcs+=rw.pcs; stkByArea[rw.mod].ponds.add(rw.pond); });
+  var grandPcs=scopeAreas.reduce(function(s,a){return s+stkByArea[a].pcs;},0);
+
+  var periodLabel=(isAllArea?'ทุกพื้นที่':scopeAreas.join(', '))+' · '+(isAllMonth?'ทุกเดือน':monthsInScope.map(function(m){return MONTH_TH[m-1];}).join(', '))+' · '+(isAllYear?'ทุกปี':yearSel.join(', '));
+
+  var yearsForF1=isAllYear?years:years.filter(function(y){return yearSel.indexOf(String(y))!==-1;});
+  var f1Rows=scopeAreas.map(function(a){
+    var byY={}; yearsForF1.forEach(function(y){ byY[y]=usageByAreaYear[a][y]||0; });
+    var total=yearsForF1.reduce(function(s,y){return s+byY[y];},0);
+    return {mod:a, total:total};
+  });
+
+  var gran=st.gran;
+  var chartLabels=[], chartUsage=[], chartProd=[], prodLabel='';
+  if(gran==='month'){
+    var mkList=Object.keys(usageByMonthKey).sort();
+    chartLabels=mkList.map(function(mk){ var parts=mk.split('-'); return MONTH_TH[parseInt(parts[1])-1]+' '+parts[0]; });
+    chartUsage=mkList.map(function(mk){ return usageByMonthKey[mk]; });
+    prodLabel='Utilization เฉลี่ย (%)';
+    chartProd=mkList.map(function(mk){
+      var parts=mk.split('-'); var mm=parseInt(parts[1]);
+      var vals=scopeAreas.map(function(a){ return pctNum(swVal(a,rowUtil,mm)); }).filter(function(v){return v!=null;});
+      return vals.length? (vals.reduce(function(s,v){return s+v;},0)/vals.length) : null;
+    });
+  } else {
+    var dkList=Object.keys(usageByDay).sort();
+    chartLabels=dkList.map(function(dk){ var parts=dk.split('-'); return parts[2]+'/'+parts[1]; });
+    chartUsage=dkList.map(function(dk){ return usageByDay[dk]; });
+    prodLabel='บ่อที่กำลังเลี้ยง (บ่อ)';
+    chartProd=dkList.map(function(dk){ return activeByDay[dk]||0; });
+  }
+
+  var fmMkList = Object.keys(usageByMonthKey).sort();
+  var fmLabels = fmMkList.map(function(mk){ var parts=mk.split('-'); return MONTH_TH[parseInt(parts[1])-1]+' '+parts[0]; });
+  var fmDatasets = [];
+  scopeAreas.forEach(function(a){
+    var data = fmMkList.map(function(mk){
+      var parts=mk.split('-'); var mm=parseInt(parts[1]);
+      var v = sfVal(a, rowTotalF, mm);
+      return (v==null||v==='') ? null : wpNum(v);
+    });
+    fmDatasets.push({type:'bar', label:'อาหารที่ใช้รวม/เดือน - '+a, data:data, backgroundColor:WP_COLORS[a], borderRadius:4});
+  });
+
+  var P={teal:'#0d9488',emer:'#10b981',viol:'#8b5cf6',sky:'#0ea5e9',rose:'#f43f5e',amber:'#f59e0b',slate:'#94a3b8',mint:'#5eead4'};
+  var gfill=function(cx,hex){ var g=cx.createLinearGradient(0,0,0,300); g.addColorStop(0,hex+'44'); g.addColorStop(1,hex+'03'); return g; };
+
+  var kpis='<div class="kpis">'+
+    '<div class="kpi b"><div class="klabel">อาหารที่ใช้รวม (ช่วงที่เลือก)</div><div class="kval">'+fmt(grandUsage,0)+'</div><div class="ksub">กก. · '+periodLabel+'</div></div>'+
+    '<div class="kpi g"><div class="klabel">ค่าอาหารประมาณรวม</div><div class="kval">'+fmtM(grandCost)+'</div><div class="ksub">ล้านบาท · ราคาต่อพื้นที่ (ปรับได้ด้านล่าง)</div></div>'+
+    '<div class="kpi y"><div class="klabel">ค่าอาหารเฉลี่ย/เดือน</div><div class="kval">'+fmt(avgMonthlyCost,0)+'</div><div class="ksub">บาท (จาก '+distinctMonths+' เดือนในช่วงที่เลือก)</div></div>'+
+    '<div class="kpi v"><div class="klabel">กุ้งที่ลงในช่วง</div><div class="kval">'+fmtM(grandPcs)+'</div><div class="ksub">ล้านตัว</div></div>'+
+  '</div>';
+
+  var priceCard='<div class="card"><h3><span class="dot"></span>ราคาอาหาร (บาท/กก.) ต่อพื้นที่</h3>'+
+    '<div class="hint">กรอกราคาอาหารแยกตามพื้นที่ เพื่อคำนวณค่าใช้จ่ายอาหารของช่วงที่เลือกอยู่ตอนนี้</div>'+
+    '<table class="dtable" style="width:100%"><thead><tr><th class="l">พื้นที่</th><th>ราคา (บาท/กก.)</th><th>อาหารที่ใช้ (กก.)</th><th>ค่าอาหารประมาณ (บาท)</th></tr></thead><tbody>'+
+    scopeAreas.map(function(a){ return '<tr><td class="l" style="border-left:4px solid '+WP_COLORS[a]+'">'+a+'</td>'+
+      '<td><input type="number" value="'+(st.priceByArea[a]!=null?st.priceByArea[a]:35)+'" step="0.5" min="0" style="width:80px;padding:4px 6px;border:1px solid var(--line);border-radius:6px;text-align:center" onchange="setFeedAreaPrice(\''+a+'\',this.value)"></td>'+
+      '<td>'+fmt(usageByArea[a],0)+'</td><td>'+fmt(costByArea[a],0)+'</td></tr>'; }).join('')+
+    '<tr style="font-weight:800;background:#f8fafc"><td class="l">รวม</td><td>-</td><td>'+fmt(grandUsage,0)+'</td><td>'+fmt(grandCost,0)+'</td></tr>'+
+    '</tbody></table></div>';
+
+  var f1Card='<div class="card"><h3><span class="dot"></span>สรุปการใช้อาหารรายปีของแต่ละพื้นที่</h3>'+
+    '<div class="hint">ผลรวมทั้งปี (ไม่กรองตามเดือน แต่กรองตามพื้นที่/ปีที่เลือก) · หน่วย: กก. · สีต่างกันตามพื้นที่</div>'+
+    '<canvas id="fpAnnual"></canvas></div>';
+
+  var chart2Card='<div class="card"><h3><span class="dot"></span>การใช้อาหาร · '+(gran==='month'?'รายเดือน':'รายวัน')+'</h3>'+
+    '<div class="hint">แท่ง = อาหารที่ใช้ (กก.) · เส้น = '+prodLabel+' · '+periodLabel+'</div>'+
+    '<div style="text-align:right;margin-bottom:8px">'+
+      '<span class="chip '+(gran==='month'?'on':'')+'" onclick="setFeedGran(\'month\')">รายเดือน</span> '+
+      '<span class="chip '+(gran==='day'?'on':'')+'" onclick="setFeedGran(\'day\')">รายวัน</span>'+
+    '</div>'+
+    '<canvas id="fpTrend"></canvas></div>';
+
+  var fmCard='<div class="card"><h3><span class="dot"></span>การใช้อาหารรายเดือน แยกตามพื้นที่</h3>'+
+    '<div class="hint">แท่ง = อาหารที่ใช้รวม/เดือน (กก.) ต่อพื้นที่ (จาก summary feed - แถว Total)</div>'+
+    '<canvas id="fpMonthly"></canvas></div>';
+
+  var tblRows=scopeAreas.map(function(a){
+    var s=areaStats[a], sk=stkByArea[a];
+    return '<tr><td class="l" style="border-left:4px solid '+WP_COLORS[a]+'">'+a+'</td>'+
+      '<td>'+(s.master!=null?fmt(s.master,0):'–')+'</td>'+
+      '<td>'+(s.shrimp!=null?fmt(s.shrimp,1):'–')+'</td>'+
+      '<td>'+(s.util!=null?fmt(s.util,0)+'%':'–')+'</td>'+
+      '<td>'+fmt(usageByArea[a],0)+'</td>'+
+      '<td>'+fmtM(costByArea[a])+'</td>'+
+      '<td>'+fmtM(sk.pcs)+'</td>'+
+      '<td>'+sk.ponds.size+'</td></tr>';
+  }).join('');
+  var tblTotal='<tr style="font-weight:800;background:#f8fafc"><td class="l">รวม/เฉลี่ย</td>'+
+    '<td>'+fmt(scopeAreas.reduce(function(s,a){return s+(areaStats[a].master||0);},0),0)+'</td>'+
+    '<td>'+fmt(scopeAreas.reduce(function(s,a){return s+(areaStats[a].shrimp||0);},0),1)+'</td>'+
+    '<td>–</td>'+
+    '<td>'+fmt(grandUsage,0)+'</td>'+
+    '<td>'+fmtM(grandCost)+'</td>'+
+    '<td>'+fmtM(grandPcs)+'</td>'+
+    '<td>'+scopeAreas.reduce(function(s,a){return s+stkByArea[a].ponds.size;},0)+'</td></tr>';
+  var tblCard='<div class="tablecard"><h3 style="margin-bottom:10px"><span class="dot"></span>ตารางสรุปการใช้อาหารและการลงกุ้ง</h3>'+
+    '<table class="dtable"><thead><tr><th class="l">พื้นที่</th><th>บ่อทั้งหมด</th><th>บ่อมีกุ้ง (เฉลี่ย)</th><th>Utilization (เฉลี่ย)</th><th>อาหารที่ใช้ (กก.)</th><th>ค่าอาหารประมาณ (ล้านบาท)</th><th>กุ้งที่ลง (ล้านตัว)</th><th>บ่อที่ลง (บ่อ)</th></tr></thead>'+
+    '<tbody>'+tblRows+tblTotal+'</tbody></table></div>';
+
+  var pondRowEnd = rowMaster - 2;
+  function buildAreaDetailTable(a){
+    var bs = modBlockStart[a]; if(bs==null) return '';
+    var monthsHdr = Array.from({length:12},function(_,i){return MONTH_TH[i];}).map(function(mt){return '<th>'+mt+'</th>';}).join('');
+    var hidden = (st.hiddenPonds && st.hiddenPonds[a]) || {};
+    var hiddenList = [];
+    var body='';
+    for(var r=3;r<=pondRowEnd;r++){
+      var lbl = String((SV[r]||[])[bs]||'').trim();
+      if(!lbl) continue;
+      if(hidden[lbl]){ hiddenList.push(lbl); continue; }
+      var rai = (SV[r]||[])[bs+1]||'';
+      var cells='';
+      for(var m=1;m<=12;m++){ var v=(SV[r]||[])[bs+1+m]||''; cells+='<td>'+(v||'')+'</td>'; }
+      body += '<tr><td class="l"><span style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px" title="กดชื่อบ่อเพื่อซ่อน" onclick="toggleFeedPondHidden(\''+a+'\',\''+lbl+'\')">'+lbl+'</span></td><td>'+rai+'</td>'+cells+'</tr>';
+    }
+    function statRowSW(label, rowIdx){
+      var cells='';
+      for(var m=1;m<=12;m++){ var v=swVal(a,rowIdx,m); cells+='<td>'+(v!=null?v:'')+'</td>'; }
+      return '<tr style="font-weight:700;background:#f0fdfa"><td class="l" colspan="2">'+label+'</td>'+cells+'</tr>';
+    }
+    function statRowSF(label, rowIdx){
+      var cells='';
+      for(var m=1;m<=12;m++){ var v=sfVal(a,rowIdx,m); cells+='<td>'+(v!=null&&v!==''?v:'')+'</td>'; }
+      return '<tr style="font-weight:700;background:#fefce8"><td class="l" colspan="2">'+label+'</td>'+cells+'</tr>';
+    }
+    var stats = statRowSW('Master pond', rowMaster) + statRowSW('บ่อมีกุ้ง (Shrimp)', rowShrimp) + statRowSW('Utilization', rowUtil)
+      + statRowSF('#01', row01) + statRowSF('#02', row02) + statRowSF('#3S', row3S) + statRowSF('#3P', row3P) + statRowSF('#4S', row4S) + statRowSF('Total', rowTotalF);
+    var hiddenHint = hiddenList.length ? ('<div class="hint" style="margin-top:6px">ซ่อนอยู่ '+hiddenList.length+' บ่อ: '+hiddenList.join(', ')+' · <span style="cursor:pointer;color:#0ea5e9;text-decoration:underline" onclick="resetFeedHiddenPonds(\''+a+'\')">แสดงทั้งหมด</span></div>') : '';
+    return '<div class="tablecard" style="margin-bottom:14px">'+
+      '<h3 style="margin-bottom:10px"><span class="dot" style="background:'+WP_COLORS[a]+'"></span>พื้นที่ '+a+' · ตารางลงกุ้งและการใช้อาหารรายเดือน (จาก summary Water + summary feed)</h3>'+
+      '<div style="overflow-x:auto"><table class="dtable" style="min-width:900px"><thead><tr><th class="l" style="position:sticky;left:0;background:#f8fafc;z-index:2">บ่อ</th><th>ไร่</th>'+monthsHdr+'</tr></thead>'+
+      '<tbody>'+body+stats+'</tbody></table></div>'+hiddenHint+'</div>';
+  }
+  var detailAreaTabs = scopeAreas.map(function(a){
+    var on = st.detailArea===a;
+    var wpTabStyle = on
+      ? ('cursor:pointer;background:'+WP_COLORS[a]+';border-color:'+WP_COLORS[a]+';color:#fff')
+      : ('cursor:pointer;background:#fff;border:1.5px solid '+WP_COLORS[a]+';color:'+WP_COLORS[a]);
+    return '<span class="chip'+(on?' on':'')+'" style="'+wpTabStyle+'" onclick="setFeedDetailArea(\''+a+'\')">พื้นที่ '+a+'</span>';
+  }).join(' ');
+  var detailTables = '<div class="tablecard" style="margin-bottom:14px"><h3 style="margin-bottom:10px"><span class="dot"></span>เลือกพื้นที่ (ตารางลงกุ้ง/ใช้อาหารรายเดือน)</h3><div>'+detailAreaTabs+'</div></div>' + (st.detailArea ? buildAreaDetailTable(st.detailArea) : '');
+
+  el('app').innerHTML = kpis + '<div class="grid2">'+f1Card+priceCard+'</div>' + chart2Card + fmCard + tblCard + detailTables;
+
+  var c1=el('fpAnnual');
+  if(c1){ charts.push(new Chart(c1,{type:'bar',data:{labels:scopeAreas,datasets:[{label:'อาหารที่ใช้ทั้งปี (กก.)',data:scopeAreas.map(function(a){return f1Rows.find(function(rr){return rr.mod===a;}).total;}),backgroundColor:scopeAreas.map(function(a){return WP_COLORS[a];}),borderRadius:6}]},options:{plugins:{legend:{display:false},datalabels:{display:true,anchor:'end',align:'top',color:'#0f172a',font:{weight:'800',size:12},formatter:function(v){return fmt(v,0);}}},scales:{y:{beginAtZero:true}}}})); }
+
+  var c2=el('fpTrend');
+  if(c2){ var cx=c2.getContext('2d'); charts.push(new Chart(c2,{data:{labels:chartLabels,datasets:[
+    {type:'bar',label:'อาหารที่ใช้ (กก.)',data:chartUsage,backgroundColor:gfill(cx,P.sky),borderColor:P.sky,borderWidth:1,yAxisID:'y',order:2},
+    {type:'line',label:prodLabel,data:chartProd,borderColor:P.amber,backgroundColor:P.amber,tension:.3,yAxisID:'y1',order:1,spanGaps:true}
+  ]},options:{interaction:{mode:'index',intersect:false},plugins:{datalabels:{display:false}},scales:{y:{beginAtZero:true,title:{display:true,text:'กก.'}},y1:{beginAtZero:true,position:'right',grid:{drawOnChartArea:false},title:{display:true,text:prodLabel}}}}})); }
+
+  var c3=el('fpMonthly');
+  if(c3){ charts.push(new Chart(c3,{data:{labels:fmLabels,datasets:fmDatasets},options:{interaction:{mode:'index',intersect:false},plugins:{datalabels:{display:false}},scales:{y:{beginAtZero:true,title:{display:true,text:'กก.'}}}}})); }
+}
+
 
 /* ---------- filter bar helper ---------- */
 function filterBar(page,groups){
