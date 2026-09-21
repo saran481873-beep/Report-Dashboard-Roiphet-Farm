@@ -1058,11 +1058,16 @@ async function pageFeedPlan(){
   ponds.filter(function(p){return scopeAreas.indexOf(p.mod)!==-1;}).forEach(function(p){
     dateCols.forEach(function(dc){
       var v=wpNum(p.row[dc.idx]);
+      if(v) usageByAreaYear[p.mod][dc.y]=(usageByAreaYear[p.mod][dc.y]||0)+v;
+    });
+  });
+  scopePonds.forEach(function(p){
+    scopeCols.forEach(function(dc){
+      var v=wpNum(p.row[dc.idx]);
       var mk=dc.y+'-'+String(dc.mo).padStart(2,'0');
       var dk=wpDateKey(dc);
       if(v){
         usageByArea[p.mod]+=v;
-        usageByAreaYear[p.mod][dc.y]=(usageByAreaYear[p.mod][dc.y]||0)+v;
         usageByMonthKey[mk]=(usageByMonthKey[mk]||0)+v;
         usageByDay[dk]=(usageByDay[dk]||0)+v;
       }
@@ -1165,9 +1170,9 @@ async function pageFeedPlan(){
   var gfill=function(cx,hex){ var g=cx.createLinearGradient(0,0,0,300); g.addColorStop(0,hex+'44'); g.addColorStop(1,hex+'03'); return g; };
 
   var kpis='<div class="kpis">'+
-    '<div class="kpi b"><div class="klabel">อาหารที่ใช้รวม (ช่วงที่เลือก)</div><div class="kval">'+fmt(grandUsage,0)+'</div><div class="ksub">กก. · '+periodLabel+'</div></div>'+
+    '<div class="kpi b"><div class="klabel">อาหารที่ใช้รวม (ช่วงที่เลือก)</div><div class="kval">'+fmt(grandUsage/1000,1)+'</div><div class="ksub">ตัน · '+periodLabel+'</div></div>'+
     '<div class="kpi g"><div class="klabel">ค่าอาหารประมาณรวม</div><div class="kval">'+fmtM(grandCost)+'</div><div class="ksub">ล้านบาท · ราคาต่อพื้นที่ (ปรับได้ด้านล่าง)</div></div>'+
-    '<div class="kpi y"><div class="klabel">ค่าอาหารเฉลี่ย/เดือน</div><div class="kval">'+fmt(avgMonthlyCost,0)+'</div><div class="ksub">บาท (จาก '+distinctMonths+' เดือนในช่วงที่เลือก)</div></div>'+
+    '<div class="kpi y"><div class="klabel">ค่าอาหารเฉลี่ย/เดือน</div><div class="kval">'+fmtM(avgMonthlyCost)+'</div><div class="ksub">ล้านบาท (จาก '+distinctMonths+' เดือนในช่วงที่เลือก)</div></div>'+
     '<div class="kpi v"><div class="klabel">กุ้งที่ลงในช่วง</div><div class="kval">'+fmtM(grandPcs)+'</div><div class="ksub">ล้านตัว</div></div>'+
   '</div>';
 
