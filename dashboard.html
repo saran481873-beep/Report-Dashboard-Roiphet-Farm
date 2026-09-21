@@ -275,6 +275,8 @@ tr.spot-hl td{animation:spotflash 2.3s ease-out}
 .mcard.c-biomass{border-top-color:#be123c}
 .mcard.c-prepare{border-top-color:#0d9488}
 .mcard.c-pnl{border-top-color:#7c3aed}
+.mcard.c-waterplan{border-top-color:#0ea5e9}
+.mcard.c-feedplan{border-top-color:#84cc16}
 .pnl-tabs{display:inline-flex;gap:6px;background:var(--head2);padding:6px;border-radius:12px;margin-bottom:var(--gap)}
 .pnl-ctrl{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
 .pnl-ctrl .pfield{display:flex;flex-direction:column;gap:5px}
@@ -635,6 +637,8 @@ function renderHome(){
     ,{id:'biomass',cls:'c-biomass',ic:'⚖️',t:'9 · Estimate Biomass',d:'กรอก Feed_amout และ Size_Actual คำนวณ Biomass (kg.) พร้อมแสดง %FR และ Price (BHT/KG) ตามสูตรฟาร์ม'}
     ,{id:'prepare',cls:'c-prepare',ic:'🧹',t:'10 · Prepare pond',d:'สรุปการเตรียมบ่อก่อนลงกุ้ง จำนวนบ่อเตรียม บ่อพร้อมลงกุ้ง และสถานะแต่ละขั้นตอนการเตรียมบ่อ'}
     ,{id:'pnl',cls:'c-pnl',ic:'💹',t:'11 · Profit & Loss Forecast',d:'พยากรณ์ต้นทุน รายได้ กำไร/ขาดทุนรายบ่อ 3 สัปดาห์ พร้อมช่องจำลองปรับต้นทุน/การเติบโตได้เอง'}
+    ,{id:'waterplan',cls:'c-waterplan',ic:'💧',t:'12 · Plan Water',d:'แผนการใช้น้ำแยกตามพื้นที่และช่วงเวลา เทียบกำลังผลิตน้ำ พร้อมประมาณค่าใช้จ่ายน้ำ'}
+    ,{id:'feedplan',cls:'c-feedplan',ic:'🌾',t:'13 · Plan Feed',d:'แผนการใช้อาหารแยกตามช่วงการเจริญเติบโต พร้อมประมาณค่าใช้จ่ายอาหารรายพื้นที่'}
   ];
   el('app').innerHTML=`<div class="home-grid">`+cards.map(c=>{
     const click=c.ext?`onclick="window.open('${c.ext}','_blank')"`:`onclick="location.hash='#${c.id}'"`;
