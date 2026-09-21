@@ -1013,11 +1013,15 @@ async function pageFeedPlan(){
   for(var r=1;r<UV.length;r++){
     var row=UV[r]; var mod=(row[0]||'').trim(); var pond=(row[1]||'').trim();
     if(mod && areasAll.indexOf(mod)!==-1 && pond){
-      ponds.push({mod:mod,pond:pond,type:(row[2]||'').trim(),row:row.slice(),
+      var merged=row.slice();
+      for(var k=1;k<=4;k++){
+        var row2=UV[r+k]; if(!row2) break;
+        var mod2=(row2[0]||'').trim(), pond2=(row2[1]||'').trim();
+        if(mod2 || pond2) break;
+        dateCols.forEach(function(dc){ var v=wpNum(row2[dc.idx]); if(v){ merged[dc.idx]=(wpNum(merged[dc.idx])||0)+v; } });
+      }
+      ponds.push({mod:mod,pond:pond,type:(row[2]||'').trim(),row:merged,
         cycles: stockingCols.map(function(sc){ return [wpParseDMY(row[sc]), wpParseDMY(row[sc+1])]; })});
-    } else if(!mod && !pond && ponds.length){
-      var cp=ponds[ponds.length-1];
-      dateCols.forEach(function(dc){ var v=wpNum(row[dc.idx]); if(v){ cp.row[dc.idx]=(wpNum(cp.row[dc.idx])||0)+v; } });
     }
   }
   var years=[...new Set(dateCols.map(function(d){return d.y;}))].sort(function(a,b){return a-b;});
