@@ -357,13 +357,23 @@ tr.spot-hl td{animation:spotflash 2.3s ease-out}
     var g = document.getElementById('rfLoginGate');
     if (g) g.remove();
   } else {
+    var rfBusy = false;
     function tryLogin(){
+      if (rfBusy) return;
       var u = document.getElementById('rfLoginUser').value;
       var p = document.getElementById('rfLoginPass').value;
       if (u === RF_USER && p === RF_PASS) {
+        rfBusy = true;
         sessionStorage.setItem('rfUnlocked','1');
-        document.getElementById('rfLoginGate').remove();
+        var gateEl = document.getElementById('rfLoginGate');
+        if (gateEl) gateEl.remove();
         if (location.hash && location.hash !== '#home') { location.hash = 'home'; } else if (typeof route === 'function') { try { route(); } catch(e){} }
+        /* shield: swallow any stray click (e.g. accidental double-click) that lands right after the gate disappears, so it can't fall through onto the page underneath */
+        var rfShield = document.createElement('div');
+        rfShield.style.cssText = 'position:fixed;inset:0;z-index:999998;background:transparent;';
+        rfShield.addEventListener('click', function(e){ e.stopPropagation(); e.preventDefault(); }, true);
+        document.body.appendChild(rfShield);
+        setTimeout(function(){ rfShield.remove(); }, 500);
       } else {
         document.getElementById('rfLoginErr').style.display = 'block';
       }
