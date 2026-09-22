@@ -357,6 +357,12 @@ tr.spot-hl td{animation:spotflash 2.3s ease-out}
     var g = document.getElementById('rfLoginGate');
     if (g) g.remove();
   } else {
+    /* While the gate is up, force the app to boot on the home page instead of whatever page
+       the URL's hash happened to point to. Otherwise the underlying page (e.g. #prepare) starts
+       fetching its data in the background behind the gate, and if that fetch finishes AFTER the
+       user logs in and lands on home, it silently overwrites the home content with stale page data
+       (nav tab still shows "home" as active, but the content area shows the other page). */
+    if (location.hash && location.hash !== '#home') { location.hash = 'home'; }
     var rfBusy = false;
     function tryLogin(){
       if (rfBusy) return;
