@@ -363,6 +363,7 @@ tr.spot-hl td{animation:spotflash 2.3s ease-out}
       if (u === RF_USER && p === RF_PASS) {
         sessionStorage.setItem('rfUnlocked','1');
         document.getElementById('rfLoginGate').remove();
+        if (location.hash && location.hash !== '#home') { location.hash = 'home'; } else if (typeof route === 'function') { try { route(); } catch(e){} }
       } else {
         document.getElementById('rfLoginErr').style.display = 'block';
       }
