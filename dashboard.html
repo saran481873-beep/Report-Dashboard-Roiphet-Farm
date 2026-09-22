@@ -410,18 +410,18 @@ const MONTH_TH=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','�
 const PAGES=[
   {id:'home',label:'หน้าหลัก'},
   {id:'situation',label:'1 · Situation'},
-  {id:'performance',label:'2 · Performance'},
+  {id:'daily',label:'2 · Daily ↗',ext:DAILY_URL},
   {id:'weekly',label:'3 · Weekly'},
-  {id:'daily',label:'4 · Daily ↗',ext:DAILY_URL},
-  {id:'financial',label:'5 · Financial'},
+  {id:'prepare',label:'4 · Prepare pond'},
+  {id:'stocking',label:'5 · Stocking'},
   {id:'orderharvest',label:'6 · Order Harvest'},
-  {id:'stocking',label:'7 · Stocking'}
-  ,{id:'ai',label:'8 · AI Assistant'}
-  ,{id:'biomass',label:'9 · Estimate Biomass'}
-  ,{id:'prepare',label:'10 · Prepare pond'}
-  ,{id:'pnl',label:'11 · Profit & Loss Forecast'}
-  ,{id:'waterplan',label:'12 · Plan Water'}
-  ,{id:'feedplan',label:'13 · Plan Feed'}
+  {id:'performance',label:'7 · Performance'},
+  {id:'financial',label:'8 · Financial'},
+  {id:'waterplan',label:'9 · Plan Water'},
+  {id:'feedplan',label:'10 · Plan Feed'},
+  {id:'biomass',label:'11 · Estimate Biomass'},
+  {id:'pnl',label:'12 · Profit & Loss Forecast'},
+  {id:'ai',label:'13 · AI Assistant'}
 ];
 const cache={};
 let charts=[];
@@ -627,18 +627,18 @@ async function renderPage(id){
 function renderHome(){
   const cards=[
     {id:'situation',cls:'c-sit',ic:'🗺️',t:'1 · Situation',d:'ผังตำแหน่งบ่อทั้งฟาร์ม สถานะตามสี จำนวนบ่อเลี้ยง/ปิด %บ่อมีกุ้ง และตาราง DOC/Size/Prepare'},
-    {id:'performance',cls:'c-perf',ic:'📈',t:'2 · Performance',d:'Production, Yield, %SR, FCR, AVG Size, DOC และโครงสร้างต้นทุน Sales/DC/VC/FC แบบเจาะลึก'},
+    {id:'daily',cls:'ext',ic:'📊',t:'2 · Daily ↗',d:'แดชบอร์ดรายวันเดิม (เปิดหน้าใหม่)',ext:DAILY_URL},
     {id:'weekly',cls:'c-week',ic:'📅',t:'3 · Weekly',d:'รายละเอียดบ่อเลี้ยงรายสัปดาห์ MBW, ADG, %SR, FCR เตือนบ่อโตช้า/รอดต่ำ'},
-    {id:'daily',cls:'ext',ic:'📊',t:'4 · Daily ↗',d:'แดชบอร์ดรายวันเดิม (เปิดหน้าใหม่)',ext:DAILY_URL},
-    {id:'financial',cls:'c-fin',ic:'💰',t:'5 · Financial',d:'รายรับ–กำไรรายเดือนทั้งปี และต้นทุนต่อกิโลกรัม Production/Total/Net Profit'},
+    {id:'prepare',cls:'c-prepare',ic:'🧹',t:'4 · Prepare pond',d:'สรุปการเตรียมบ่อก่อนลงกุ้ง จำนวนบ่อเตรียม บ่อพร้อมลงกุ้ง และสถานะแต่ละขั้นตอนการเตรียมบ่อ'},
+    {id:'stocking',cls:'c-stock',ic:'🌱',t:'5 · Stocking',d:'สรุปการลงกุ้งแยกตามพื้นที่ เดือน และประเภท พร้อมตารางลงกุ้งเดือนปัจจุบัน'},
     {id:'orderharvest',cls:'c-order',ic:'🚚',t:'6 · Order Harvest',d:'สรุปแผน–ผลจับจริงเดือนปัจจุบัน แยกตาม Type และ IN Stock'},
-    {id:'stocking',cls:'c-stock',ic:'🌱',t:'7 · Stocking',d:'สรุปการลงกุ้งแยกตามพื้นที่ เดือน และประเภท พร้อมตารางลงกุ้งเดือนปัจจุบัน'}
-    ,{id:'ai',cls:'c-ai',ic:'🤖',t:'8 · AI Assistant',d:'ถาม-ตอบข้อมูลฟาร์มทั้งหมดแบบ Smart Q&A ผู้ช่วยในการเลี้ยงกุ้ง'}
-    ,{id:'biomass',cls:'c-biomass',ic:'⚖️',t:'9 · Estimate Biomass',d:'กรอก Feed_amout และ Size_Actual คำนวณ Biomass (kg.) พร้อมแสดง %FR และ Price (BHT/KG) ตามสูตรฟาร์ม'}
-    ,{id:'prepare',cls:'c-prepare',ic:'🧹',t:'10 · Prepare pond',d:'สรุปการเตรียมบ่อก่อนลงกุ้ง จำนวนบ่อเตรียม บ่อพร้อมลงกุ้ง และสถานะแต่ละขั้นตอนการเตรียมบ่อ'}
-    ,{id:'pnl',cls:'c-pnl',ic:'💹',t:'11 · Profit & Loss Forecast',d:'พยากรณ์ต้นทุน รายได้ กำไร/ขาดทุนรายบ่อ 3 สัปดาห์ พร้อมช่องจำลองปรับต้นทุน/การเติบโตได้เอง'}
-    ,{id:'waterplan',cls:'c-waterplan',ic:'💧',t:'12 · Plan Water',d:'แผนการใช้น้ำแยกตามพื้นที่และช่วงเวลา เทียบกำลังผลิตน้ำ พร้อมประมาณค่าใช้จ่ายน้ำ'}
-    ,{id:'feedplan',cls:'c-feedplan',ic:'🌾',t:'13 · Plan Feed',d:'แผนการใช้อาหารแยกตามช่วงการเจริญเติบโต พร้อมประมาณค่าใช้จ่ายอาหารรายพื้นที่'}
+    {id:'performance',cls:'c-perf',ic:'📈',t:'7 · Performance',d:'Production, Yield, %SR, FCR, AVG Size, DOC และโครงสร้างต้นทุน Sales/DC/VC/FC แบบเจาะลึก'},
+    {id:'financial',cls:'c-fin',ic:'💰',t:'8 · Financial',d:'รายรับ–กำไรรายเดือนทั้งปี และต้นทุนต่อกิโลกรัม Production/Total/Net Profit'},
+    {id:'waterplan',cls:'c-waterplan',ic:'💧',t:'9 · Plan Water',d:'แผนการใช้น้ำแยกตามพื้นที่และช่วงเวลา เทียบกำลังผลิตน้ำ พร้อมประมาณค่าใช้จ่ายน้ำ'},
+    {id:'feedplan',cls:'c-feedplan',ic:'🌾',t:'10 · Plan Feed',d:'แผนการใช้อาหารแยกตามช่วงการเจริญเติบโต พร้อมประมาณค่าใช้จ่ายอาหารรายพื้นที่'},
+    {id:'biomass',cls:'c-biomass',ic:'⚖️',t:'11 · Estimate Biomass',d:'กรอก Feed_amout และ Size_Actual คำนวณ Biomass (kg.) พร้อมแสดง %FR และ Price (BHT/KG) ตามสูตรฟาร์ม'},
+    {id:'pnl',cls:'c-pnl',ic:'💹',t:'12 · Profit & Loss Forecast',d:'พยากรณ์ต้นทุน รายได้ กำไร/ขาดทุนรายบ่อ 3 สัปดาห์ พร้อมช่องจำลองปรับต้นทุน/การเติบโตได้เอง'},
+    {id:'ai',cls:'c-ai',ic:'🤖',t:'13 · AI Assistant',d:'ถาม-ตอบข้อมูลฟาร์มทั้งหมดแบบ Smart Q&A ผู้ช่วยในการเลี้ยงกุ้ง'}
   ];
   el('app').innerHTML=`<div class="home-grid">`+cards.map(c=>{
     const click=c.ext?`onclick="window.open('${c.ext}','_blank')"`:`onclick="location.hash='#${c.id}'"`;
