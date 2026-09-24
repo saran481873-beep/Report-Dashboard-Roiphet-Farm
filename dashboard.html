@@ -615,7 +615,7 @@ window.showAllWidgets=function(page){
 };
 
 /* filter state per page */
-const F={situation:{type:'all',area:['all']},performance:{month:['all'],area:['all']},weekly:{type:'all',status:'all',area:['all'],sortKey:null,sortDir:1},financial:{month:['all'],area:['all']},orderharvest:{size:'all',area:['all']},stocking:{area:['all'],month:['all'],type:['all'],week:['all'],year:['all']},prepare:{area:['all'],type:['all'],unit:['all']},waterplan:{area:['all'],month:['all'],year:['all']},feedplan:{area:['all'],month:['all'],year:['all']}};
+const F={situation:{type:'all',area:['all']},performance:{month:['all'],area:['all']},weekly:{type:'all',status:'all',area:['all'],sortKey:null,sortDir:1},financial:{month:['all'],area:['all']},orderharvest:{size:'all',area:['all'],year:['all']},stocking:{area:['all'],month:['all'],type:['all'],week:['all'],year:['all']},prepare:{area:['all'],type:['all'],unit:['all']},waterplan:{area:['all'],month:['all'],year:['all']},feedplan:{area:['all'],month:['all'],year:['all']}};
 
 /* ---------- PAGE DISPATCH ---------- */
 async function renderPage(id){
@@ -1805,12 +1805,18 @@ async function pageOrder(){
   const now=new Date(); const curMonth=now.getMonth()+1;
   const st=F.orderharvest;
   // collect data rows (year already 2026 only)
-  const data=[]; for(let i=1;i<V.length;i++){ const r=V[i]; if(!(r[iPond]||'').trim())continue; data.push(r); }
+  let data=[]; for(let i=1;i<V.length;i++){ const r=V[i]; if(!(r[iPond]||'').trim())continue; data.push(r); }
+  const rowYear=(r)=>{ var ds=String(r[iDate]||'').trim(); var p=ds.split('/'); var y=p.length===3?parseInt(p[2],10):NaN; return isNaN(y)?null:y; };
+  const years=[...new Set(data.map(rowYear))].filter(Boolean).sort((a,b)=>a-b);
+  if(!Array.isArray(st.year)||!st.year.length) st.year=['all'];
+  const yearOk=(r)=>st.year.includes('all')||st.year.includes(String(rowYear(r)));
+  data=data.filter(yearOk);
   // size ranges filter (based on Size Plan/Current or Ac.Size)
   const sizeBucket=(s)=>{ const n=num(s); if(isNaN(n))return null; if(n>=70)return 'big'; if(n>=50)return 'mid'; return 'small'; };
   filterBar('orderharvest',[
     {label:'ช่วง Size',key:'size',opts:[{v:'all',t:'ทั้งหมด'},{v:'big',t:'≥70'},{v:'mid',t:'50–69'},{v:'small',t:'<50'}]},
-    {label:'พื้นที่ (Module)',key:'area',multi:true,opts:[{v:'all',t:'ทั้งหมด'},{v:'A',t:'A'},{v:'B',t:'B'},{v:'C',t:'C'},{v:'D',t:'D'},{v:'R',t:'RW'}]}
+    {label:'พื้นที่ (Module)',key:'area',multi:true,opts:[{v:'all',t:'ทั้งหมด'},{v:'A',t:'A'},{v:'B',t:'B'},{v:'C',t:'C'},{v:'D',t:'D'},{v:'R',t:'RW'}]},
+    {label:'ปี',key:'year',multi:true,hint:'เลือกได้หลายปี',opts:[{v:'all',t:'ทั้งหมด'},...years.map(y=>({v:String(y),t:String(y)}))]}
   ]);
   const areaOk=(r)=>st.area.includes('all')||st.area.includes((r[iMod]||'').trim());
   const sizeOk=(r,sizeCol)=>st.size==='all'||sizeBucket(r[sizeCol])===st.size;
