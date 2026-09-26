@@ -1108,14 +1108,18 @@ async function pageFeedPlan(){
   function swFindRow(label,fallback){ for(var i=0;i<SV.length;i++){ if(String((SV[i]||[])[0]||'').trim()===label) return i; } return fallback; }
   var rowMaster=swFindRow('Master pond',20), rowShrimp=swFindRow('Shrimp (มีกุ้ง)',21), rowUtil=swFindRow('Utilization',22);
   function buildAreaYearMap(headerRow){
-    var map={}; var cur=null;
-    for(var c=0;c<headerRow.length;c++){
-      var cell=String(headerRow[c]||'').trim();
-      var p=wpParseDMY(headerRow[c]);
-      if(p && cur){ if(!map[cur][p.y]) map[cur][p.y]={}; map[cur][p.y][p.mo]=c; continue; }
-      if(!cell){ cur=null; continue; }
-      if(areasAll.indexOf(cell)!==-1){ cur=cell; if(!map[cur]) map[cur]={}; }
-    }
+    var bsList=areasAll.map(function(a){ return {a:a, bs:headerRow.findIndex(function(v){return String(v||'').trim()===a;})}; }).filter(function(o){return o.bs>=0;});
+    bsList.sort(function(x,y){return x.bs-y.bs;});
+    var width=bsList.length>1?(bsList[1].bs-bsList[0].bs):headerRow.length;
+    var map={};
+    bsList.forEach(function(o,idx){
+      var rangeEnd=(idx+1<bsList.length)?bsList[idx+1].bs:(o.bs+width);
+      map[o.a]=map[o.a]||{};
+      for(var c=o.bs+1;c<rangeEnd;c++){
+        var p=wpParseDMY(headerRow[c]);
+        if(p){ if(!map[o.a][p.y]) map[o.a][p.y]={}; map[o.a][p.y][p.mo]=c; }
+      }
+    });
     return map;
   }
   var waterYearMap=buildAreaYearMap(SV[1]||[]);
