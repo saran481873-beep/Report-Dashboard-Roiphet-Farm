@@ -1113,7 +1113,8 @@ async function pageFeedPlan(){
       var cell=String(headerRow[c]||'').trim();
       var p=wpParseDMY(headerRow[c]);
       if(p && cur){ if(!map[cur][p.y]) map[cur][p.y]={}; map[cur][p.y][p.mo]=c; continue; }
-      if(cell){ cur=(areasAll.indexOf(cell)!==-1)?cell:null; if(cur && !map[cur]) map[cur]={}; }
+      if(!cell){ cur=null; continue; }
+      if(areasAll.indexOf(cell)!==-1){ cur=cell; if(!map[cur]) map[cur]={}; }
     }
     return map;
   }
