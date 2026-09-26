@@ -1120,7 +1120,7 @@ async function pageFeedPlan(){
   var row01=sfFindRow('#01',2), row02=sfFindRow('#02',3), row3S=sfFindRow('#3S',4), row3P=sfFindRow('#3P',5), row4S=sfFindRow('#4S',6), rowTotalF=sfFindRow('Total',7);
   function sfVal(mod,rowIdx,m){
     var bs=modBlockStartFeed[mod]; if(bs==null) return null;
-    return (SFV[rowIdx]||[])[bs+1+m];
+    return (SFV[rowIdx]||[])[bs+m];
   }
 
   var monthsInScope=[]; for(var m=1;m<=12;m++){ if(isAllMonth||monthSel.indexOf(String(m))!==-1) monthsInScope.push(m); }
