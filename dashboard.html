@@ -1107,9 +1107,21 @@ async function pageFeedPlan(){
   areasAll.forEach(function(a){ var idx=headerRow1.findIndex(function(v){return String(v||'').trim()===a;}); if(idx>=0) modBlockStart[a]=idx; });
   function swFindRow(label,fallback){ for(var i=0;i<SV.length;i++){ if(String((SV[i]||[])[0]||'').trim()===label) return i; } return fallback; }
   var rowMaster=swFindRow('Master pond',20), rowShrimp=swFindRow('Shrimp (มีกุ้ง)',21), rowUtil=swFindRow('Utilization',22);
+  function buildAreaYearMap(headerRow){
+    var map={}; var cur=null;
+    for(var c=0;c<headerRow.length;c++){
+      var cell=String(headerRow[c]||'').trim();
+      if(areasAll.indexOf(cell)!==-1){ cur=cell; if(!map[cur]) map[cur]={}; continue; }
+      var p=wpParseDMY(headerRow[c]);
+      if(p && cur){ if(!map[cur][p.y]) map[cur][p.y]={}; map[cur][p.y][p.mo]=c; }
+    }
+    return map;
+  }
+  var waterYearMap=buildAreaYearMap(SV[1]||[]);
   function swVal(mod,rowIdx,m){
-    var bs=modBlockStart[mod]; if(bs==null) return null;
-    return (SV[rowIdx]||[])[bs+1+m];
+    var ym=waterYearMap[mod] && waterYearMap[mod][summaryDisplayYear]; if(!ym) return null;
+    var c=ym[m]; if(c==null) return null;
+    return (SV[rowIdx]||[])[c];
   }
   function pctNum(s){ if(s==null||s==='') return null; var n=parseFloat(String(s).replace('%','')); return isNaN(n)?null:n; }
 
@@ -1118,9 +1130,22 @@ async function pageFeedPlan(){
   areasAll.forEach(function(a){ var idx=headerRow0F.findIndex(function(v){return String(v||'').trim()===a;}); if(idx>=0) modBlockStartFeed[a]=idx; });
   function sfFindRow(label,fallback){ for(var i=0;i<SFV.length;i++){ if(String((SFV[i]||[])[0]||'').trim()===String(label).trim()) return i; } return fallback; }
   var row01=sfFindRow('#01',2), row02=sfFindRow('#02',3), row3S=sfFindRow('#3S',4), row3P=sfFindRow('#3P',5), row4S=sfFindRow('#4S',6), rowTotalF=sfFindRow('Total',7);
+  var feedYearMap=buildAreaYearMap(headerRow0F);
+  var summaryYearsSet={};
+  areasAll.forEach(function(a){
+    Object.keys(feedYearMap[a]||{}).forEach(function(y){summaryYearsSet[y]=1;});
+    Object.keys(waterYearMap[a]||{}).forEach(function(y){summaryYearsSet[y]=1;});
+  });
+  var summaryYears=Object.keys(summaryYearsSet).map(Number).sort(function(x,y){return x-y;});
+  var summaryDisplayYear=null;
+  if(!isAllYear && yearSel && yearSel.length){
+    for(var syi=0;syi<yearSel.length;syi++){ var syy=parseInt(yearSel[syi],10); if(!isNaN(syy) && summaryYears.indexOf(syy)!==-1){ summaryDisplayYear=syy; break; } }
+  }
+  if(summaryDisplayYear==null) summaryDisplayYear=summaryYears.length?summaryYears[summaryYears.length-1]:null;
   function sfVal(mod,rowIdx,m){
-    var bs=modBlockStartFeed[mod]; if(bs==null) return null;
-    return (SFV[rowIdx]||[])[bs+m];
+    var ym=feedYearMap[mod] && feedYearMap[mod][summaryDisplayYear]; if(!ym) return null;
+    var c=ym[m]; if(c==null) return null;
+    return (SFV[rowIdx]||[])[c];
   }
 
   var monthsInScope=[]; for(var m=1;m<=12;m++){ if(isAllMonth||monthSel.indexOf(String(m))!==-1) monthsInScope.push(m); }
@@ -1258,7 +1283,7 @@ async function pageFeedPlan(){
       if(hidden[lbl]){ hiddenList.push(lbl); continue; }
       var rai = (SV[r]||[])[bs+1]||'';
       var cells='';
-      for(var m=1;m<=12;m++){ var v=(SV[r]||[])[bs+1+m]||''; cells+='<td>'+(v||'')+'</td>'; }
+      for(var m=1;m<=12;m++){ var ym=waterYearMap[a] && waterYearMap[a][summaryDisplayYear]; var c=(ym? ym[m]:null); var v=(c!=null)?((SV[r]||[])[c]||''):''; cells+='<td>'+(v||'')+'</td>'; }
       body += '<tr><td class="l"><span style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px" title="กดชื่อบ่อเพื่อซ่อน" onclick="toggleFeedPondHidden(\''+a+'\',\''+lbl+'\')">'+lbl+'</span></td><td>'+rai+'</td>'+cells+'</tr>';
     }
     function statRowSW(label, rowIdx){
@@ -1275,7 +1300,7 @@ async function pageFeedPlan(){
       + statRowSF('#01', row01) + statRowSF('#02', row02) + statRowSF('#3S', row3S) + statRowSF('#3P', row3P) + statRowSF('#4S', row4S) + statRowSF('Total', rowTotalF);
     var hiddenHint = hiddenList.length ? ('<div class="hint" style="margin-top:6px">ซ่อนอยู่ '+hiddenList.length+' บ่อ: '+hiddenList.join(', ')+' · <span style="cursor:pointer;color:#0ea5e9;text-decoration:underline" onclick="resetFeedHiddenPonds(\''+a+'\')">แสดงทั้งหมด</span></div>') : '';
     return '<div class="tablecard" style="margin-bottom:14px">'+
-      '<h3 style="margin-bottom:10px"><span class="dot" style="background:'+WP_COLORS[a]+'"></span>พื้นที่ '+a+' · ตารางลงกุ้งและการใช้อาหารรายเดือน (จาก summary Water + summary feed)</h3>'+
+      '<h3 style="margin-bottom:10px"><span class="dot" style="background:'+WP_COLORS[a]+'"></span>พื้นที่ '+a+' · ตารางลงกุ้งและการใช้อาหารรายเดือน ปี '+(summaryDisplayYear||'-')+' (จาก summary Water + summary feed)</h3>'+
       '<div style="overflow-x:auto"><table class="dtable" style="min-width:900px"><thead><tr><th class="l" style="position:sticky;left:0;background:#f8fafc;z-index:2">บ่อ</th><th>ไร่</th>'+monthsHdr+'</tr></thead>'+
       '<tbody>'+body+stats+'</tbody></table></div>'+hiddenHint+'</div>';
   }
