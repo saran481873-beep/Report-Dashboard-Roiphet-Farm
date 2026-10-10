@@ -2336,7 +2336,7 @@ async function aiBuildData(){
         stdFeed:num(r[14]), diffKg:num(r[15]), diffPct:num(r[16]),
         color: isCulture ? {feed:aiColorLetter(r[17]),ph:aiColorLetter(r[18]),alk:aiColorLetter(r[19]),tan:aiColorLetter(r[20]),no2:aiColorLetter(r[21]),mort:aiColorLetter(r[22])} : null,
         overall: isCulture ? aiOverallWord(r[29]) : '-',
-        closeDate:r[30]||'', rai:num(r[31]), prepStatus:(r[32]||'').trim()
+        closeDate:r[30]||'', rai:num(r[31]), prepStatus:String(r[32]==null?'':r[32]).trim()
       };
       AI_DATA.dailyPonds.push(rec);
       const p = pondMap[pond.toUpperCase().replace(/-/g,'')];
