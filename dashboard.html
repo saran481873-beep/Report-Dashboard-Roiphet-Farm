@@ -1962,9 +1962,10 @@ async function pageStocking(){
   el('subtitle').textContent='สรุปการลงกุ้ง (Stocking) · จำนวนบ่อและจำนวนตัวแยกตามพื้นที่ เดือน และประเภท';
   const d=await getTab('stocking'); const V=d.values;
   const weekOfMonth=(ds)=>{ const day=parseInt(String(ds||'').trim().split('/')[0])||0; if(!day) return 0; if(day<=7) return 1; if(day<=14) return 2; if(day<=21) return 3; return 4; };
-  const rows=[]; for(let i=1;i<V.length;i++){ const r=V[i]; if(!(r[1]||'').trim())continue; rows.push({mod:(r[0]||'').trim(),pond:(r[1]||'').trim(),date:(r[2]||'').trim(),month:parseInt(r[3])||0,year:parseInt(r[4])||0,pcs:num(r[5]),type:(r[6]||'').trim(),week:weekOfMonth(r[2])}); }
+  const dMo=(ds)=>{ const p=String(ds||'').trim().split('/'); const n=p.length>=3?parseInt(p[1]):0; return (n>=1&&n<=12)?n:0; }; const dYr=(ds)=>{ const p=String(ds||'').trim().split('/'); const n=p.length>=3?parseInt(p[2]):0; return n>2000?n:0; };
+  const rows=[]; for(let i=1;i<V.length;i++){ const r=V[i]; if(!(r[1]||'').trim())continue; rows.push({mod:(r[0]||'').trim(),pond:(r[1]||'').trim(),date:(r[2]||'').trim(),month:dMo(r[2])||parseInt(r[3])||0,year:dYr(r[2])||parseInt(r[4])||0,pcs:num(r[5]),type:(r[6]||'').trim(),week:weekOfMonth(r[2])}); }
   const mods=[...new Set(rows.map(r=>r.mod))].filter(Boolean).sort();
-  const months=[...new Set(rows.map(r=>r.month))].filter(Boolean).sort((a,b)=>a-b);
+  const months=[1,2,3,4,5,6,7,8,9,10,11,12];
   const types=[...new Set(rows.map(r=>r.type))].filter(Boolean).sort();
   const years=[...new Set(rows.map(r=>r.year))].filter(Boolean).sort((a,b)=>a-b);
   const st=F.stocking;
