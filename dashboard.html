@@ -444,7 +444,17 @@ const cache={};
 let charts=[];
 if(window.Chart&&window.ChartDataLabels){ Chart.register(window.ChartDataLabels); Chart.defaults.plugins.datalabels={display:false}; Chart.defaults.font.family="'Noto Sans Thai',sans-serif"; }
 function destroyCharts(){charts.forEach(c=>{try{c.destroy()}catch(e){}});charts=[];}
+const CANCEL_SET=new Set();let _cancelLoaded=false;
+function isCancelStatus(s){return String(s==null?'':s).indexOf('ยกเลิก')>=0;}
+async function loadCancelSet(){ if(_cancelLoaded)return; _cancelLoaded=true; for(const tb of ['daily','weekly']){ try{ const j=await getTabRaw(tb); const v=(j&&j.values)||[]; v.forEach(r=>{ if(r&&isCancelStatus(r[4])&&r[1])CANCEL_SET.add(String(r[1]).trim()); }); }catch(e){} } }
+function dropCancelled(j){ if(!j||!Array.isArray(j.values)||!CANCEL_SET.size)return j; const v=j.values.filter(r=>!(Array.isArray(r)&&r.slice(0,6).some(c=>CANCEL_SET.has(String(c==null?'':c).trim())))); return Object.assign({},j,{values:v,nrows:v.length}); }
 async function getTab(tab){
+  if(cache['F:'+tab])return cache['F:'+tab];
+  await loadCancelSet();
+  const raw=await getTabRaw(tab);
+  const f=dropCancelled(raw); cache['F:'+tab]=f; return f;
+}
+async function getTabRaw(tab){
   if(cache[tab])return cache[tab];
   let lastErr;
   for(let attempt=0;attempt<3;attempt++){
