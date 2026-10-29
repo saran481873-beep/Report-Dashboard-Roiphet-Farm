@@ -2119,7 +2119,7 @@ async function pageStocking(){
     const o = monthOverviewMap[k];
     o.carry += x.carry; o.stocked += x.stocked; o.stockedM += x.stockedM; o.caught += x.caught; o.endPonds += x.endPonds;
     const pctNum = parseFloat(String(x.endPct).replace('%','')) || 0;
-    if(pctNum>0 && x.endPonds>0){ o.denom += x.endPonds/(pctNum/100); }
+    if(x.carry>0||x.stocked>0||x.endPonds>0){ o.denom += mainPonds2(x.area,eomOf2(x.month,x.year)).length; }
   });
   const monthOverviewList = Object.keys(monthOverviewMap).map(function(k){return monthOverviewMap[k];}).sort(function(a,b){return a.month-b.month;});
   const monthOverviewRows = monthOverviewList.map(function(x){
