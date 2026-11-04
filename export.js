@@ -11,7 +11,7 @@ const EXP_TOPICS=[
 ];
 const EXP_ST={area:'ALL',year:2026,months:[1,2,3,4,5,6,7,8,9,10,11,12],topics:['situation','stocking','harvest','performance','financial']};
 const EXP_BG={};
-const EXP_PPTX_URL='https://cdnjs.cloudflare.com/ajax/libs/pptxgenjs/3.12.0/pptxgen.bundle.js';
+const EXP_PPTX_URL='https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js';
 const EXP_C={teal:'4AC5B1',dark:'1F7A6D',yellow:'FFC000',ink:'1F2937',grey:'6B7280',zebra:'EAF8F5',line:'D1D5DB',red:'DC2626'};
 const EXP_MONTH_COL=[1,2,3,5,6,7,9,10,11,13,14,15];
 
@@ -47,7 +47,7 @@ function expCompute(raw,st){
   });
   out.harvest=oh;
   /* weekly */
-  const wk=raw.wk.slice(1).filter(r=>areas.indexOf(String(r[0]).trim())>=0&&String(r[1]).trim());
+  const wk=raw.wk.slice(1).filter(r=>areas.indexOf(String(r[0]).trim())>=0&&String(r[1]).trim()&&!(typeof CANCEL_SET!=='undefined'&&CANCEL_SET.has(String(r[1]).trim())));
   out.pondsAll=wk;
   out.situation=areas.map(a=>{
     const rows=wk.filter(r=>String(r[0]).trim()===a);
