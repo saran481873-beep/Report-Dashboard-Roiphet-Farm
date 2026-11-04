@@ -276,7 +276,7 @@ tr.spot-hl td{animation:spotflash 2.3s ease-out}
 .mcard.c-prepare{border-top-color:#0d9488}
 .mcard.c-pnl{border-top-color:#7c3aed}
 .mcard.c-waterplan{border-top-color:#0ea5e9}
-.mcard.c-feedplan{border-top-color:#84cc16}
+.mcard.c-exportdata{border-top-color:#f59e0b} .mcard.c-feedplan{border-top-color:#84cc16}
 .pnl-tabs{display:inline-flex;gap:6px;background:var(--head2);padding:6px;border-radius:12px;margin-bottom:var(--gap)}
 .pnl-ctrl{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
 .pnl-ctrl .pfield{display:flex;flex-direction:column;gap:5px}
@@ -438,7 +438,8 @@ const PAGES=[
   {id:'feedplan',label:'10 · Plan Feed'},
   {id:'biomass',label:'11 · Estimate Biomass'},
   {id:'pnl',label:'12 · Profit & Loss Forecast'},
-  {id:'ai',label:'13 · AI Assistant'}
+  {id:'ai',label:'13 · AI Assistant'},
+  {id:'exportdata',label:'14 · Export Data'}
 ];
 const cache={};
 let charts=[];
@@ -657,7 +658,7 @@ async function renderPage(id){
   else if(id==='prepare')await pagePrepare();
   else if(id==='pnl')await pagePnL();
     else if(id==='waterplan')await pageWaterPlan();
-    else if(id==='feedplan')await pageFeedPlan();
+    else if(id==='feedplan')await pageFeedPlan();     else if(id==='exportdata'){ if(typeof pageExport!=='function'){ await new Promise((res,rej)=>{const s=document.createElement('script');s.src='export.js?v=1';s.onload=res;s.onerror=()=>rej(new Error('load export.js'));document.head.appendChild(s);}); } await pageExport(); }
     setLive(true,'ออนไลน์');
     el('asof').textContent=new Date().toLocaleString('th-TH',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
   }catch(e){ el('app').innerHTML='<div class="loading">โหลดข้อมูลไม่สำเร็จ: '+e.message+'</div>'; setLive(false,'ออฟไลน์'); }
