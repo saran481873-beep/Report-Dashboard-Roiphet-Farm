@@ -2272,7 +2272,9 @@ async function pagePrepare(){
 async function pageAI(){
   el('subtitle').textContent='ผู้ช่วย AI ถาม-ตอบข้อมูลฟาร์ม (Smart Q&A) · อ้างอิงข้อมูลสดครบทุกฐานข้อมูลของ 2026 Daily Report (Situation/Weekly/Order Harvest/Stocking/Daily/Financial/Prepare/Estimate Biomass)';
   el('app').innerHTML=`<div class="card"><h3><span class="dot"></span>🤖 AI Assistant</h3><div class="hint">พิมพ์คำถามเกี่ยวกับข้อมูลบ่อ/DOC/ไซส์/FCR/รอด/คุณภาพน้ำ/อาหาร/แผนจับ/ลงกุ้ง ได้เลย ทั้งระดับฟาร์ม พื้นที่ หรือรายบ่อ — ตอบจากข้อมูลสดในระบบ ไม่ใช่ AI ภายนอก</div><div class="aichat"><div id="aiLog" class="aichat-log"></div><div id="aiChips" class="aichips"></div><div class="aiinput-row"><input id="aiInput" class="aiinput" type="text" placeholder="พิมพ์คำถาม เช่น DOC เฉลี่ย Module A ตอนนี้เท่าไหร่"><button id="aiSendBtn" class="aisend">ส่ง</button></div></div></div>`;
+  el('aiLog').innerHTML='<div class="hint" style="padding:10px">กำลังโหลดข้อมูล… (ครั้งแรกอาจใช้เวลา ~40 วินาที)</div>';
   await aiBuildData();
+  el('aiLog').innerHTML='';
   aiState.history=[];
   aiPush('bot', aiWelcomeMsg());
   aiRenderChips(AI_SUGGEST);
@@ -2283,11 +2285,10 @@ async function pageAI(){
 }
 
 async function aiFetchDaily(){
-  try{
-    const r = await fetch(API, {cache:'no-store'});
-    const j = await r.json();
-    return j;
-  }catch(e){ return null; }
+  let cached=null; try{ cached=JSON.parse(localStorage.getItem('aiDailyCache')||'null'); }catch(e){}
+  const live=(async()=>{ try{ const r = await fetch(API, {cache:'no-store'}); const j = await r.json(); try{localStorage.setItem('aiDailyCache',JSON.stringify(j));}catch(e){} return j; }catch(e){ return null; } })();
+  if(cached) return cached;
+  return await live;
 }
 function aiColorLetter(x){ x=String(x==null?'':x).trim().toLowerCase(); return x==='green'?'G':x==='yellow'?'Y':x==='red'?'R':'-'; }
 function aiOverallWord(x){ x=String(x==null?'':x).trim().toLowerCase(); return x==='green'?'เขียว':x==='yellow'?'เหลือง':x==='red'?'แดง':'-'; }
