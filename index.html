@@ -272,7 +272,7 @@ const DATA = RAW.map(r=>{const o={};KEYS.forEach((k,i)=>o[k]=r[i]);
   return o;});
 
 const PARAMS=[
-  {key:"feed",name:"อาหาร/วัน",sub:"Feed vs STD",unit:"kg",val:d=>d.feed,ref:d=>"STD "+fmt(d.stdFeed)+" ("+(d.diffPct>0?"+":"")+d.diffPct+"%)"},
+  {key:"feed",name:"อาหาร/วัน",sub:"Feed vs STD",unit:"kg",val:d=>d.feed,ref:d=>"STD "+fmt(d.stdFeed)+" ("+(d.diffPct>0?"+":"")+Math.round(d.diffPct)+"%)"},
   {key:"ph",name:"pH เฉลี่ย",sub:"เช้า-บ่าย",unit:"",val:d=>d.ph,ref:d=>"เป้า 8.0 (7.0–9.0)"},
   {key:"alk",name:"T.Alk",sub:"ppm",unit:"ppm",val:d=>d.alk,ref:d=>"เป้า 150 (120–180)"},
   {key:"tan",name:"TAN",sub:"ppm",unit:"ppm",val:d=>d.tan,ref:d=>"เป้า 0 (≤3)"},
