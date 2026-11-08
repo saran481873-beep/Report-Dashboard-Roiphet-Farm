@@ -136,7 +136,7 @@ function expKpiRow(pres,s,items,y){
     s.addShape(pres.ShapeType.roundRect,{x:x,y:y,w:w,h:h,fill:{color:'FFFFFF'},line:{color:EXP_C.line,width:0.75},rectRadius:0.08});
     s.addShape(pres.ShapeType.rect,{x:x,y:y+0.12,w:0.08,h:h-0.24,fill:{color:col},line:{color:col,width:0}});
     s.addText(k.label,{x:x+0.22,y:y+0.06,w:w-0.3,h:0.32,fontFace:EXP_FONT,fontSize:16,color:EXP_C.grey,isTextBox:true,margin:0});
-    s.addText(k.val,{x:x+0.22,y:y+0.36,w:w-0.3,h:0.5,fontFace:EXP_FONT,fontSize:30,bold:true,color:col,isTextBox:true,margin:0});
+    s.addText(k.val,{x:x+0.22,y:y+0.36,w:w-0.3,h:0.5,fontFace:EXP_FONT,fontSize:n>=6?26:30,bold:true,color:col,isTextBox:true,margin:0});
     s.addText(k.sub||'',{x:x+0.22,y:y+0.86,w:w-0.3,h:0.3,fontFace:EXP_FONT,fontSize:14,color:EXP_C.grey,isTextBox:true,margin:0});
   });
 }
@@ -354,20 +354,20 @@ function expDelta(cur,prev,lowerBetter){
 const EXP_FILL={green:'DCFCE7',yellow:'FEF9C3',red:'FEE2E2'};
 function expLet(x){ x=String(x==null?'':x).trim().toLowerCase(); return x==='green'||x==='yellow'||x==='red'?x:''; }
 function expTvcLet(v,kind){ const n=Number(v); if(v===''||v==null||isNaN(n))return ''; if(kind==='water')return n<=999?'green':(n<=4999?'yellow':'red'); return n<=50000?'green':(n<=60000?'yellow':'red'); }
-function expSci(v){ const n=Number(v); if(v===''||v==null||isNaN(n))return '–'; if(n===0)return '0'; return n.toExponential(2).replace('e+','E+').replace('e-','E-'); }
-function expCell(t,let_){ return {t:t,fill:EXP_FILL[let_]||undefined,color:let_==='red'?EXP_BAD:EXP_C.ink,bold:let_==='red'}; }
+function expSci(v){ const n=Number(v); if(v===''||v==null||isNaN(n))return '–'; return n.toExponential(2).replace(/e([+-])(\d)$/,'E$10$2').replace(/e([+-])/,'E$1'); }
+function expCell(t,let_,al){ return {t:t,fill:EXP_FILL[let_]||undefined,color:let_==='red'?EXP_BAD:EXP_C.ink,bold:let_==='red',align:al}; }
 function expCard(pres,s,x,y,w,h){ s.addShape(pres.ShapeType.roundRect,{x:x,y:y,w:w,h:h,fill:{color:'FFFFFF'},line:{color:EXP_C.line,width:0.75},rectRadius:0.08}); }
 function expAlert(pres,s,x,y,w,h,text,sub,bad){
   const c=bad?EXP_BAD:EXP_OK;
   s.addShape(pres.ShapeType.roundRect,{x:x,y:y,w:w,h:h,fill:{color:bad?'FEF2F2':'F0FDF4'},line:{color:c,width:2},rectRadius:0.1});
-  s.addText(text,{x:x+0.2,y:y+0.05,w:w-0.4,h:h*0.55,fontFace:EXP_FONT,fontSize:24,bold:true,color:c,valign:'middle',isTextBox:true,margin:0});
-  if(sub) s.addText(sub,{x:x+0.2,y:y+h*0.58,w:w-0.4,h:h*0.38,fontFace:EXP_FONT,fontSize:15,color:EXP_C.grey,valign:'top',isTextBox:true,margin:0});
+  s.addText(text,{x:x+0.2,y:y+0.05,w:w-0.4,h:h*0.55,fontFace:EXP_FONT,fontSize:h>=0.9?20:19,bold:true,color:c,valign:'middle',isTextBox:true,margin:0});
+  if(sub) s.addText(sub,{x:x+0.2,y:y+h*0.58,w:w-0.4,h:h*0.38,fontFace:EXP_FONT,fontSize:13,color:EXP_C.grey,valign:'top',isTextBox:true,margin:0});
 }
 function expDonut(pres,s,x,y,w,h,pass,total,color,label){
   const p=total?Math.round(pass/total*100):0;
   s.addChart(pres.charts.DOUGHNUT,[{name:label,labels:['ผ่าน','ไม่ผ่าน'],values:[pass,Math.max(total-pass,0)]}],{x:x,y:y,w:w,h:h,holeSize:68,chartColors:[color,'E5E7EB'],showLegend:false,showLabel:false,showValue:false,showPercent:false,showTitle:false,dataBorder:{pt:0,color:'FFFFFF'}});
-  s.addText(p+'%',{x:x,y:y+h/2-0.45,w:w,h:0.6,align:'center',fontFace:EXP_FONT,fontSize:34,bold:true,color:color,isTextBox:true,margin:0});
-  s.addText(total?('ผ่านเกณฑ์ '+pass+' / '+total+' บ่อ'):'ไม่มีข้อมูล',{x:x,y:y+h/2+0.15,w:w,h:0.35,align:'center',fontFace:EXP_FONT,fontSize:15,color:EXP_C.grey,isTextBox:true,margin:0});
+  s.addText(p+'%',{x:x,y:y+h/2-0.3,w:w,h:0.6,align:'center',valign:'middle',fontFace:EXP_FONT,fontSize:30,bold:true,color:color,isTextBox:true,margin:0});
+  s.addText(total?('ผ่านเกณฑ์ '+pass+' / '+total+' บ่อ'):'ไม่มีข้อมูล',{x:x-0.5,y:y+h-0.05,w:w+1,h:0.32,align:'center',fontFace:EXP_FONT,fontSize:15,color:EXP_C.grey,isTextBox:true,margin:0});
 }
 function expPagedW(pres,bg,title,head,rows,colW,perPage,fs,note,rowH){
   const pages=Math.max(1,Math.ceil(rows.length/perPage));
@@ -412,16 +412,16 @@ function expWeeklySlides(pres,bg,st,raw,d,now){
     const s=bg(); expTitle(pres,s,'สถานการณ์ฟาร์มร้อยเพชร · '+an);
     const mods=areas, cols={culture:'86EFAC',close:'D1D5DB',other:'F9A8D4'};
     mods.forEach((a,mi)=>{
-      const y=1.35+mi*0.78, rows=wk.filter(r=>String(r[0]).trim()===a);
-      s.addShape(pres.ShapeType.roundRect,{x:0.5,y:y,w:8.4,h:0.68,fill:{color:'F3F4F6'},line:{color:EXP_C.line,width:0.5},rectRadius:0.06});
-      s.addText('Module '+a,{x:0.6,y:y,w:1.15,h:0.68,fontFace:EXP_FONT,fontSize:18,bold:true,color:EXP_C.dark,valign:'middle',isTextBox:true,margin:0});
+      const y=1.3+mi*1.0, rows=wk.filter(r=>String(r[0]).trim()===a);
+      s.addShape(pres.ShapeType.roundRect,{x:0.5,y:y,w:8.4,h:0.9,fill:{color:'F3F4F6'},line:{color:EXP_C.line,width:0.5},rectRadius:0.06});
+      s.addText('Module '+a,{x:0.6,y:y,w:1.15,h:0.9,fontFace:EXP_FONT,fontSize:18,bold:true,color:EXP_C.dark,valign:'middle',isTextBox:true,margin:0});
       rows.slice(0,16).forEach((r,i)=>{
         const stt=/culture/i.test(r[4])?'culture':(/close/i.test(r[4])?'close':'other');
-        s.addShape(pres.ShapeType.roundRect,{x:1.8+i*0.44,y:y+0.1,w:0.41,h:0.48,fill:{color:cols[stt]},line:{color:'FFFFFF',width:0.5},rectRadius:0.04});
-        s.addText(String(r[1]).trim().replace(/^[A-Z]{1,2}(?=\d)/,''),{x:1.8+i*0.44,y:y+0.1,w:0.41,h:0.48,align:'center',valign:'middle',fontFace:EXP_FONT,fontSize:11,bold:true,color:EXP_C.ink,isTextBox:true,margin:0});
+        s.addShape(pres.ShapeType.roundRect,{x:1.8+i*0.44,y:y+0.08,w:0.42,h:0.74,fill:{color:cols[stt]},line:{color:'FFFFFF',width:0.5},rectRadius:0.04});
+        s.addText([{text:String(r[1]).trim(),options:{bold:true,fontSize:10,breakLine:true}},{text:stt==='culture'?('D'+(r[7]||'')):(stt==='close'?'ปิด':''),options:{fontSize:9}}],{x:1.8+i*0.44,y:y+0.08,w:0.42,h:0.74,align:'center',valign:'middle',fontFace:EXP_FONT,color:EXP_C.ink,isTextBox:true,margin:0});
       });
     });
-    const ly=1.35+mods.length*0.78+0.05;
+    const ly=1.3+mods.length*1.0+0.05;
     [['มีกุ้ง (Culture)','86EFAC'],['ปิดบ่อ / เตรียมบ่อ','D1D5DB'],['สถานะอื่น','F9A8D4']].forEach((l,i)=>{
       s.addShape(pres.ShapeType.roundRect,{x:0.6+i*2.7,y:ly+0.05,w:0.3,h:0.25,fill:{color:l[1]},line:{color:EXP_C.line,width:0.5},rectRadius:0.04});
       s.addText(l[0],{x:1.0+i*2.7,y:ly,w:2.3,h:0.35,fontFace:EXP_FONT,fontSize:15,color:EXP_C.grey,isTextBox:true,margin:0});
@@ -441,7 +441,7 @@ function expWeeklySlides(pres,bg,st,raw,d,now){
   if(T('w_perf')){
     const s=bg(); expTitle(pres,s,'ประสิทธิภาพประจำสัปดาห์ · '+an);
     expCard(pres,s,0.5,1.25,6.05,2.75); s.addText('Utilization (พื้นที่การเลี้ยง)',{x:0.7,y:1.3,w:5.6,h:0.4,fontFace:EXP_FONT,fontSize:20,bold:true,color:EXP_C.ink,isTextBox:true,margin:0});
-    expDonut(pres,s,1.8,1.7,3.4,2.25,nCul,nTot,EXP_OK,'Utilization');
+    expDonut(pres,s,2.3,1.75,2.4,1.9,nCul,nTot,EXP_OK,'Utilization');
     expCard(pres,s,6.75,1.25,6.05,2.75);
     const sz=cul.map(r=>nm(r[9])).filter(x=>!isNaN(x)&&x>0);
     const szb=[{n:'>100',f:x=>x>100},{n:'60-100',f:x=>x>60&&x<=100},{n:'30-60',f:x=>x>30&&x<=60},{n:'<30',f:x=>x<=30}];
@@ -489,8 +489,8 @@ function expWeeklySlides(pres,bg,st,raw,d,now){
     expCard(pres,s,0.5,1.2,6.05,3.0); expCard(pres,s,6.75,1.2,6.05,3.0);
     s.addText('เชื้อในตับ (In Liver)',{x:0.7,y:1.25,w:5.6,h:0.4,fontFace:EXP_FONT,fontSize:20,bold:true,color:EXP_C.ink,align:'center',isTextBox:true,margin:0});
     s.addText('เชื้อในน้ำ (In Water)',{x:6.95,y:1.25,w:5.6,h:0.4,fontFace:EXP_FONT,fontSize:20,bold:true,color:EXP_C.ink,align:'center',isTextBox:true,margin:0});
-    expDonut(pres,s,2.0,1.65,3.0,2.45,tvcLpass,tvcLdata.length,EXP_OK,'ตับ');
-    expDonut(pres,s,8.25,1.65,3.0,2.45,tvcWpass,tvcWdata.length,tvcWpass/Math.max(tvcWdata.length,1)<0.8?EXP_WARN:EXP_OK,'น้ำ');
+    expDonut(pres,s,2.3,1.7,2.4,1.9,tvcLpass,tvcLdata.length,EXP_OK,'ตับ');
+    expDonut(pres,s,8.55,1.7,2.4,1.9,tvcWpass,tvcWdata.length,tvcWpass/Math.max(tvcWdata.length,1)<0.8?EXP_WARN:EXP_OK,'น้ำ');
     expPanel(pres,s,0.5,4.35,6.05,2.6,'FEF2F2','▲ บ่อที่เกินเกณฑ์',EXP_BAD,[
       'แบคทีเรียในน้ำเกินเกณฑ์ '+tvcWbad.length+' บ่อ: '+(tvcWbad.slice(0,6).map(x=>x.p).join(', ')||'–')+' · '+expDelta(tvcWbad.length,pv('tvcW'),true),
       'แบคทีเรียในตับเกินเกณฑ์ '+tvcLbad.length+' บ่อ: '+(tvcLbad.slice(0,6).map(x=>x.p).join(', ')||'–')+' · '+expDelta(tvcLbad.length,pv('tvcL'),true)],16,3);
@@ -499,13 +499,13 @@ function expWeeklySlides(pres,bg,st,raw,d,now){
   }
   /* ===== 8 แบคทีเรีย รายละเอียด ===== */
   if(T('w_tvcdetail')){
-    const rows=tvcW.filter(x=>x.cw||x.cl).sort((a,b)=>a.p.localeCompare(b.p)).map(x=>[x.p,docOf[x.p]||'–',expCell(expSci(x.w),x.cw),expCell(expSci(x.l),x.cl)]);
+    const rows=tvcW.filter(x=>x.cw||x.cl).sort((a,b)=>a.p.localeCompare(b.p)).map(x=>[x.p,docOf[x.p]||'–',expCell(expSci(x.w),x.cw,'center'),expCell(expSci(x.l),x.cl,'center')]);
     expPagedW(pres,bg,'ค่าแบคทีเรียในน้ำ-ในตับ (รายละเอียด)',['Pond','DOC','TVC ในน้ำ (cfu/ml)','TVC ในตับ (cfu/ml)'],rows.length?rows:[['–','','','']],[2.4,1.8,4.0,4.1],13,14,'ค่าผ่านเกณฑ์: น้ำ '+(tvcWdata.length?fmt(tvcWpass/tvcWdata.length*100,0):'–')+'% · ตับ '+(tvcLdata.length?fmt(tvcLpass/tvcLdata.length*100,0):'–')+'%',0.34);
   }
   /* ===== 9 สรุปปัญหาและแนวทางแก้ไข ===== */
   if(T('w_issue')){
     const s=bg(); expTitle(pres,s,'สรุปปัญหาและแนวทางการแก้ไข');
-    s.addText('ข้อความสร้างอัตโนมัติจากข้อมูล Dashboard — แก้ไข/เพิ่ม Comment ได้ใน PowerPoint ก่อนนำเสนอ',{x:0.5,y:1.05,w:12.3,h:0.35,align:'center',fontFace:EXP_FONT,fontSize:15,color:EXP_C.grey,isTextBox:true,margin:0});
+    s.addText('ข้อความสร้างอัตโนมัติจากข้อมูล Dashboard — แก้ไข/เพิ่ม Comment ได้ใน PowerPoint ก่อนนำเสนอ',{x:0.5,y:1.12,w:12.3,h:0.32,align:'center',fontFace:EXP_FONT,fontSize:14,color:EXP_C.grey,isTextBox:true,margin:0});
     const nm5=(rs,n)=>rs.slice(0,n).map(r=>String(r[1]||r.p||'').trim()).join(', ')+(rs.length>n?' ฯลฯ':'');
     const lateP=d.prep.filter(r=>/ล่าช้า/.test(r[10]));
     const cand=[];
@@ -518,7 +518,7 @@ function expWeeklySlides(pres,bg,st,raw,d,now){
     const top=cand.slice(0,3); while(top.length<3) top.push({p:'(เพิ่มปัญหาที่พบ)',s:'(เพิ่มแนวทางแก้ไข)'});
     const colr=['1F7A6D','B8860B','B91C1C'];
     top.forEach((c,i)=>{
-      const y=1.5+i*1.8;
+      const y=1.55+i*1.8;
       s.addShape(pres.ShapeType.roundRect,{x:0.5,y:y,w:6.05,h:1.65,fill:{color:'FFFFFF'},line:{color:colr[i],width:2},rectRadius:0.08});
       s.addText([{text:'ปัญหา (Problem)',options:{bold:true,color:colr[i],fontSize:20,breakLine:true}},{text:c.p,options:{color:EXP_C.ink,fontSize:16}}],{x:0.7,y:y+0.05,w:5.7,h:1.55,valign:'top',fontFace:EXP_FONT,isTextBox:true,margin:0});
       s.addShape(pres.ShapeType.roundRect,{x:6.75,y:y,w:6.05,h:1.65,fill:{color:'FFFFFF'},line:{color:colr[i],width:2},rectRadius:0.08});
@@ -526,8 +526,10 @@ function expWeeklySlides(pres,bg,st,raw,d,now){
     });
   }
   /* ===== 10-11 แผนการลงกุ้ง ===== */
-  const nmx=nowM===12?1:nowM+1, nyx=nowM===12?nowY+1:nowY;
-  const stkRows=raw.stk.slice(1).filter(r=>areas.indexOf(String(r[0]).trim())>=0&&String(r[1]).trim()&&!isCx(r)).map(r=>({m:String(r[0]).trim(),p:String(r[1]).trim(),dt:expMonthOf(r[2]),ds:r[2],mo:+r[3],yr:+r[4],pcs:expN(r[5]),ty:String(r[6]||'').trim()})).filter(x=>x.mo===nmx&&x.yr===nyx&&x.pcs>0);
+  let nmx=nowM===12?1:nowM+1, nyx=nowM===12?nowY+1:nowY;
+  const allStk=raw.stk.slice(1).filter(r=>areas.indexOf(String(r[0]).trim())>=0&&String(r[1]).trim()&&!isCx(r)).map(r=>({m:String(r[0]).trim(),p:String(r[1]).trim(),dt:expMonthOf(r[2]),ds:r[2],mo:+r[3],yr:+r[4],pcs:expN(r[5]),ty:String(r[6]||'').trim()})).filter(x=>x.pcs>0);
+  let stkRows=allStk.filter(x=>x.mo===nmx&&x.yr===nyx), stkFb=false;
+  if(!stkRows.length){ nmx=nowM; nyx=nowY; stkRows=allStk.filter(x=>x.mo===nmx&&x.yr===nyx); stkFb=true; }
   const isDone=x=>{ if(!x.dt)return false; const t=new Date(x.dt.y,x.dt.m-1,x.dt.d); return t<=new Date(nowY,nowM-1,nowD); };
   const isNur=x=>/PL\s*1[0-9]|IN\d/i.test(x.ty+' '+x.p)&&!/Super/i.test(x.ty);
   const big=stkRows.filter(x=>!isNur(x)).sort((a,b)=>a.p.localeCompare(b.p)), nur=stkRows.filter(isNur).sort((a,b)=>a.p.localeCompare(b.p));
@@ -536,7 +538,7 @@ function expWeeklySlides(pres,bg,st,raw,d,now){
     const tot=stkRows.reduce((a,x)=>a+x.pcs,0), done=stkRows.filter(isDone).reduce((a,x)=>a+x.pcs,0), wait=tot-done;
     expKpiRow(pres,s,[{label:'จำนวนบ่อตามแผน',val:stkRows.length+' บ่อ',sub:'ใหญ่ '+big.length+' · อนุบาล '+nur.length},{label:'ยอดลงตามแผน',val:fmt(tot/1e6,2)+' ล้านตัว',sub:fmt(tot,0)+' ตัว'},{label:'ลงแล้ว',val:fmt(done/1e6,2)+' ล้านตัว',sub:stkRows.filter(isDone).length+' บ่อ',col:EXP_OK},{label:'รอลง',val:fmt(wait/1e6,2)+' ล้านตัว',sub:stkRows.filter(x=>!isDone(x)).length+' บ่อ',col:EXP_WARN}],1.25);
     const pdone=tot?done/tot*100:0;
-    [['สถานะการลงกุ้ง','ลงแล้ว '+fmt(pdone,0)+'%',EXP_OK,pdone,'เป้าหมาย '+fmt(tot,0)+' ตัว / ลงจริง '+fmt(done,0)+' ตัว','บ่อที่ลงแล้ว: '+(stkRows.filter(isDone).map(x=>x.p).join(', ')||'–')],['แผนดำเนินการ','รอลง '+fmt(100-pdone,0)+'%',EXP_WARN,100-pdone,'จำนวนที่รอลง '+fmt(wait,0)+' ตัว','แผนลงกุ้ง: '+(stkRows.filter(x=>!isDone(x)).map(x=>x.p).join(', ')||'–')]].forEach((c,i)=>{
+    [['สถานะการลงกุ้ง',(tot?'ลงแล้ว '+fmt(pdone,0)+'%':'ไม่มีแผน'),EXP_OK,pdone,'เป้าหมาย '+fmt(tot,0)+' ตัว / ลงจริง '+fmt(done,0)+' ตัว','บ่อที่ลงแล้ว: '+(stkRows.filter(isDone).map(x=>x.p).join(', ')||'–')],['แผนดำเนินการ',(tot?'รอลง '+fmt(100-pdone,0)+'%':'ไม่มีแผน'),EXP_WARN,tot?100-pdone:0,'จำนวนที่รอลง '+fmt(wait,0)+' ตัว','แผนลงกุ้ง: '+(stkRows.filter(x=>!isDone(x)).map(x=>x.p).join(', ')||'–')]].forEach((c,i)=>{
       const y=2.75+i*2.1; expCard(pres,s,0.5,y,12.3,1.95);
       s.addText(c[0],{x:0.8,y:y+0.1,w:6,h:0.5,fontFace:EXP_FONT,fontSize:26,bold:true,color:EXP_C.ink,isTextBox:true,margin:0});
       s.addShape(pres.ShapeType.roundRect,{x:10.0,y:y+0.12,w:2.5,h:0.45,fill:{color:c[2]},line:{color:c[2],width:0},rectRadius:0.2});
@@ -546,7 +548,7 @@ function expWeeklySlides(pres,bg,st,raw,d,now){
       s.addText(c[4],{x:0.8,y:y+1.0,w:11.7,h:0.35,align:'center',fontFace:EXP_FONT,fontSize:18,color:EXP_C.ink,isTextBox:true,margin:0});
       s.addText(c[5],{x:0.8,y:y+1.38,w:11.7,h:0.5,align:'center',fontFace:EXP_FONT,fontSize:15,color:EXP_C.grey,valign:'top',isTextBox:true,margin:0});
     });
-    expNote(s,'แผนลงกุ้งจากชีต Stocking · ถือว่า "ลงแล้ว" เมื่อวันที่ลงกุ้ง ≤ วันที่ส่งออกรายงาน');
+    expNote(s,(stkFb?'ยังไม่มีแผนลงกุ้งเดือนถัดไปในชีต Stocking จึงแสดงแผนเดือนปัจจุบัน · ':'')+'แผนลงกุ้งจากชีต Stocking · ถือว่า "ลงแล้ว" เมื่อวันที่ลงกุ้ง ≤ วันที่ส่งออกรายงาน');
   }
   if(T('w_stockdetail')){
     const mk=(arr,name)=>{ const rows=arr.map(x=>[x.m,x.p,x.ds||'–',x.mo,x.yr,fmt(x.pcs,0),x.ty||'–']); const t=arr.reduce((a,x)=>a+x.pcs,0), dn=arr.filter(isDone).reduce((a,x)=>a+x.pcs,0);
@@ -578,21 +580,21 @@ function expWeeklySlides(pres,bg,st,raw,d,now){
     const s=bg(); expTitle(pres,s,'ประมาณการณ์และผลดำเนินการ · '+an+' ปี '+st.year);
     const f=d.financial, F={W:f.reduce((a,r)=>a+r.Weight,0),S:f.reduce((a,r)=>a+r.Sales,0),C:f.reduce((a,r)=>a+Math.abs(r['Production Cost']),0),N:f.reduce((a,r)=>a+r.NetProfit,0)};
     const rai=dy.concat(raw.dy.slice(2).filter(r=>areas.indexOf(String(r[0]).trim())>=0&&/close/i.test(r[4])&&!isCx(r))).reduce((a,r)=>a+expN(r[37]),0);
-    const szAvg=cul.map(r=>nm(r[9])).filter(x=>!isNaN(x)&&x>0), szA=szAvg.length?szAvg.reduce((a,x)=>a+x,0)/szAvg.length:NaN;
+    const szAvg=raw.oh.slice(1).filter(r=>areas.indexOf(String(r[10]).trim())>=0&&expN(r[26])>0&&expN(r[24])>0&&(expMonthOf(r[21])||{}).y===st.year).map(r=>expN(r[24])), szA=szAvg.length?szAvg.reduce((a,x)=>a+x,0)/szAvg.length:NaN;
     const price=F.W>0?F.S/F.W:NaN, cost=F.W>0?F.C/F.W:NaN;
     expKpiRow(pres,s,[
       {label:'ผลผลิต',val:fmt(F.W,0)+' ตัน',sub:rai>0?fmt(F.W*1000/rai/1000,1)+' ตัน/ไร่ (ประมาณ)':'–'},
-      {label:'ขนาดเฉลี่ย',val:fx(szA,0),sub:'ตัว/กก. (บ่อมีกุ้ง)'},
+      {label:'ขนาดเฉลี่ย',val:fx(szA,0),sub:'ตัว/กก. (ไซส์ที่จับจริง)'},
       {label:'ราคาขาย',val:fx(price,0),sub:'บาท/กก.'},
       {label:'ต้นทุนสุทธิ',val:fx(cost,0),sub:'บาท/กก.'},
       {label:'กำไร/กก.',val:fx(price-cost,0),sub:'บาท/กก.',col:(price-cost)>=0?EXP_OK:EXP_BAD},
       {label:'กำไรสุทธิ',val:fmt(F.N/1000,2)+' ลบ.',sub:'margin '+(F.S?fmt(F.N/F.S*100,1)+'%':'–'),col:F.N>=0?EXP_OK:EXP_BAD}
     ],1.15);
     const labs=f.map(r=>MT[r.m-1]);
-    s.addChart(pres.charts.BAR,[{name:'กำไร/ขาดทุนสุทธิ (ล้านบาท)',labels:labs,values:f.map(r=>+(r.NetProfit/1000).toFixed(2))}],Object.assign(expChartBase('กำไร/ขาดทุนสุทธิ (ล้านบาท)'),{x:0.4,y:2.5,w:6.3,h:3.1,barDir:'col',chartColors:[EXP_C.dark],showLegend:false,showValue:true,dataLabelPosition:'outEnd',dataLabelFontSize:11}));
-    s.addChart(pres.charts.BAR,[{name:'ผลผลิต (ตัน)',labels:labs,values:f.map(r=>+r.Weight.toFixed(1))}],Object.assign(expChartBase('ผลผลิต (ตัน)'),{x:6.8,y:2.5,w:6.2,h:3.1,barDir:'col',chartColors:[EXP_C.teal],showLegend:false,showValue:true,dataLabelPosition:'outEnd',dataLabelFontSize:11}));
+    s.addChart(pres.charts.BAR,[{name:'กำไร/ขาดทุนสุทธิ (ล้านบาท)',labels:labs,values:f.map(r=>+(r.NetProfit/1000).toFixed(2))}],Object.assign(expChartBase('กำไร/ขาดทุนสุทธิ (ล้านบาท)'),{x:0.4,y:2.5,w:6.3,h:3.5,barDir:'col',chartColors:[EXP_C.dark],showLegend:false,showValue:true,dataLabelPosition:'outEnd',dataLabelFontSize:11}));
+    s.addChart(pres.charts.BAR,[{name:'ผลผลิต (ตัน)',labels:labs,values:f.map(r=>+r.Weight.toFixed(1))}],Object.assign(expChartBase('ผลผลิต (ตัน)'),{x:6.8,y:2.5,w:6.2,h:3.5,barDir:'col',chartColors:[EXP_C.teal],showLegend:false,showValue:true,dataLabelPosition:'outEnd',dataLabelFontSize:11}));
     const uRow=d.stocking.map(r=>fmt(r.pct,0)+'%');
-    expTable(s,['เดือน'].concat(labs),[['บ่อมีกุ้ง (%)'].concat(uRow)],{x:0.5,y:5.75,w:12.3,colW:[1.5].concat(labs.map(()=>10.8/labs.length)),fs:13,rowH:0.34});
+    expTable(s,['เดือน'].concat(labs),[['บ่อมีกุ้ง (%)'].concat(uRow)],{x:0.5,y:6.15,w:12.3,colW:[1.5].concat(labs.map(()=>10.8/labs.length)),fs:13,rowH:0.34});
     expNote(s,'หน่วย: ล้านบาท (กำไร) · ตัน (ผลผลิต) · ข้อมูลตามหน้า Financial / Stocking · ตัน/ไร่ = ผลผลิตรวม ÷ พื้นที่ (ไร่) ของบ่อทั้งหมดในพื้นที่ที่เลือก');
   }
 }
