@@ -533,12 +533,13 @@ function expWeeklySlides(pres,bg,st,raw,d,now){
   const isDone=x=>{ if(!x.dt)return false; const t=new Date(x.dt.y,x.dt.m-1,x.dt.d); return t<=new Date(nowY,nowM-1,nowD); };
   const isNur=x=>/PL\s*1[0-9]|IN\d/i.test(x.ty+' '+x.p)&&!/Super/i.test(x.ty);
   const big=stkRows.filter(x=>!isNur(x)).sort((a,b)=>a.p.localeCompare(b.p)), nur=stkRows.filter(isNur).sort((a,b)=>a.p.localeCompare(b.p));
+  const lst=a=>a.length?(a.slice(0,14).map(x=>x.p).join(', ')+(a.length>14?' ฯลฯ (รวม '+a.length+' บ่อ)':'')):'–';
   if(T('w_stockplan')){
     const s=bg(); expTitle(pres,s,'แผนการลงกุ้งเดือน '+MT[nmx-1]+' '+nyx+' · '+an);
     const tot=stkRows.reduce((a,x)=>a+x.pcs,0), done=stkRows.filter(isDone).reduce((a,x)=>a+x.pcs,0), wait=tot-done;
     expKpiRow(pres,s,[{label:'จำนวนบ่อตามแผน',val:stkRows.length+' บ่อ',sub:'ใหญ่ '+big.length+' · อนุบาล '+nur.length},{label:'ยอดลงตามแผน',val:fmt(tot/1e6,2)+' ล้านตัว',sub:fmt(tot,0)+' ตัว'},{label:'ลงแล้ว',val:fmt(done/1e6,2)+' ล้านตัว',sub:stkRows.filter(isDone).length+' บ่อ',col:EXP_OK},{label:'รอลง',val:fmt(wait/1e6,2)+' ล้านตัว',sub:stkRows.filter(x=>!isDone(x)).length+' บ่อ',col:EXP_WARN}],1.25);
     const pdone=tot?done/tot*100:0;
-    [['สถานะการลงกุ้ง',(tot?'ลงแล้ว '+fmt(pdone,0)+'%':'ไม่มีแผน'),EXP_OK,pdone,'เป้าหมาย '+fmt(tot,0)+' ตัว / ลงจริง '+fmt(done,0)+' ตัว','บ่อที่ลงแล้ว: '+(stkRows.filter(isDone).map(x=>x.p).join(', ')||'–')],['แผนดำเนินการ',(tot?'รอลง '+fmt(100-pdone,0)+'%':'ไม่มีแผน'),EXP_WARN,tot?100-pdone:0,'จำนวนที่รอลง '+fmt(wait,0)+' ตัว','แผนลงกุ้ง: '+(stkRows.filter(x=>!isDone(x)).map(x=>x.p).join(', ')||'–')]].forEach((c,i)=>{
+    [['สถานะการลงกุ้ง',(tot?'ลงแล้ว '+fmt(pdone,0)+'%':'ไม่มีแผน'),EXP_OK,pdone,'เป้าหมาย '+fmt(tot,0)+' ตัว / ลงจริง '+fmt(done,0)+' ตัว','บ่อที่ลงแล้ว: '+(lst(stkRows.filter(isDone)))],['แผนดำเนินการ',(tot?'รอลง '+fmt(100-pdone,0)+'%':'ไม่มีแผน'),EXP_WARN,tot?100-pdone:0,'จำนวนที่รอลง '+fmt(wait,0)+' ตัว','แผนลงกุ้ง: '+(lst(stkRows.filter(x=>!isDone(x))))]].forEach((c,i)=>{
       const y=2.75+i*2.1; expCard(pres,s,0.5,y,12.3,1.95);
       s.addText(c[0],{x:0.8,y:y+0.1,w:6,h:0.5,fontFace:EXP_FONT,fontSize:26,bold:true,color:EXP_C.ink,isTextBox:true,margin:0});
       s.addShape(pres.ShapeType.roundRect,{x:10.0,y:y+0.12,w:2.5,h:0.45,fill:{color:c[2]},line:{color:c[2],width:0},rectRadius:0.2});
@@ -551,14 +552,21 @@ function expWeeklySlides(pres,bg,st,raw,d,now){
     expNote(s,(stkFb?'ยังไม่มีแผนลงกุ้งเดือนถัดไปในชีต Stocking จึงแสดงแผนเดือนปัจจุบัน · ':'')+'แผนลงกุ้งจากชีต Stocking · ถือว่า "ลงแล้ว" เมื่อวันที่ลงกุ้ง ≤ วันที่ส่งออกรายงาน');
   }
   if(T('w_stockdetail')){
-    const mk=(arr,name)=>{ const rows=arr.map(x=>[x.m,x.p,x.ds||'–',x.mo,x.yr,fmt(x.pcs,0),x.ty||'–']); const t=arr.reduce((a,x)=>a+x.pcs,0), dn=arr.filter(isDone).reduce((a,x)=>a+x.pcs,0);
-      rows.push(['รอลงกุ้ง','','','','',fmt(t-dn,0),'']); rows.push(['ลงแล้ว','','','','',fmt(dn,0),'']); rows.push(['รวม','','','','',fmt(t,0),'']); return rows; };
     const head=['Module','Pond name','Stocking Date','Month','Year','Stocking (pcs.)','Type'], cw=[1.2,1.8,1.9,1.1,1.1,2.2,3.0];
-    const s=bg(); expTitle(pres,s,'แผนการลงกุ้งเดือน '+MT[nmx-1]+' (รายละเอียด)');
-    s.addText('แผนลงกุ้งใหญ่ เดือน '+MT[nmx-1],{x:0.5,y:1.15,w:12.3,h:0.35,fontFace:EXP_FONT,fontSize:20,bold:true,color:EXP_C.dark,isTextBox:true,margin:0});
-    expTable(s,head,big.length?mk(big):[['–','ไม่มีแผน','','','','','']],{x:0.5,y:1.55,w:12.3,colW:cw,fs:13,rowH:0.3,boldLast:true});
-    const s2=bg(); expTitle(pres,s2,'แผนการลงกุ้งอนุบาล เดือน '+MT[nmx-1]+' (รายละเอียด)');
-    expTable(s2,head,nur.length?mk(nur):[['–','ไม่มีแผน','','','','','']],{x:0.5,y:1.3,w:12.3,colW:cw,fs:14,rowH:0.34,boldLast:true});
+    const part=(arr,title)=>{
+      const t=arr.reduce((a,x)=>a+x.pcs,0), dn=arr.filter(isDone).reduce((a,x)=>a+x.pcs,0);
+      const rows=arr.map(x=>[x.m,x.p,x.ds||'–',x.mo,x.yr,fmt(x.pcs,0),x.ty||'–']);
+      const sums=[['รอลงกุ้ง','','','','',fmt(t-dn,0),''],['ลงแล้ว','','','','',fmt(dn,0),''],['รวม','','','','',fmt(t,0),'']];
+      const per=14, pages=Math.max(1,Math.ceil(rows.length/per));
+      for(let p=0;p<pages;p++){
+        const sl=bg(); expTitle(pres,sl,title+' เดือน '+MT[nmx-1]+(pages>1?' ('+(p+1)+'/'+pages+')':''));
+        let chunk=rows.slice(p*per,(p+1)*per); if(p===pages-1) chunk=chunk.concat(sums);
+        expTable(sl,head,chunk,{x:0.5,y:1.3,w:12.3,colW:cw,fs:14,rowH:0.34,boldLast:p===pages-1});
+      }
+    };
+    if(!big.length&&!nur.length){ const sl=bg(); expTitle(pres,sl,'แผนการลงกุ้ง เดือน '+MT[nmx-1]+' (รายละเอียด)'); sl.addText('ยังไม่มีแผนลงกุ้งในชีต Stocking สำหรับเดือนนี้',{x:0.5,y:3,w:12.3,h:1,align:'center',fontFace:EXP_FONT,fontSize:28,color:EXP_C.grey,isTextBox:true,margin:0}); }
+    if(big.length) part(big,'แผนการลงกุ้งใหญ่ (รายละเอียด)');
+    if(nur.length) part(nur,'แผนการลงกุ้งอนุบาล (รายละเอียด)');
   }
   /* ===== 12 แผนการจับกุ้ง ===== */
   if(T('w_harvest')){
