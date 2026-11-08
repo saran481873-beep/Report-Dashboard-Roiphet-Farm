@@ -506,11 +506,11 @@ function expPaint(){
 async function pageExport(){
   el('subtitle').textContent='Export Data · สร้างไฟล์นำเสนอ (.pptx) จากข้อมูล Dashboard';
   el('app').innerHTML='<style>.expchip{border:1px solid var(--line,#d1d5db);background:#fff;border-radius:999px;padding:7px 16px;margin:0 8px 8px 0;font-size:14px;cursor:pointer;font-family:inherit}.expchip.on{background:#4AC5B1;border-color:#4AC5B1;color:#fff;font-weight:700}.expbox{background:#fff;border:1px solid var(--line,#e5e7eb);border-radius:14px;padding:18px 20px;margin-bottom:14px}.expbox h3{margin:0 0 10px;font-size:15px}.expgo{background:#1F7A6D;color:#fff;border:0;border-radius:12px;padding:13px 28px;font-size:16px;font-weight:700;cursor:pointer}.expgo:disabled{opacity:.6;cursor:wait}</style>'
-   +'<div class="expbox"><h3>0 · รูปแบบรายงาน</h3><div id="expStyle"></div></div>'
-   +'<div class="expbox"><h3>1 · พื้นที่</h3><div id="expAreas"></div></div>'
-   +'<div class="expbox"><h3>2 · ปี</h3><div id="expYears"></div></div>'
-   +'<div class="expbox"><h3>3 · เดือน (เลือกได้หลายเดือน)</h3><div id="expMonths"></div><button class="expchip" onclick="EXP_ST.months=[1,2,3,4,5,6,7,8,9,10,11,12];expPaint()">เลือกทั้งหมด</button><button class="expchip" onclick="EXP_ST.months=[];expPaint()">ล้างการเลือก</button></div>'
-   +'<div class="expbox"><h3>4 · เนื้อหาหัวข้อ</h3><div id="expTopics"></div></div>'
+   +'<div class="expbox"><h3>1 · รูปแบบรายงาน</h3><div id="expStyle"></div></div>'
+   +'<div class="expbox"><h3>2 · พื้นที่</h3><div id="expAreas"></div></div>'
+   +'<div class="expbox"><h3>3 · ปี</h3><div id="expYears"></div></div>'
+   +'<div class="expbox"><h3>4 · เดือน (เลือกได้หลายเดือน)</h3><div id="expMonths"></div><button class="expchip" onclick="EXP_ST.months=[1,2,3,4,5,6,7,8,9,10,11,12];expPaint()">เลือกทั้งหมด</button><button class="expchip" onclick="EXP_ST.months=[];expPaint()">ล้างการเลือก</button></div>'
+   +'<div class="expbox"><h3>5 · เนื้อหาหัวข้อ</h3><div id="expTopics"></div></div>'
    +'<div><button class="expgo" id="expBtn" onclick="expRun()">⭳ Export PowerPoint (.pptx)</button> <span id="expMsg" style="margin-left:12px;font-size:14px"></span></div>'
    +'<div class="hint" style="margin-top:12px">ฟอนต์ในไฟล์ใช้ FreesiaUPC (ต้องติดตั้งฟอนต์นี้ในเครื่องที่เปิดไฟล์) · เทมเพลตตามต้นแบบของฟาร์ม</div>';
   expPaint();
