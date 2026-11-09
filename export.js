@@ -98,8 +98,8 @@ function expCompute(raw,st){
 /* ---------- slide helpers ---------- */
 function expTitle(pres,slide,text){
   text=String(text).replace(/\s*·?\s*ทั้งฟาร์ม/g,'').replace(/\s+/g,' ').trim();
-  const fs=text.length>26?Math.max(28,Math.floor(44*26/text.length)):44;
-  slide.addText(text,{x:1.7,y:0.1,w:9.4,h:0.95,align:'center',valign:'middle',fontFace:EXP_FONT,fontSize:fs,bold:true,color:'FFFFFF',isTextBox:true,margin:0});
+  const fs=44;
+  slide.addText(text,{x:1.5,y:0.1,w:10.4,h:0.95,align:'center',valign:'middle',fontFace:EXP_FONT,fontSize:fs,bold:true,color:'FFFFFF',isTextBox:true,margin:0});
 }
 /* ย้ายเนื้อหาลงใต้แถบหัวข้อ: y<1.0 (หัวข้อ) คงเดิม, y≥1.0 บีบช่วง 1.05–7.0 → 1.45–7.0 */
 function expShift(s){
@@ -115,9 +115,9 @@ function expNote(slide,text){
   slide.addText(text,{x:0.5,y:7.05,w:12.3,h:0.35,fontFace:EXP_FONT,fontSize:14,color:EXP_C.grey,isTextBox:true,margin:0});
 }
 function expTable(slide,head,rows,o){
-  const fs=o.fs||16, hdr=head.map(h=>({text:String(h),options:{bold:true,color:'FFFFFF',fill:{color:EXP_C.dark},align:'center',valign:'middle',fontFace:EXP_FONT,fontSize:fs}}));
+  const fs=18, hdr=head.map(h=>({text:String(h),options:{bold:true,color:'FFFFFF',fill:{color:EXP_C.dark},align:'center',valign:'middle',fontFace:EXP_FONT,fontSize:fs}}));
   const body=rows.map((r,i)=>r.map((c0,j)=>{ const ob=(c0&&typeof c0==='object')?c0:{t:c0}; const c=ob.t; return {text:String(c),options:{color:ob.color||(/ล่าช้า|▼/.test(String(c))?EXP_C.red:(/▲/.test(String(c))?EXP_OK:EXP_C.ink)),fill:{color:ob.fill||(i%2?'FFFFFF':EXP_C.zebra)},align:(j===0&&!o.leftFirst)?'center':(ob.align||(/^[\d.,\-–%\s]*$/.test(String(c))?'right':'left')),valign:'middle',fontFace:EXP_FONT,fontSize:fs,bold:!!(ob.bold||(o.boldLast&&i===rows.length-1))}}; }));
-  slide.addTable([hdr].concat(body),{x:o.x,y:o.y,w:o.w,colW:o.colW,rowH:o.rowH||0.34,border:{type:'solid',pt:0.5,color:EXP_C.line},margin:[0,0.06,0,0.06]});
+  slide.addTable([hdr].concat(body),{x:o.x,y:o.y,w:o.w,colW:o.colW,rowH:Math.max(o.rowH||0.34,0.38),border:{type:'solid',pt:0.5,color:EXP_C.line},margin:[0,0.06,0,0.06]});
 }
 function expChartBase(title){
   return {showTitle:true,title:title,titleFontFace:EXP_FONT,titleFontSize:20,titleColor:EXP_C.ink,
@@ -129,7 +129,7 @@ function expChartBase(title){
 }
 function expFmt(n,d){ return fmt(n,d===undefined?0:d); }
 function expPaged(pres,bgSlide,title,head,rows,colW,perPage,fs,note){
-  const pages=Math.max(1,Math.ceil(rows.length/perPage));
+  perPage=Math.min(perPage,12); const pages=Math.max(1,Math.ceil(rows.length/perPage));
   for(let p=0;p<pages;p++){
     const s=bgSlide(); expTitle(pres,s,title+(pages>1?' ('+(p+1)+'/'+pages+')':''));
     const chunk=rows.slice(p*perPage,(p+1)*perPage);
@@ -148,9 +148,9 @@ function expKpiRow(pres,s,items,y){
     const x=0.5+i*(w+gap), h=1.25, col=k.col||EXP_C.dark;
     s.addShape(pres.ShapeType.roundRect,{x:x,y:y,w:w,h:h,fill:{color:'FFFFFF'},line:{color:EXP_C.line,width:0.75},rectRadius:0.08});
     s.addShape(pres.ShapeType.rect,{x:x,y:y+0.12,w:0.08,h:h-0.24,fill:{color:col},line:{color:col,width:0}});
-    s.addText(k.label,{x:x+0.22,y:y+0.06,w:w-0.3,h:0.32,fontFace:EXP_FONT,fontSize:16,color:EXP_C.grey,isTextBox:true,margin:0});
-    s.addText(k.val,{x:x+0.22,y:y+0.36,w:w-0.3,h:0.5,fontFace:EXP_FONT,fontSize:n>=5?26:30,bold:true,color:col,isTextBox:true,margin:0});
-    s.addText(k.sub||'',{x:x+0.22,y:y+0.86,w:w-0.3,h:0.3,fontFace:EXP_FONT,fontSize:14,color:EXP_C.grey,isTextBox:true,margin:0});
+    s.addText(k.label,{x:x+0.1,y:y+0.06,w:w-0.2,h:0.32,align:'center',fontFace:EXP_FONT,fontSize:16,color:EXP_C.grey,isTextBox:true,margin:0});
+    s.addText(k.val,{x:x+0.1,y:y+0.36,w:w-0.2,h:0.5,align:'center',fontFace:EXP_FONT,fontSize:n>=5?26:30,bold:true,color:col,isTextBox:true,margin:0});
+    s.addText(k.sub||'',{x:x+0.1,y:y+0.86,w:w-0.2,h:0.3,align:'center',fontFace:EXP_FONT,fontSize:14,color:EXP_C.grey,isTextBox:true,margin:0});
   });
 }
 function expPanel(pres,s,x,y,w,h,fill,head,hc,items,fs,max){
@@ -373,8 +373,8 @@ function expCard(pres,s,x,y,w,h){ s.addShape(pres.ShapeType.roundRect,{x:x,y:y,w
 function expAlert(pres,s,x,y,w,h,text,sub,bad){
   const c=bad?EXP_BAD:EXP_OK;
   s.addShape(pres.ShapeType.roundRect,{x:x,y:y,w:w,h:h,fill:{color:bad?'FEF2F2':'F0FDF4'},line:{color:c,width:2},rectRadius:0.1});
-  s.addText(text,{x:x+0.2,y:y+0.05,w:w-0.4,h:h*0.55,fontFace:EXP_FONT,fontSize:h>=0.9?20:19,bold:true,color:c,valign:'middle',isTextBox:true,margin:0});
-  if(sub) s.addText(sub,{x:x+0.2,y:y+h*0.58,w:w-0.4,h:h*0.38,fontFace:EXP_FONT,fontSize:13,color:EXP_C.grey,valign:'top',isTextBox:true,margin:0});
+  s.addText(text,{x:x+0.2,y:y+0.05,w:w-0.4,h:h*0.55,fontFace:EXP_FONT,fontSize:h>=0.9?20:19,bold:true,color:c,align:'center',valign:'middle',isTextBox:true,margin:0});
+  if(sub) s.addText(sub,{x:x+0.2,y:y+h*0.58,w:w-0.4,h:h*0.38,fontFace:EXP_FONT,fontSize:14,color:EXP_C.grey,align:'center',valign:'top',isTextBox:true,margin:0});
 }
 function expDonut(pres,s,x,y,w,h,pass,total,color,label){
   const p=total?Math.round(pass/total*100):0;
@@ -383,7 +383,7 @@ function expDonut(pres,s,x,y,w,h,pass,total,color,label){
   s.addText(total?('ผ่านเกณฑ์ '+pass+' / '+total+' บ่อ'):'ไม่มีข้อมูล',{x:x-0.5,y:y+h-0.05,w:w+1,h:0.32,align:'center',fontFace:EXP_FONT,fontSize:15,color:EXP_C.grey,isTextBox:true,margin:0});
 }
 function expPagedW(pres,bg,title,head,rows,colW,perPage,fs,note,rowH){
-  const pages=Math.max(1,Math.ceil(rows.length/perPage));
+  perPage=Math.min(perPage,12); const pages=Math.max(1,Math.ceil(rows.length/perPage));
   for(let p=0;p<pages;p++){
     const s=bg(); expTitle(pres,s,title+(pages>1?' ('+(p+1)+'/'+pages+')':''));
     expTable(s,head,rows.slice(p*perPage,(p+1)*perPage),{x:0.5,y:1.3,w:12.3,colW:colW,fs:fs,rowH:rowH||0.34});
@@ -434,25 +434,31 @@ function expWeeklySlides(pres,bg,st,raw,d,now){
       {label:'% บ่อมีกุ้ง',val:fmt(util,0)+'%',sub:nCul+'/'+nTot+' บ่อ',col:EXP_WARN},
       {label:'มีกุ้ง ณ สิ้นเดือน',val:fmt(eomN,0)+' บ่อ ('+fmt(eomP,0)+'%)',sub:lastS?'เดือน'+MT[lastS.m-1]:'–',col:'7C3AED'}
     ],1.2);
-    const mods=areas, cols={culture:'86EFAC',close:'D1D5DB',other:'F9A8D4'};
-    const rh=Math.min(0.78,3.3/Math.max(mods.length,1));
-    s.addText('ผังสถานะบ่อ (Layout)',{x:0.5,y:2.55,w:6,h:0.35,fontFace:EXP_FONT,fontSize:20,bold:true,color:EXP_C.ink,isTextBox:true,margin:0});
-    mods.forEach((a,mi)=>{
-      const y=2.95+mi*(rh+0.06), rows=wk.filter(r=>String(r[0]).trim()===a), nShow=Math.min(rows.length,20);
-      const cw=Math.min(0.56,10.9/Math.max(nShow,16));
-      s.addShape(pres.ShapeType.roundRect,{x:0.5,y:y,w:12.3,h:rh,fill:{color:'F3F4F6'},line:{color:EXP_C.line,width:0.5},rectRadius:0.05});
-      s.addText('Module '+a,{x:0.6,y:y,w:1.3,h:rh,fontFace:EXP_FONT,fontSize:18,bold:true,color:EXP_C.dark,valign:'middle',isTextBox:true,margin:0});
-      rows.slice(0,nShow).forEach((r,i)=>{
-        const stt=/culture/i.test(r[4])?'culture':(/close/i.test(r[4])?'close':'other');
-        s.addShape(pres.ShapeType.roundRect,{x:1.95+i*cw,y:y+0.05,w:cw-0.03,h:rh-0.1,fill:{color:cols[stt]},line:{color:'FFFFFF',width:0.5},rectRadius:0.04});
-        s.addText([{text:String(r[1]).trim().replace(/^[A-Z]/,''),options:{bold:true,fontSize:11,breakLine:true}},{text:stt==='culture'?('D'+(r[7]||'')):(stt==='close'?'ปิด':'-'),options:{fontSize:10}}],{x:1.95+i*cw,y:y+0.05,w:cw-0.03,h:rh-0.1,align:'center',valign:'middle',fontFace:EXP_FONT,color:EXP_C.ink,isTextBox:true,margin:0});
-      });
+    const U=0.0115, ox=0.45, oy=2.55, colsC={culture:'86EFAC',close:'D1D5DB',other:'F9A8D4'};
+    const X=v=>ox+(v-25)*U, Y=v=>oy+(v-26)*U;
+    const rc=(x,y,w,h,fill,line,lw)=>s.addShape(pres.ShapeType.rect,{x:X(x),y:Y(y),w:w*U,h:h*U,fill:{color:fill},line:{color:line||'7F7F7F',width:lw||0.5}});
+    const tx=(t,x,y,w,h,fs,col)=>s.addText(t,{x:X(x),y:Y(y),w:w*U,h:h*U,align:'center',valign:'middle',fontFace:EXP_FONT,fontSize:fs,bold:true,color:col,isTextBox:true,margin:0});
+    rc(25,27,155,230,'F2F2F2','1F2F6B',1); tx('บ่อระบบน้ำ',25,27,155,230,22,'1F2F6B');
+    const bld={}; wk.forEach(r=>{ const m=String(r[1]).trim().match(/^([A-D])([1-6])([GI])(\d+)$/); if(m){ const k=m[1]+m[2]+m[3]; (bld[k]=bld[k]||[]).push({n:+m[4],st:/culture/i.test(r[4])?'culture':(/close/i.test(r[4])?'close':'other')}); } });
+    const MP={D:[195,0],C:[195,120.5],B:[195,241],A:[28,241]};
+    Object.keys(MP).forEach(mod=>{
+      const bx0=MP[mod][0], by0=MP[mod][1]+26, on=areas.indexOf(mod)>=0;
+      for(let n=1;n<=6;n++){
+        const bx=bx0+((n-1)%3)*56, by=by0+(n>3?44:10);
+        if(n<=3) rc(bx+8,by0,16,9,'E5E7EB'); else rc(bx+8,by+30,16,9,'E5E7EB');
+        ['I','G'].forEach((ty,ri)=>{ const arr=(bld[mod+n+ty]||[]).sort((a,b)=>a.n-b.n);
+          for(let ci=0;ci<2;ci++){ const p=arr[ci]; rc(bx+ci*16,by+ri*15,16,15,(p&&on)?colsC[p.st]:'F3F4F6','7F7F7F',0.5); } });
+      }
+      rc(bx0-5,by0+84,155,33,'F2F2F2','F2F2F2',0); tx('โมดูล '+mod,bx0-5,by0+84,155,33,20,'1F2F6B');
     });
-    const ly=2.95+mods.length*(rh+0.06)+0.03;
-    [['มีกุ้ง (Culture) + DOC','86EFAC'],['ปิดบ่อ / เตรียมบ่อ','D1D5DB'],['สถานะอื่น','F9A8D4']].forEach((l,i)=>{
-      s.addShape(pres.ShapeType.roundRect,{x:0.6+i*3.6,y:ly+0.06,w:0.3,h:0.25,fill:{color:l[1]},line:{color:EXP_C.line,width:0.5},rectRadius:0.04});
-      s.addText(l[0],{x:1.0+i*3.6,y:ly,w:3.0,h:0.38,fontFace:EXP_FONT,fontSize:16,color:EXP_C.grey,isTextBox:true,margin:0});
+    const cnt=k=>wk.filter(r=>(k==='culture'?/culture/i.test(r[4]):k==='close'?/close/i.test(r[4]):!/culture|close/i.test(r[4]))).length;
+    [['มีกุ้ง (Culture) '+cnt('culture')+' บ่อ','culture'],['ปิดบ่อ / เตรียมบ่อ '+cnt('close')+' บ่อ','close'],['สถานะอื่น '+cnt('other')+' บ่อ','other']].forEach((l,i)=>{
+      s.addShape(pres.ShapeType.roundRect,{x:4.9+i*2.75,y:2.7,w:0.3,h:0.28,fill:{color:colsC[l[1]]},line:{color:EXP_C.line,width:0.5},rectRadius:0.04});
+      s.addText(l[0],{x:5.28+i*2.75,y:2.62,w:2.4,h:0.45,fontFace:EXP_FONT,fontSize:18,color:EXP_C.ink,valign:'middle',isTextBox:true,margin:0});
     });
+    const mrows=areas.map(a=>{ const rs=wk.filter(r=>String(r[0]).trim()===a), c=rs.filter(r=>/culture/i.test(r[4])).length; return [{t:'โมดูล '+a,align:'center'},rs.length,c,rs.length?fmt(c/rs.length*100,0)+'%':'0%',rs.length-c]; });
+    if(areas.length>1) mrows.push([{t:'รวม',align:'center',bold:true},{t:String(nTot),bold:true},{t:String(nCul),bold:true},{t:fmt(util,0)+'%',bold:true},{t:String(nTot-nCul),bold:true}]);
+    expTable(s,['โมดูล','ลงทะเบียน','มีกุ้ง','% มีกุ้ง','ปิด / อื่น ๆ'],mrows,{x:4.9,y:3.3,w:8.0,colW:[1.9,1.6,1.3,1.5,1.7],fs:18,rowH:0.46});
     expNote(s,'ข้อมูลสถานะบ่อล่าสุดจากหน้า Weekly · ผลผลิตรวมในบ่อ '+fmt(cul.reduce((a,r)=>a+expN(r[10]),0)/1000,1)+' ตัน · DOC เฉลี่ย '+fx(cul.reduce((a,r)=>a+expN(r[7]),0)/Math.max(nCul,1),0)+' วัน');
   }
   /* ===== 1.5 สถานะการเตรียมบ่อ ===== */
@@ -657,10 +663,10 @@ function expGenerate(PptxGenJS,st,raw,bgs){
   const c=pres.addSlide(); c.background={data:bgs.cover};
   const MODTH={A:'เอ',B:'บี',C:'ซี',D:'ดี',R:'อาร์'};
   const farmLine='ฟาร์มเลี้ยงกุ้งโรงเรือนระบบปิดร้อยเพชร'+(st.area==='ALL'?'':' (โมดุล '+(MODTH[st.area]||st.area)+')');
-  c.addText(weekly?'รายงานความก้าวหน้า':'รายงานสรุปผู้บริหาร',{x:0.5,y:1.9,w:10,h:1.0,fontFace:EXP_FONT,fontSize:50,bold:true,color:EXP_C.yellow,valign:'top',isTextBox:true,margin:0});
-  c.addText(farmLine,{x:0.5,y:3.1,w:12,h:0.7,fontFace:EXP_FONT,fontSize:30,color:'FFFFFF',isTextBox:true,margin:0});
-  c.addText(weekly?'ประจำสัปดาห์':('ปี '+st.year+'  |  '+(ms.length===12?'ทุกเดือน':ms.map(m=>MONTH_TH[m-1]).join(' '))),{x:0.5,y:4.0,w:9,h:0.6,fontFace:EXP_FONT,fontSize:28,color:'FFFFFF',isTextBox:true,margin:0});
-  c.addText('ข้อมูล ณ วันที่ '+nowTxt,{x:0.5,y:4.7,w:9,h:0.5,fontFace:EXP_FONT,fontSize:24,color:'FFFFFF',isTextBox:true,margin:0});
+  c.addText(weekly?'รายงานความก้าวหน้า':'รายงานสรุปผู้บริหาร',{x:0.4,y:2.8,w:9,h:1.0,fontFace:EXP_FONT,fontSize:60,bold:true,color:'FFFFFF',valign:'middle',isTextBox:true,margin:0});
+  c.addText(farmLine,{x:0.4,y:3.85,w:10,h:0.6,fontFace:EXP_FONT,fontSize:28,color:'FFFFFF',valign:'middle',isTextBox:true,margin:0});
+  if(!weekly) c.addText('ปี '+st.year+'  |  '+(ms.length===12?'ทุกเดือน':ms.map(m=>MONTH_TH[m-1]).join(' ')),{x:0.4,y:4.5,w:9,h:0.5,fontFace:EXP_FONT,fontSize:24,color:'FFFFFF',valign:'middle',isTextBox:true,margin:0});
+  c.addText(nowTxt,{x:0.4,y:6.6,w:6,h:0.5,fontFace:EXP_FONT,fontSize:24,color:'FFFFFF',valign:'middle',isTextBox:true,margin:0});
   if(weekly) expWeeklySlides(pres,bg,st,raw,d,now);
   else expExecSlides(pres,bg,st,d,ms,(n,dd)=>isNaN(n)?'–':expFmt(n,dd));
   const e=pres.addSlide(); e.background={data:bgs.thanks};
