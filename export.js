@@ -475,8 +475,11 @@ function expWeeklySlides(pres,bg,st,raw,d,now){
       {label:'ล่าช้า',val:lateN+' บ่อ',sub:pc(lateN),col:lateN?EXP_BAD:EXP_OK},
       {label:'ไม่ระบุแผน',val:naN+' บ่อ',sub:pc(naN),col:EXP_C.grey}
     ],1.2);
-    const steps={}; P.forEach(r=>{ const k=String(r[6]||'').trim()||'ไม่ระบุขั้นตอน'; (steps[k]=steps[k]||[]).push(r); });
-    const keys=Object.keys(steps).sort((a,b)=>steps[b].length-steps[a].length).slice(0,7);
+    const STEP_LIST=['ฆ่าเชื้อบ่อด้วยโซดาไฟ (pH 11-13)','ฉีดล้าง ขัดล้างบ่อ','ซ่อมบำรุง อุปกรณ์บ่อเลี้ยง','ซินพื้นบ่อ ซ่อมแซมโครงสร้าง ทาสี','แช่ Subdrain ด่างทับทิม 300 ppm (ตรวจสอบรอยรั่ว)','ฆ่าเชื้อคลอรีน Acidified Chlorine 300 ppm','ตรวจ Swab test (PCR) รอผล PCR Swab test','เติมน้ำ พร้อมปรับคุณภาพน้ำ','ส่งตรวจ PCR น้ำก่อนลงกุ้งรอผล','พร้อมปล่อยกุ้ง'];
+    const STEP_RULES=[[9,/พร้อมปล่อยกุ้ง/],[0,/โซดาไฟ|NaOH/],[4,/Subdrain|ด่างทับทิม|ค่างทับทิม|รอยรั่ว|Soak/i],[5,/คลอรีน|Chlorine/i],[6,/Swab/i],[8,/PCR/i],[7,/เติมน้ำ|ปรับคุณภาพน้ำ|ผลออก/],[1,/ฉีด|ขัดล้าง/],[3,/ซิน|ทาสี|ซ่อมแซมโครงสร้าง/],[2,/ซ่อมบำรุง|PM|จัดเตรียมอุปกรณ์/i]];
+    const stepIdx=s=>{ for(const q of STEP_RULES){ if(q[1].test(s||'')) return q[0]; } return 99; };
+    const steps={}; P.forEach(r=>{ const i=stepIdx(String(r[6]||'')); const k=i===99?'อื่นๆ / ไม่ระบุขั้นตอน':(i+1)+'. '+STEP_LIST[i]; (steps[k]=steps[k]||[]).push(r); });
+    const keys=Object.keys(steps).sort((a,b)=>(parseInt(a)||99)-(parseInt(b)||99)).slice(0,9);
     const rows=keys.map(k=>{ const rs=steps[k], o=rs.filter(r=>/ตามแผน/.test(r[10])).length, l=rs.filter(r=>/ล่าช้า/.test(r[10])).length;
       const stt=l>0?{t:'ล่าช้า '+l+' บ่อ',color:EXP_BAD,bold:true,align:'center'}:{t:'ตามแผน',color:EXP_OK,bold:true,align:'center'};
       return [{t:k,align:'left'},rs.length,pc(rs.length),o,l,stt,{t:rs.slice(0,3).map(r=>String(r[1]).trim()).join(', ')+(rs.length>3?' ฯลฯ':''),align:'left'}]; });
