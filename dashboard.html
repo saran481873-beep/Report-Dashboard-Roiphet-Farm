@@ -2220,20 +2220,17 @@ async function pagePrepare(){
   }).join('');
   var t1='<div class="card"><h3><span class="dot"></span>วันเตรียมบ่อสะสมแต่ละพื้นที่</h3><div class="hint">จำนวนบ่อแยกตามช่วงวันเตรียมบ่อสะสม (เฉพาะบ่อ Status Close)</div><table class="dtable stripe"><thead><tr><th>Module</th><th>1 - 20 วัน</th><th>21 - 30 วัน</th><th>&gt; 30 วัน</th></tr></thead><tbody>'+(t1Rows||'<tr><td colspan="4">ไม่พบข้อมูล</td></tr>')+'</tbody><tfoot><tr><td class="l">รวม</td><td>'+fmt(dayTotal.b1)+'</td><td>'+fmt(dayTotal.b2)+'</td><td>'+fmt(dayTotal.b3)+'</td></tr></tfoot></table></div>';
 
-  var stageDefs=[];
-  for(var i2=12;i2<=26;i2++){
-    stageDefs.push({idx:i2, label:(V[i2][24]||'').trim(), vals:{A:num(V[i2][29]),B:num(V[i2][30]),C:num(V[i2][31]),D:num(V[i2][32]),R:num(V[i2][33])}});
-  }
-  var matrixRows=stageDefs.filter(function(s){return s.idx>=13 && s.idx<=24 && s.label;});
-  var totalRowDef=null, readyRowDef=null;
-  stageDefs.forEach(function(s){
-    if(s.label.indexOf('จำนวนเตรียมบ่อ')===0) totalRowDef=s;
-    if(s.label.indexOf('เตรียมบ่อพร้อมปล่อยกุ้ง (บ่อ')===0 && s.idx===25) readyRowDef=s;
-  });
-  var planOnRowDef=stageDefs.find(function(s){return s.idx===23;});
-  var planDelayRowDef=stageDefs.find(function(s){return s.idx===24;});
-  var totalAllRowDef=stageDefs.find(function(s){return s.idx===25;});
-  var pctAllRowDef=stageDefs.find(function(s){return s.idx===26;});
+  /* ตารางขั้นตอน: คำนวณจากรายบ่อ (Status Close) ตามชื่อขั้นตอนปัจจุบันในชีต → ปรับตามขั้นตอนใหม่อัตโนมัติ */
+  var STEP_ORDER=['โซดาไฟ|NaOH','ฉีด|ขัดล้าง','PM','ซิน|พื้นบ่อ|ซ่อมแซมโครงสร้าง|ทาสี','Subdrain|ด่างทับทิม|ค่างทับทิม|รอยรั่ว','คลอรีน|Chlorine','Swab','เติมน้ำ|ปรับคุณภาพน้ำ|ผลออก','PCR','พร้อมปล่อยกุ้ง'];
+  function stepRank(n){ if(/^อื่น/.test(n)) return 99; if(/พร้อมปล่อยกุ้ง/.test(n)) return 50; for(var k=0;k<STEP_ORDER.length-1;k++){ if(new RegExp(STEP_ORDER[k],'i').test(n)) return k; } return 60; }
+  var stepNames=[...new Set(rows.map(function(r){return r.stage||'ไม่ระบุขั้นตอน';}))];
+  stepNames.sort(function(a,b){var d=stepRank(a)-stepRank(b); return d||a.localeCompare(b);});
+  function cntBy(fn){var o={}; ['A','B','C','D','R'].forEach(function(m){o[m]=rows.filter(function(r){return r.mod===m&&fn(r);}).length;}); return o;}
+  var matrixRows=stepNames.map(function(nm,i){return {label:(i+1)+'. '+nm, vals:cntBy(function(r){return (r.stage||'ไม่ระบุขั้นตอน')===nm;})};});
+  var totalRowDef={label:'จำนวนเตรียมบ่อ (บ่อ)', vals:cntBy(function(){return true;})};
+  var readyRowDef={label:'เตรียมบ่อพร้อมปล่อยกุ้ง (บ่อ)', vals:cntBy(function(r){return /พร้อมปล่อยกุ้ง/.test(r.stage);})};
+  var planOnRowDef={label:'สถานะเตรียมบ่อ ตามแผนทั้งหมด (บ่อ/%)', vals:cntBy(function(r){return /ตามแผน/.test(r.plan);})};
+  var planDelayRowDef={label:'สถานะเตรียมบ่อ ล่าช้าทั้งหมด (บ่อ/%)', vals:cntBy(function(r){return /ล่าช้า/.test(r.plan);})};
 
   var t2Head='<th>ขั้นตอน / รายการ</th>'+shownMods.map(function(m){return '<th>'+m+'</th>';}).join('')+'<th>Total</th>';
   var t2Body=matrixRows.map(function(s){
@@ -2256,7 +2253,7 @@ async function pagePrepare(){
   var readyToStock=shownMods.reduce(function(s,m){return s+((readyRowDef&&readyRowDef.vals[m])||0);},0);
   var kpis='<div class="kpis">'
     +'<div class="kpi b"><div class="klabel">จำนวนบ่อที่มีการเตรียมทั้งหมด</div><div class="kval">'+fmt(totalPrepared)+'</div><div class="ksub">บ่อ (Status Close)</div></div>'
-    +'<div class="kpi g"><div class="klabel">บ่อที่พร้อมลงกุ้ง</div><div class="kval">'+fmt(readyToStock)+'</div><div class="ksub">บ่อ ・ ขั้นตอน 7. พร้อมปล่อยกุ้ง</div></div>'
+    +'<div class="kpi g"><div class="klabel">บ่อที่พร้อมลงกุ้ง</div><div class="kval">'+fmt(readyToStock)+'</div><div class="ksub">บ่อ ・ ขั้นตอน พร้อมปล่อยกุ้ง</div></div>'
     +'</div>';
 
   var psd=(st.sortDir===1)?1:-1;
