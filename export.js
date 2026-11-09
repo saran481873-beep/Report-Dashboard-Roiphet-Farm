@@ -445,30 +445,33 @@ function expWeeklySlides(pres,bg,st,raw,d,now){
       {label:'ประมาณการ มีกุ้ง ณ สิ้นเดือน',val:fmt(eomN,0)+' บ่อ',sub:lastS?'('+fmt(eomP,0)+'%) เดือน'+MT[lastS.m-1]:'–',col:'7C3AED'}
     ],1.2);
     const colsC={culture:'CCFFFF',close:'B7B7B7',other:'FE99FD'};
+    const PRE0=/^[A-D][1-6][GI][0-9]{2}$/;
     const SV=(raw.sit&&raw.sit.values)||[], SB=(raw.sit&&raw.sit.bg)||[];
-    const gx0=0.45, gy0=2.55, gw=4.2/19, gh=4.3/20;
+    let minC=99,maxC=0,minR=99,maxR=0; for(let i=2;i<=21;i++) for(let c=0;c<=18;c++){ const t0=String((SV[i]&&SV[i][c])||'').trim(); if(PRE0.test(t0)){ minC=Math.min(minC,c); maxC=Math.max(maxC,c); minR=Math.min(minR,i); maxR=Math.max(maxR,i); } }
+    if(minC>maxC){ minC=0; maxC=18; minR=2; maxR=21; }
+    const gw=Math.min(4.1/(maxC-minC+4), 0.34), gh=Math.min(4.25/(maxR-minR+1), 0.34), gx0=0.4-minC*gw, gy0=2.6-minR*gh;
     const hexOf=c=>{ c=String(c||'').replace('#',''); return /^[0-9a-fA-F]{6}$/.test(c)?c.toUpperCase():'FFFFFF'; };
     let sitWater=0, drewAny=false;
-    const PRE=/^[A-D][1-6][GI][0-9]{2}$/;
+    const PRE=PRE0;
     for(let i=2;i<=21;i++) for(let c=0;c<=18;c++){
       const t=String((SV[i]&&SV[i][c])||'').trim(); if(!t) continue;
-      const x=gx0+c*gw, y=gy0+(i-2)*gh;
+      const x=gx0+c*gw, y=gy0+i*gh;
       if(PRE.test(t)){
         drewAny=true; const on=areas.indexOf(t[0])>=0; const fill=hexOf(SB[i]&&SB[i][c]);
         if(on&&fill==='FE99FD') sitWater++;
         s.addShape(pres.ShapeType.rect,{x:x,y:y,w:gw*0.94,h:gh*0.9,fill:{color:on?fill:'F3F4F6'},line:{color:'7F7F7F',width:0.4}});
-        s.addText(t,{x:x,y:y,w:gw*0.94,h:gh*0.9,align:'center',valign:'middle',fontFace:EXP_FONT,fontSize:5,bold:true,color:'1F2937',isTextBox:true,margin:0});
+        s.addText(t,{x:x,y:y,w:gw*0.94,h:gh*0.9,align:'center',valign:'middle',fontFace:EXP_FONT,fontSize:Math.max(4,Math.round(gw*17)),bold:true,color:'1F2937',isTextBox:true,margin:0,wrap:false,fit:'none'});
       } else if(/module/i.test(t)){
         const m=t.replace(/module/i,'').trim();
-        s.addShape(pres.ShapeType.roundRect,{x:x-0.05,y:y,w:gw*3.1,h:gh*1.2,fill:{color:'ECFDF5'},line:{color:'6EE7B7',width:0.75},rectRadius:0.05});
-        s.addText('โมดูล '+m,{x:x-0.05,y:y,w:gw*3.1,h:gh*1.2,align:'center',valign:'middle',fontFace:EXP_FONT,fontSize:10,bold:true,color:'1F2F6B',isTextBox:true,margin:0});
+        const lx=Math.min(x,4.85-gw*3.2); s.addShape(pres.ShapeType.roundRect,{x:lx,y:y,w:gw*3.2,h:gh*1.3,fill:{color:'ECFDF5'},line:{color:'6EE7B7',width:0.75},rectRadius:0.05});
+        s.addText('โมดูล '+m,{x:lx,y:y,w:gw*3.2,h:gh*1.3,align:'center',valign:'middle',fontFace:EXP_FONT,fontSize:10,bold:true,color:'1F2F6B',isTextBox:true,margin:0});
       }
     }
     /* บ่อ RW (New model) ตำแหน่งตามหน้า Dashboard */
     const rwPos={'RW-A501':[15,4],'RW-A201':[21,4],'RW-B301':[21,10],'RW-C501':[9,13],'RW-C502':[9,14],'RW-D201':[8,13],'RW-D202':[8,14],'RW-D203':[8,15]};
-    Object.keys(rwPos).forEach(nm=>{ const p=wk.find(r=>String(r[1]).trim()===nm); if(!p) return; const stt=/culture/i.test(p[4])?'culture':(/close/i.test(p[4])?'close':'other'); const pp=rwPos[nm], x=gx0+pp[1]*gw, y=gy0+(pp[0]-2)*gh;
+    Object.keys(rwPos).forEach(nm=>{ const p=wk.find(r=>String(r[1]).trim()===nm); if(!p) return; const stt=/culture/i.test(p[4])?'culture':(/close/i.test(p[4])?'close':'other'); const pp=rwPos[nm], x=gx0+pp[1]*gw, y=gy0+pp[0]*gh;
       s.addShape(pres.ShapeType.rect,{x:x,y:y,w:gw*0.94,h:gh*0.9,fill:{color:areas.indexOf('R')>=0?colsC[stt]:'F3F4F6'},line:{color:'0F766E',width:1}});
-      s.addText(nm.replace('RW-',''),{x:x,y:y,w:gw*0.94,h:gh*0.9,align:'center',valign:'middle',fontFace:EXP_FONT,fontSize:5,bold:true,color:'1F2937',isTextBox:true,margin:0}); });
+      s.addText(nm.replace('RW-',''),{x:x,y:y,w:gw*0.94,h:gh*0.9,align:'center',valign:'middle',fontFace:EXP_FONT,fontSize:Math.max(4,Math.round(gw*17)),bold:true,color:'1F2937',isTextBox:true,margin:0,wrap:false}); });
     const cnt=k=>wk.filter(r=>(k==='culture'?/culture/i.test(r[4]):k==='close'?/close/i.test(r[4]):!/culture|close/i.test(r[4]))).length;
     [['มีกุ้ง (Culture) '+cnt('culture')+' บ่อ','culture'],['เตรียมบ่อ '+cnt('close')+' บ่อ','close'],['พักน้ำ/อื่นๆ '+(sitWater||cnt('other'))+' บ่อ','other']].forEach((l,i)=>{
       s.addShape(pres.ShapeType.roundRect,{x:4.9+i*2.75,y:2.7,w:0.3,h:0.28,fill:{color:colsC[l[1]]},line:{color:EXP_C.line,width:0.5},rectRadius:0.04});
