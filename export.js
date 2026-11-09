@@ -45,7 +45,8 @@ function expAreaName(area){ return area==='ALL'?'ทั้งฟาร์ม':'�
 
 async function expLoadData(){
   const [stk,oh,wk,fin,pr,dy]=await Promise.all([getTab('stocking'),getTab('orderharvest'),getTab('weekly'),getTab('financial'),getTab('prepare'),getTab('daily')]);
-  return {stk:stk.values,oh:oh.values,wk:wk.values,fin:fin.values,pr:pr.values,dy:dy.values};
+  let sit=null; try{ sit=await getTab('situation'); }catch(e){}
+  return {stk:stk.values,oh:oh.values,wk:wk.values,fin:fin.values,pr:pr.values,dy:dy.values,sit:sit};
 }
 
 function expCompute(raw,st){
@@ -443,25 +444,33 @@ function expWeeklySlides(pres,bg,st,raw,d,now){
       {label:'% บ่อมีกุ้ง',val:fmt(util,0)+'%',sub:nCul+'/'+nTot+' บ่อ',col:EXP_WARN},
       {label:'ประมาณการ มีกุ้ง ณ สิ้นเดือน',val:fmt(eomN,0)+' บ่อ',sub:lastS?'('+fmt(eomP,0)+'%) เดือน'+MT[lastS.m-1]:'–',col:'7C3AED'}
     ],1.2);
-    const U=0.0115, ox=0.45, oy=2.55, colsC={culture:'86EFAC',close:'D1D5DB',other:'F9A8D4'};
-    const X=v=>ox+(v-25)*U, Y=v=>oy+(v-26)*U;
-    const rc=(x,y,w,h,fill,line,lw)=>s.addShape(pres.ShapeType.rect,{x:X(x),y:Y(y),w:w*U,h:h*U,fill:{color:fill},line:{color:line||'7F7F7F',width:lw||0.5}});
-    const tx=(t,x,y,w,h,fs,col)=>s.addText(t,{x:X(x),y:Y(y),w:w*U,h:h*U,align:'center',valign:'middle',fontFace:EXP_FONT,fontSize:fs,bold:true,color:col,isTextBox:true,margin:0});
-    rc(25,27,155,230,'F2F2F2','1F2F6B',1); tx('บ่อระบบน้ำ',25,27,155,230,22,'1F2F6B');
-    const bld={}; wk.forEach(r=>{ const m=String(r[1]).trim().match(/^([A-D])([1-6])([GI])(\d+)$/); if(m){ const k=m[1]+m[2]+m[3]; (bld[k]=bld[k]||[]).push({n:+m[4],st:/culture/i.test(r[4])?'culture':(/close/i.test(r[4])?'close':'other')}); } });
-    const MP={D:[195,0],C:[195,120.5],B:[195,241],A:[28,241]};
-    Object.keys(MP).forEach(mod=>{
-      const bx0=MP[mod][0], by0=MP[mod][1]+26, on=areas.indexOf(mod)>=0;
-      for(let n=1;n<=6;n++){
-        const bx=bx0+((n-1)%3)*56, by=by0+(n>3?44:10);
-        if(n<=3) rc(bx+8,by0,16,9,'E5E7EB'); else rc(bx+8,by+30,16,9,'E5E7EB');
-        ['I','G'].forEach((ty,ri)=>{ const arr=(bld[mod+n+ty]||[]).sort((a,b)=>a.n-b.n);
-          for(let ci=0;ci<2;ci++){ const p=arr[ci]; rc(bx+ci*16,by+ri*15,16,15,(p&&on)?colsC[p.st]:'F3F4F6','7F7F7F',0.5); } });
+    const colsC={culture:'CCFFFF',close:'B7B7B7',other:'FE99FD'};
+    const SV=(raw.sit&&raw.sit.values)||[], SB=(raw.sit&&raw.sit.bg)||[];
+    const gx0=0.45, gy0=2.55, gw=4.2/19, gh=4.3/20;
+    const hexOf=c=>{ c=String(c||'').replace('#',''); return /^[0-9a-fA-F]{6}$/.test(c)?c.toUpperCase():'FFFFFF'; };
+    let sitWater=0, drewAny=false;
+    const PRE=/^[A-D][1-6][GI][0-9]{2}$/;
+    for(let i=2;i<=21;i++) for(let c=0;c<=18;c++){
+      const t=String((SV[i]&&SV[i][c])||'').trim(); if(!t) continue;
+      const x=gx0+c*gw, y=gy0+(i-2)*gh;
+      if(PRE.test(t)){
+        drewAny=true; const on=areas.indexOf(t[0])>=0; const fill=hexOf(SB[i]&&SB[i][c]);
+        if(on&&fill==='FE99FD') sitWater++;
+        s.addShape(pres.ShapeType.rect,{x:x,y:y,w:gw*0.94,h:gh*0.9,fill:{color:on?fill:'F3F4F6'},line:{color:'7F7F7F',width:0.4}});
+        s.addText(t,{x:x,y:y,w:gw*0.94,h:gh*0.9,align:'center',valign:'middle',fontFace:EXP_FONT,fontSize:5,bold:true,color:'1F2937',isTextBox:true,margin:0});
+      } else if(/module/i.test(t)){
+        const m=t.replace(/module/i,'').trim();
+        s.addShape(pres.ShapeType.roundRect,{x:x-0.05,y:y,w:gw*3.1,h:gh*1.2,fill:{color:'ECFDF5'},line:{color:'6EE7B7',width:0.75},rectRadius:0.05});
+        s.addText('โมดูล '+m,{x:x-0.05,y:y,w:gw*3.1,h:gh*1.2,align:'center',valign:'middle',fontFace:EXP_FONT,fontSize:10,bold:true,color:'1F2F6B',isTextBox:true,margin:0});
       }
-      rc(bx0-5,by0+84,155,33,'F2F2F2','F2F2F2',0); tx('โมดูล '+mod,bx0-5,by0+84,155,33,20,'1F2F6B');
-    });
+    }
+    /* บ่อ RW (New model) ตำแหน่งตามหน้า Dashboard */
+    const rwPos={'RW-A501':[15,4],'RW-A201':[21,4],'RW-B301':[21,10],'RW-C501':[9,13],'RW-C502':[9,14],'RW-D201':[8,13],'RW-D202':[8,14],'RW-D203':[8,15]};
+    Object.keys(rwPos).forEach(nm=>{ const p=wk.find(r=>String(r[1]).trim()===nm); if(!p) return; const stt=/culture/i.test(p[4])?'culture':(/close/i.test(p[4])?'close':'other'); const pp=rwPos[nm], x=gx0+pp[1]*gw, y=gy0+(pp[0]-2)*gh;
+      s.addShape(pres.ShapeType.rect,{x:x,y:y,w:gw*0.94,h:gh*0.9,fill:{color:areas.indexOf('R')>=0?colsC[stt]:'F3F4F6'},line:{color:'0F766E',width:1}});
+      s.addText(nm.replace('RW-',''),{x:x,y:y,w:gw*0.94,h:gh*0.9,align:'center',valign:'middle',fontFace:EXP_FONT,fontSize:5,bold:true,color:'1F2937',isTextBox:true,margin:0}); });
     const cnt=k=>wk.filter(r=>(k==='culture'?/culture/i.test(r[4]):k==='close'?/close/i.test(r[4]):!/culture|close/i.test(r[4]))).length;
-    [['มีกุ้ง (Culture) '+cnt('culture')+' บ่อ','culture'],['เตรียมบ่อ '+cnt('close')+' บ่อ','close'],['สถานะอื่น '+cnt('other')+' บ่อ','other']].forEach((l,i)=>{
+    [['มีกุ้ง (Culture) '+cnt('culture')+' บ่อ','culture'],['เตรียมบ่อ '+cnt('close')+' บ่อ','close'],['พักน้ำ/อื่นๆ '+(sitWater||cnt('other'))+' บ่อ','other']].forEach((l,i)=>{
       s.addShape(pres.ShapeType.roundRect,{x:4.9+i*2.75,y:2.7,w:0.3,h:0.28,fill:{color:colsC[l[1]]},line:{color:EXP_C.line,width:0.5},rectRadius:0.04});
       s.addText(l[0],{x:5.28+i*2.75,y:2.62,w:2.4,h:0.45,fontFace:EXP_FONT,fontSize:18,color:EXP_C.ink,valign:'middle',isTextBox:true,margin:0});
     });
