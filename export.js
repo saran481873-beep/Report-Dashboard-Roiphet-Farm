@@ -26,7 +26,7 @@ const EXP_WTOPICS=[
   {id:'w_harvest',label:'แผนการจับกุ้ง'},
   {id:'w_pnl',label:'ประมาณการและผลดำเนินการ'}
 ];
-const EXP_ST={area:'ALL',year:new Date().getFullYear(),wmonth:new Date().getMonth()+1,style:'exec',months:[1,2,3,4,5,6,7,8,9,10,11,12],topics:['situation','stocking','harvest','performance','prepare','financial','summary'],wtopics:EXP_WTOPICS.map(t=>t.id)};
+const EXP_ST={area:'ALL',year:new Date().getFullYear(),wmonths:[new Date().getMonth()+1],style:'exec',months:[1,2,3,4,5,6,7,8,9,10,11,12],topics:['situation','stocking','harvest','performance','prepare','financial','summary'],wtopics:EXP_WTOPICS.map(t=>t.id)};
 const EXP_TGT={sr:85,fcr:1.6,harv:90}; /* เกณฑ์อ้างอิง: %SR ขั้นต่ำ, FCR สูงสุด, จับจริง/แผน ขั้นต่ำ(%) */
 const EXP_OK='16A34A',EXP_WARN='F59E0B',EXP_BAD='DC2626';
 const EXP_BG={};
@@ -425,7 +425,7 @@ function expWeeklySlides(pres,bg,st,raw,d,now){
   /* ===== 1 Situation (layout ตามหน้า Dashboard · Situation) ===== */
   if(T('w_situation')){
     const s=bg(); expTitle(pres,s,'สถานการณ์ฟาร์มร้อยเพชร'+(st.area==='ALL'?'':' · '+an));
-    const lastS=d.stocking.find(r=>r.m===(st.wmonth||nowM))||d.stocking.slice().reverse().find(r=>r.end>0);
+    const lastS=d.stocking.find(r=>r.m===((st.wmonths&&st.wmonths.length)?Math.max.apply(null,st.wmonths):nowM))||d.stocking.slice().reverse().find(r=>r.end>0);
     const eomN=lastS?lastS.end:0, eomP=lastS?lastS.pct:0;
     const nInter=wk.filter(r=>/^inter/i.test(String(r[2]))).length, nGrow=nTot-nInter;
     const nCulI=cul.filter(r=>/^inter/i.test(String(r[2]))).length, nCulG=nCul-nCulI;
@@ -572,9 +572,10 @@ function expWeeklySlides(pres,bg,st,raw,d,now){
     });
   }
   /* ===== 10-11 แผนการลงกุ้ง ===== */
-  const rm=st.wmonth||nowM, ry=st.year||nowY;
-  let nmx=rm, nyx=ry;
+  const wmList=(st.wmonths&&st.wmonths.length?st.wmonths:[nowM]).slice().sort((a,b)=>a-b); const ry=st.year||nowY;
   const allStk=raw.stk.slice(1).filter(r=>areas.indexOf(String(r[0]).trim())>=0&&String(r[1]).trim()&&!isCx(r)).map(r=>({m:String(r[0]).trim(),p:String(r[1]).trim(),dt:expMonthOf(r[2]),ds:r[2],mo:+r[3],yr:+r[4],pcs:expN(r[5]),ty:String(r[6]||'').trim()})).filter(x=>x.pcs>0);
+  wmList.forEach(rm=>{
+  let nmx=rm, nyx=ry;
   let stkRows=allStk.filter(x=>x.mo===nmx&&x.yr===nyx), stkFb=false;
   const isDone=x=>{ if(!x.dt)return false; const t=new Date(x.dt.y,x.dt.m-1,x.dt.d); return t<=new Date(nowY,nowM-1,nowD); };
   const isNur=x=>/PL\s*1[0-9]|IN\d/i.test(x.ty+' '+x.p)&&!/Super/i.test(x.ty);
@@ -629,6 +630,7 @@ function expWeeklySlides(pres,bg,st,raw,d,now){
     if(types.length) s.addChart(pres.charts.BAR,[{name:'แผน (ตัน)',labels:types,values:types.map(t=>+items.filter(x=>x.ty===t).reduce((a,x)=>a+x.tar,0).toFixed(1))},{name:'จริง (ตัน)',labels:types,values:types.map(t=>+items.filter(x=>x.ty===t).reduce((a,x)=>a+x.act,0).toFixed(2))}],Object.assign(expChartBase('แผนจับ vs จับจริง แยกประเภท (ตัน)'),{x:8.0,y:1.25,w:4.9,h:3.6,barDir:'col',chartColors:['9CA3AF',EXP_C.teal],showValue:true,dataLabelPosition:'outEnd'}));
     expNote(s,'ข้อมูลจากหน้า Order Harvest (วันที่แผนจับในเดือนปัจจุบัน) · จับจริง = Ac.Ton');
   }
+  });
   /* ===== 13 ประมาณการและผลดำเนินการ ===== */
   if(T('w_pnl')){
     const s=bg(); expTitle(pres,s,'ประมาณการณ์และผลดำเนินการ · '+an+' ปี '+st.year);
@@ -713,9 +715,9 @@ function expPaint(){
   el('expStyleHint').textContent=weekly?'นำเสนอสรุปความก้าวหน้าประจำสัปดาห์ · ปัญหาและแนวทางแก้ไข · แผนลงกุ้ง/จับกุ้ง · ประมาณการ (ใช้ข้อมูลล่าสุด ณ วันที่ส่งออก)':'สรุปผลการดำเนินงาน เทียบแผน/เกณฑ์ พร้อมปัญหาและแนวทางแก้ไข (ตามช่วงปี/เดือนที่เลือก)';
   el('expAreas').innerHTML=['ALL'].concat(EXP_AREAS).map(a=>chip(EXP_ST.area===a,a==='ALL'?'ทั้งฟาร์ม':a,'EXP_ST.area=\''+a+'\';expPaint()')).join('');
   el('expYears').innerHTML=[2026,2027].map(y=>chip(EXP_ST.year===y,String(y),'EXP_ST.year='+y+';expPaint()')).join('');
-  el('expMonths').innerHTML=MONTH_TH.map((t,i)=>chip(weekly?EXP_ST.wmonth===i+1:EXP_ST.months.indexOf(i+1)>=0,t,weekly?'EXP_ST.wmonth='+(i+1)+';expPaint()':'expToggle(\'months\','+(i+1)+')')).join('');
-  el('expMonthBtns').style.display=weekly?'none':'';
-  el('expMonthHint').textContent=weekly?'เลือกเดือนที่ต้องการรายงาน (เลือกได้ 1 เดือน) · ใช้กับแผนการลงกุ้ง / แผนการจับกุ้ง':'เลือกได้หลายเดือน';
+  el('expMonths').innerHTML=MONTH_TH.map((t,i)=>chip(EXP_ST[weekly?'wmonths':'months'].indexOf(i+1)>=0,t,'expToggle(\''+(weekly?'wmonths':'months')+'\','+(i+1)+')')).join('');
+  { const k=weekly?'wmonths':'months'; el('expMonthBtns').innerHTML='<button class="expchip" onclick="EXP_ST.'+k+'=[1,2,3,4,5,6,7,8,9,10,11,12];expPaint()">เลือกทั้งหมด</button><button class="expchip" onclick="EXP_ST.'+k+'=[];expPaint()">ล้างการเลือก</button>'; }
+  el('expMonthHint').textContent=weekly?'เลือกได้หลายเดือน · ใช้กับแผนการลงกุ้ง / แผนการจับกุ้ง (สร้างสไลด์แยกรายเดือน) และการ์ดมีกุ้งสิ้นเดือน':'เลือกได้หลายเดือน';
   const list=weekly?EXP_WTOPICS:EXP_TOPICS, key=weekly?'wtopics':'topics';
   el('expTopics').innerHTML=list.map(t=>chip(EXP_ST[key].indexOf(t.id)>=0,t.label,'expToggle(\''+key+'\',\''+t.id+'\')')).join('')
     +'<div style="margin-top:6px"><button class="expchip" onclick="EXP_ST.'+key+'=('+JSON.stringify(list.map(t=>t.id))+');expPaint()">เลือกทั้งหมด</button><button class="expchip" onclick="EXP_ST.'+key+'=[];expPaint()">ล้างการเลือก</button></div>';
@@ -726,7 +728,7 @@ async function pageExport(){
   el('subtitle').textContent='Export Data · สร้างไฟล์นำเสนอ (.pptx) จากข้อมูล Dashboard';
   el('app').innerHTML='<style>.expchip{border:1px solid var(--line,#d1d5db);background:#fff;border-radius:999px;padding:7px 16px;margin:0 8px 8px 0;font-size:14px;cursor:pointer;font-family:inherit}.expchip.on{background:#4AC5B1;border-color:#4AC5B1;color:#fff;font-weight:700}.expbox{background:#fff;border:1px solid var(--line,#e5e7eb);border-radius:14px;padding:18px 20px;margin-bottom:14px}.expbox h3{margin:0 0 10px;font-size:15px}.expgo{background:#1F7A6D;color:#fff;border:0;border-radius:12px;padding:13px 28px;font-size:16px;font-weight:700;cursor:pointer}.expgo:disabled{opacity:.6;cursor:wait}</style>'
    +'<div class="expbox"><h3 data-t="รูปแบบรายงาน">รูปแบบรายงาน</h3><div id="expStyle"></div><div class="hint" id="expStyleHint" style="margin-top:4px"></div></div>'
-   +'<div class="expbox"><h3 data-t="เดือน / ปี">เดือน / ปี</h3><div id="expYears"></div><div id="expMonths"></div><div id="expMonthBtns"><button class="expchip" onclick="EXP_ST.months=[1,2,3,4,5,6,7,8,9,10,11,12];expPaint()">เลือกทั้งหมด</button><button class="expchip" onclick="EXP_ST.months=[];expPaint()">ล้างการเลือก</button></div><div class="hint" id="expMonthHint"></div></div>'
+   +'<div class="expbox"><h3 data-t="เดือน / ปี">เดือน / ปี</h3><div id="expYears"></div><div id="expMonths"></div><div id="expMonthBtns"></div><div class="hint" id="expMonthHint"></div></div>'
    +'<div class="expbox"><h3 data-t="พื้นที่">พื้นที่</h3><div id="expAreas"></div></div>'
    +'<div class="expbox"><h3 id="expTopicTitle" data-t="เนื้อหาหัวข้อ">เนื้อหาหัวข้อ</h3><div id="expTopics"></div></div>'
    +'<div><button class="expgo" id="expBtn" onclick="expRun()">⭳ Export PowerPoint (.pptx)</button> <span id="expMsg" style="margin-left:12px;font-size:14px"></span></div>'
