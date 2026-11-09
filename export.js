@@ -453,10 +453,15 @@ function expWeeklySlides(pres,bg,st,raw,d,now){
     Object.keys(MP).forEach(mod=>{
       const bx0=MP[mod][0], by0=MP[mod][1]+26, on=areas.indexOf(mod)>=0;
       for(let n=1;n<=6;n++){
-        const bx=bx0+((n-1)%3)*56, by=by0+(n>3?44:10);
-        if(n<=3) rc(bx+8,by0,16,9,'E5E7EB'); else rc(bx+8,by+30,16,9,'E5E7EB');
-        ['I','G'].forEach((ty,ri)=>{ const arr=(bld[mod+n+ty]||[]).sort((a,b)=>a.n-b.n);
-          for(let ci=0;ci<2;ci++){ const p=arr[ci]; rc(bx+ci*16,by+ri*15,16,15,(p&&on)?colsC[p.st]:'F3F4F6','7F7F7F',0.5); } });
+        /* ตำแหน่งจริงตามผังฟาร์ม: C/D แถวบน=อาคาร 6,5,4 (I บน/G ล่าง) แถวล่าง=3,2,1 (G บน/I ล่าง); A/B มีเฉพาะ 4-6 (แถวล่าง) */
+        const hi=n>=4, row=(mod==='C'||mod==='D')?(hi?0:1):1;
+        const col=mod==='A'?(n-4):(hi?6-n:3-n);
+        if(mod==='A'&&!hi) continue; if(mod==='B'&&!hi) continue;
+        const bx=bx0+col*56, by=by0+(row?44:10);
+        if(row===0) rc(bx+8,by0,16,9,'E5E7EB'); else rc(bx+8,by+30,16,9,'E5E7EB');
+        (hi?['I','G']:['G','I']).forEach((ty,ri)=>{ const arr=(bld[mod+n+ty]||[]).sort((a,b)=>a.n-b.n);
+          const asc=(mod==='A')||(hi&&n===5); const ord=asc?arr:arr.slice().reverse();
+          for(let ci=0;ci<2;ci++){ const p=ord[ci]; rc(bx+ci*16,by+ri*15,16,15,(p&&on)?colsC[p.st]:'F3F4F6','7F7F7F',0.5); } });
       }
       rc(bx0-5,by0+84,155,33,'F2F2F2','F2F2F2',0); tx('โมดูล '+mod,bx0-5,by0+84,155,33,20,'1F2F6B');
     });
