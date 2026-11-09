@@ -580,13 +580,13 @@ function expWeeklySlides(pres,bg,st,raw,d,now){
   const isDone=x=>{ if(!x.dt)return false; const t=new Date(x.dt.y,x.dt.m-1,x.dt.d); return t<=new Date(nowY,nowM-1,nowD); };
   const isNur=x=>/PL\s*1[0-9]|IN\d/i.test(x.ty+' '+x.p)&&!/Super/i.test(x.ty);
   const big=stkRows.filter(x=>!isNur(x)).sort((a,b)=>a.p.localeCompare(b.p)), nur=stkRows.filter(isNur).sort((a,b)=>a.p.localeCompare(b.p));
-  const lst=a=>a.length?(a.slice(0,14).map(x=>x.p).join(', ')+(a.length>14?' ฯลฯ (รวม '+a.length+' บ่อ)':'')):'–';
+  const lst=a=>a.length?('รวม '+a.length+' บ่อ — '+a.slice(0,12).map(x=>x.p+' ('+fmt(x.pcs/1e6,2)+' ล้านตัว)').join(', ')+(a.length>12?' ฯลฯ':'')):'–';
   if(T('w_stockplan')){
     const s=bg(); expTitle(pres,s,'แผนการลงกุ้งเดือน '+MT[nmx-1]+' '+nyx+' · '+an);
     const tot=stkRows.reduce((a,x)=>a+x.pcs,0), done=stkRows.filter(isDone).reduce((a,x)=>a+x.pcs,0), wait=tot-done;
     expKpiRow(pres,s,[{label:'จำนวนบ่อตามแผน',val:stkRows.length+' บ่อ',sub:'ใหญ่ '+big.length+' · อนุบาล '+nur.length},{label:'ยอดลงตามแผน',val:fmt(tot/1e6,2)+' ล้านตัว',sub:fmt(tot,0)+' ตัว'},{label:'ลงแล้ว',val:fmt(done/1e6,2)+' ล้านตัว',sub:stkRows.filter(isDone).length+' บ่อ',col:EXP_OK},{label:'รอลง',val:fmt(wait/1e6,2)+' ล้านตัว',sub:stkRows.filter(x=>!isDone(x)).length+' บ่อ',col:EXP_WARN}],1.25);
     const pdone=tot?done/tot*100:0;
-    [['สถานะการลงกุ้ง',(tot?'ลงแล้ว '+fmt(pdone,0)+'%':'ไม่มีแผน'),EXP_OK,pdone,'เป้าหมาย '+fmt(tot,0)+' ตัว / ลงจริง '+fmt(done,0)+' ตัว','บ่อที่ลงแล้ว: '+(lst(stkRows.filter(isDone)))],['แผนดำเนินการ',(tot?'รอลง '+fmt(100-pdone,0)+'%':'ไม่มีแผน'),EXP_WARN,tot?100-pdone:0,'จำนวนที่รอลง '+fmt(wait,0)+' ตัว','แผนลงกุ้ง: '+(lst(stkRows.filter(x=>!isDone(x))))]].forEach((c,i)=>{
+    [['สถานะการลงกุ้ง',(tot?'ลงแล้ว '+fmt(pdone,0)+'%':'ไม่มีแผน'),EXP_OK,pdone,'เป้าหมาย '+fmt(tot/1e6,2)+' ล้านตัว / ลงจริง '+fmt(done/1e6,2)+' ล้านตัว ('+stkRows.filter(isDone).length+' บ่อ)','บ่อที่ลงแล้ว: '+(lst(stkRows.filter(isDone)))],['แผนดำเนินการ',(tot?'รอลง '+fmt(100-pdone,0)+'%':'ไม่มีแผน'),EXP_WARN,tot?100-pdone:0,'จำนวนที่รอลง '+fmt(wait/1e6,2)+' ล้านตัว ('+stkRows.filter(x=>!isDone(x)).length+' บ่อ)','แผนลงกุ้ง: '+(lst(stkRows.filter(x=>!isDone(x))))]].forEach((c,i)=>{
       const y=2.75+i*2.1; expCard(pres,s,0.5,y,12.3,1.95);
       s.addText(c[0],{x:0.8,y:y+0.1,w:6,h:0.5,fontFace:EXP_FONT,fontSize:26,bold:true,color:EXP_C.ink,isTextBox:true,margin:0});
       s.addShape(pres.ShapeType.roundRect,{x:10.0,y:y+0.12,w:2.5,h:0.45,fill:{color:c[2]},line:{color:c[2],width:0},rectRadius:0.2});
@@ -647,7 +647,7 @@ function expWeeklySlides(pres,bg,st,raw,d,now){
       {label:'กำไรสุทธิ',val:fmt(F.N/1000,2)+' ลบ.',sub:'margin '+(F.S?fmt(F.N/F.S*100,1)+'%':'–'),col:F.N>=0?EXP_OK:EXP_BAD}
     ],1.15);
     const labs=f.map(r=>MT[r.m-1]);
-    s.addChart(pres.charts.BAR,[{name:'กำไร/ขาดทุนสุทธิ (ล้านบาท)',labels:labs,values:f.map(r=>+(r.NetProfit/1000).toFixed(2))}],Object.assign(expChartBase('กำไร/ขาดทุนสุทธิ (ล้านบาท)'),{x:0.4,y:2.5,w:6.3,h:3.5,barDir:'col',chartColors:[EXP_C.dark],showLegend:false,showValue:true,dataLabelPosition:'outEnd',dataLabelFontSize:11}));
+    s.addChart(pres.charts.BAR,[{name:'กำไร/ขาดทุนสุทธิ (ล้านบาท)',labels:labs,values:f.map(r=>+(r.NetProfit/1000).toFixed(2))}],Object.assign(expChartBase('กำไร/ขาดทุนสุทธิ (ล้านบาท)'),{x:0.4,y:2.5,w:6.3,h:3.5,barDir:'col',chartColors:[EXP_C.dark],invertedColors:['DC2626'],showLegend:false,showValue:true,dataLabelPosition:'outEnd',dataLabelFontSize:11}));
     s.addChart(pres.charts.BAR,[{name:'ผลผลิต (ตัน)',labels:labs,values:f.map(r=>+r.Weight.toFixed(1))}],Object.assign(expChartBase('ผลผลิต (ตัน)'),{x:6.8,y:2.5,w:6.2,h:3.5,barDir:'col',chartColors:[EXP_C.teal],showLegend:false,showValue:true,dataLabelPosition:'outEnd',dataLabelFontSize:11}));
     const uRow=d.stocking.map(r=>fmt(r.pct,0)+'%');
     expTable(s,['เดือน'].concat(labs),[['บ่อมีกุ้ง (%)'].concat(uRow)],{x:0.5,y:6.15,w:12.3,colW:[1.5].concat(labs.map(()=>10.8/labs.length)),fs:13,rowH:0.34});
