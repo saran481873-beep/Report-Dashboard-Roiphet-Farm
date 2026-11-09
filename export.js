@@ -34,6 +34,8 @@ const EXP_PPTX_URL='https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.b
 const EXP_C={teal:'4AC5B1',dark:'1F7A6D',yellow:'FFC000',ink:'1F2937',grey:'6B7280',zebra:'EAF8F5',line:'D1D5DB',red:'DC2626'};
 const EXP_MONTH_COL=[1,2,3,5,6,7,9,10,11,13,14,15];
 
+/* Size เฉลี่ยที่ถูกต้อง = จำนวนตัวรวม ÷ Biomass รวม (จำนวนตัว = Biomass × Size ต่อบ่อ) */
+function expWSize(rows){ let pcs=0,bio=0; rows.forEach(r=>{ const b=num(r[10]),s=num(r[9]); if(!isNaN(b)&&!isNaN(s)&&b>0&&s>0){ pcs+=b*s; bio+=b; } }); return bio?pcs/bio:NaN; }
 function expN(x){ const n=num(x); return isNaN(n)?0:n; }
 function expMonthOf(s){ const m=String(s||'').trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/); return m?{d:+m[1],m:+m[2],y:+m[3]}:null; }
 function expAreaList(area){ return area==='ALL'?EXP_AREAS.slice():[area]; }
@@ -74,7 +76,7 @@ function expCompute(raw,st){
     const rows=wk.filter(r=>String(r[0]).trim()===a);
     const cul=rows.filter(r=>/culture/i.test(r[4])), cl=rows.filter(r=>/close/i.test(r[4]));
     const g=(rs,i)=>rs.map(r=>num(r[i])).filter(x=>!isNaN(x)&&x>0);
-    return {area:a,total:rows.length,cul:cul.length,close:cl.length,bio:cul.reduce((x,r)=>x+expN(r[10]),0),doc:avg(g(cul,7)),size:avg(g(cul,9)),sr:avg(g(cul,13)),fcr:avg(g(cul,15)),adg:avg(g(cul,12))};
+    return {area:a,total:rows.length,cul:cul.length,close:cl.length,bio:cul.reduce((x,r)=>x+expN(r[10]),0),doc:avg(g(cul,7)),size:expWSize(cul),sr:avg(g(cul,13)),fcr:avg(g(cul,15)),adg:avg(g(cul,12))};
   });
   const isCx=r=>typeof CANCEL_SET!=='undefined'&&CANCEL_SET.has(String(r[1]).trim());
   out.prep=raw.pr.slice(1).filter(r=>areas.indexOf(String(r[0]).trim())>=0&&String(r[1]).trim()&&/close/i.test(r[4])&&!isCx(r));
@@ -170,7 +172,7 @@ function expExecSlides(pres,bg,st,d,ms,fx){
   const cul=d.culture;
   const avgOf=(rs,i)=>{ const v=rs.map(r=>num(r[i])).filter(x=>!isNaN(x)&&x>0); return v.length?v.reduce((a,x)=>a+x,0)/v.length:NaN; };
   const sit={t:sum(d.situation,r=>r.total),c:sum(d.situation,r=>r.cul),x:sum(d.situation,r=>r.close),b:sum(d.situation,r=>r.bio)};
-  const sr=avgOf(cul,13), fcr=avgOf(cul,15), adg=avgOf(cul,12), size=avgOf(cul,9), doc=avgOf(cul,7);
+  const sr=avgOf(cul,13), fcr=avgOf(cul,15), adg=avgOf(cul,12), size=expWSize(cul), doc=avgOf(cul,7);
   const hp=sum(d.harvest,r=>r.plan), ha=sum(d.harvest,r=>r.act), hpct=hp>0?ha/hp*100:NaN;
   const stk={pond:sum(d.stocking,r=>r.pond),mil:sum(d.stocking,r=>r.mil),harv:sum(d.stocking,r=>r.harv)};
   const lastS=d.stocking.slice().reverse().find(r=>r.end>0)||d.stocking[d.stocking.length-1]||{end:0,main:0,pct:0,m:ms[ms.length-1]};
