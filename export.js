@@ -148,9 +148,9 @@ function expKpiRow(pres,s,items,y){
     const x=0.5+i*(w+gap), h=1.25, col=k.col||EXP_C.dark;
     s.addShape(pres.ShapeType.roundRect,{x:x,y:y,w:w,h:h,fill:{color:'FFFFFF'},line:{color:EXP_C.line,width:0.75},rectRadius:0.08});
     s.addShape(pres.ShapeType.rect,{x:x,y:y+0.12,w:0.08,h:h-0.24,fill:{color:col},line:{color:col,width:0}});
-    s.addText(k.label,{x:x+0.1,y:y+0.06,w:w-0.2,h:0.32,align:'center',fontFace:EXP_FONT,fontSize:16,color:EXP_C.grey,isTextBox:true,margin:0});
-    s.addText(k.val,{x:x+0.1,y:y+0.36,w:w-0.2,h:0.5,align:'center',fontFace:EXP_FONT,fontSize:k.fs||(n>=5?26:30),bold:true,color:col,isTextBox:true,margin:0});
-    s.addText(k.sub||'',{x:x+0.1,y:y+0.86,w:w-0.2,h:0.3,align:'center',fontFace:EXP_FONT,fontSize:14,color:EXP_C.grey,isTextBox:true,margin:0});
+    s.addText(k.label,{x:x+0.1,y:y+0.06,w:w-0.2,h:0.34,align:'center',fontFace:EXP_FONT,fontSize:20,color:EXP_C.grey,isTextBox:true,margin:0});
+    s.addText(k.val,{x:x+0.1,y:y+0.36,w:w-0.2,h:0.5,align:'center',fontFace:EXP_FONT,fontSize:n>=5?30:34,bold:true,color:col,isTextBox:true,margin:0});
+    s.addText(k.sub||'',{x:x+0.1,y:y+0.86,w:w-0.2,h:0.32,align:'center',fontFace:EXP_FONT,fontSize:18,color:EXP_C.grey,isTextBox:true,margin:0});
   });
 }
 function expPanel(pres,s,x,y,w,h,fill,head,hc,items,fs,max){
@@ -373,8 +373,8 @@ function expCard(pres,s,x,y,w,h){ s.addShape(pres.ShapeType.roundRect,{x:x,y:y,w
 function expAlert(pres,s,x,y,w,h,text,sub,bad){
   const c=bad?EXP_BAD:EXP_OK;
   s.addShape(pres.ShapeType.roundRect,{x:x,y:y,w:w,h:h,fill:{color:bad?'FEF2F2':'F0FDF4'},line:{color:c,width:2},rectRadius:0.1});
-  s.addText(text,{x:x+0.2,y:y+0.05,w:w-0.4,h:h*0.55,fontFace:EXP_FONT,fontSize:h>=0.9?20:19,bold:true,color:c,align:'center',valign:'middle',isTextBox:true,margin:0});
-  if(sub) s.addText(sub,{x:x+0.2,y:y+h*0.58,w:w-0.4,h:h*0.38,fontFace:EXP_FONT,fontSize:14,color:EXP_C.grey,align:'center',valign:'top',isTextBox:true,margin:0});
+  s.addText(text,{x:x+0.2,y:y+0.05,w:w-0.4,h:h*0.55,fontFace:EXP_FONT,fontSize:22,bold:true,color:c,align:'center',valign:'middle',isTextBox:true,margin:0});
+  if(sub) s.addText(sub,{x:x+0.2,y:y+h*0.58,w:w-0.4,h:h*0.38,fontFace:EXP_FONT,fontSize:16,color:EXP_C.grey,align:'center',valign:'top',isTextBox:true,margin:0});
 }
 function expDonut(pres,s,x,y,w,h,pass,total,color,label){
   const p=total?Math.round(pass/total*100):0;
@@ -432,7 +432,7 @@ function expWeeklySlides(pres,bg,st,raw,d,now){
       {label:'บ่อเลี้ยง (มีกุ้ง)',val:String(nCul),sub:'Inter '+nCulI+' · Growout '+nCulG,col:EXP_OK},
       {label:'บ่อว่าง / ปิด',val:String(nTot-nCul),sub:'บ่อ',col:EXP_C.grey},
       {label:'% บ่อมีกุ้ง',val:fmt(util,0)+'%',sub:nCul+'/'+nTot+' บ่อ',col:EXP_WARN},
-      {label:'มีกุ้ง ณ สิ้นเดือน',val:fmt(eomN,0)+' บ่อ ('+fmt(eomP,0)+'%)',sub:lastS?'เดือน'+MT[lastS.m-1]:'–',col:'7C3AED',fs:22}
+      {label:'มีกุ้ง ณ สิ้นเดือน',val:fmt(eomN,0)+' บ่อ',sub:lastS?'('+fmt(eomP,0)+'%) เดือน'+MT[lastS.m-1]:'–',col:'7C3AED'}
     ],1.2);
     const U=0.0115, ox=0.45, oy=2.55, colsC={culture:'86EFAC',close:'D1D5DB',other:'F9A8D4'};
     const X=v=>ox+(v-25)*U, Y=v=>oy+(v-26)*U;
@@ -474,11 +474,11 @@ function expWeeklySlides(pres,bg,st,raw,d,now){
       {label:'ไม่ระบุแผน',val:naN+' บ่อ',sub:pc(naN),col:EXP_C.grey}
     ],1.2);
     const steps={}; P.forEach(r=>{ const k=String(r[6]||'').trim()||'ไม่ระบุขั้นตอน'; (steps[k]=steps[k]||[]).push(r); });
-    const keys=Object.keys(steps).sort((a,b)=>steps[b].length-steps[a].length).slice(0,9);
+    const keys=Object.keys(steps).sort((a,b)=>steps[b].length-steps[a].length).slice(0,7);
     const rows=keys.map(k=>{ const rs=steps[k], o=rs.filter(r=>/ตามแผน/.test(r[10])).length, l=rs.filter(r=>/ล่าช้า/.test(r[10])).length;
       const stt=l>0?{t:'ล่าช้า '+l+' บ่อ',color:EXP_BAD,bold:true,align:'center'}:{t:'ตามแผน',color:EXP_OK,bold:true,align:'center'};
-      return [{t:k,align:'left'},rs.length,pc(rs.length),o,l,stt,{t:rs.slice(0,4).map(r=>String(r[1]).trim()).join(', ')+(rs.length>4?' ฯลฯ':''),align:'left'}]; });
-    expTable(s,['ขั้นตอน','จำนวนบ่อ','% ของบ่อปิด','ตามแผน','ล่าช้า','สถานะ','บ่อ'],rows.length?rows:[['ไม่มีบ่อที่อยู่ระหว่างเตรียมบ่อ','','','','','','']],{x:0.5,y:2.65,w:12.3,colW:[2.9,1.2,1.5,1.1,1.1,1.8,2.7],fs:16,rowH:0.44,leftFirst:true});
+      return [{t:k,align:'left'},rs.length,pc(rs.length),o,l,stt,{t:rs.slice(0,3).map(r=>String(r[1]).trim()).join(', ')+(rs.length>3?' ฯลฯ':''),align:'left'}]; });
+    expTable(s,['ขั้นตอน','จำนวนบ่อ','% ของบ่อปิด','ตามแผน','ล่าช้า','สถานะ','บ่อ'],rows.length?rows:[['ไม่มีบ่อที่อยู่ระหว่างเตรียมบ่อ','','','','','','']],{x:0.5,y:2.65,w:12.3,colW:[3.9,1.1,1.4,1.0,1.0,1.7,2.2],fs:16,rowH:0.44,leftFirst:true});
     expNote(s,'บ่อสถานะ Close จากหน้า Prepare pond · แยกตามขั้นตอนปัจจุบัน · สถานะล่าช้า = มีอย่างน้อย 1 บ่อล่าช้าในขั้นตอนนั้น');
   }
   /* ===== 2 ประสิทธิภาพ (สรุป) ===== */
