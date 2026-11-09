@@ -13,6 +13,7 @@ const EXP_TOPICS=[
 const EXP_WTOPICS=[
   {id:'w_situation',label:'Situation · แผนผังบ่อ / สถานการณ์ฟาร์ม'},
   {id:'w_prepare',label:'สถานะการเตรียมบ่อ (ตามแผน/ล่าช้า)'},
+  {id:'w_preparedetail',label:'สถานะการเตรียมบ่อ (รายละเอียด)'},
   {id:'w_perf',label:'ประสิทธิภาพประจำสัปดาห์ (สรุป)'},
   {id:'w_problem',label:'ประสิทธิภาพ · เฉพาะบ่อที่มีปัญหา'},
   {id:'w_perfdetail',label:'ประสิทธิภาพ · รายละเอียดทุกบ่อ'},
@@ -26,7 +27,8 @@ const EXP_WTOPICS=[
   {id:'w_harvest',label:'แผนการจับกุ้ง'},
   {id:'w_pnl',label:'ประมาณการและผลดำเนินการ'}
 ];
-const EXP_ST={area:'ALL',year:new Date().getFullYear(),wmonths:[new Date().getMonth()+1],style:'exec',months:[1,2,3,4,5,6,7,8,9,10,11,12],topics:['situation','stocking','harvest','performance','prepare','financial','summary'],wtopics:EXP_WTOPICS.map(t=>t.id)};
+const EXP_THEMES={green:{teal:'4AC5B1',dark:'1F7A6D',zebra:'EAF8F5'},navy:{teal:'2E75B6',dark:'002060',zebra:'EEF3FA'}};
+const EXP_ST={theme:'green',area:'ALL',year:new Date().getFullYear(),wmonths:[new Date().getMonth()+1],style:'exec',months:[1,2,3,4,5,6,7,8,9,10,11,12],topics:['situation','stocking','harvest','performance','prepare','financial','summary'],wtopics:EXP_WTOPICS.map(t=>t.id)};
 const EXP_TGT={sr:85,fcr:1.6,harv:90}; /* เกณฑ์อ้างอิง: %SR ขั้นต่ำ, FCR สูงสุด, จับจริง/แผน ขั้นต่ำ(%) */
 const EXP_OK='16A34A',EXP_WARN='F59E0B',EXP_BAD='DC2626';
 const EXP_BG={};
@@ -422,6 +424,11 @@ function expWeeklySlides(pres,bg,st,raw,d,now){
   const prev=expSnap(st.area,{cul:nCul,gainLow:gainLow.length,srLow:srLow.length,wqBad:wqBad.length,tvcW:tvcWbad.length,tvcL:tvcLbad.length});
   const pv=k=>prev?prev[k]:null;
 
+  const STEP_LIST=['ฆ่าเชื้อบ่อด้วยโซดาไฟ (pH 11-13)','ฉีดล้าง ขัดล้างบ่อ','ซ่อมบำรุง อุปกรณ์บ่อเลี้ยง','ซินพื้นบ่อ ซ่อมแซมโครงสร้าง ทาสี','แช่ Subdrain ด่างทับทิม 300 ppm (ตรวจสอบรอยรั่ว)','ฆ่าเชื้อคลอรีน Acidified Chlorine 300 ppm','ตรวจ Swab test (PCR) รอผล PCR Swab test','เติมน้ำ พร้อมปรับคุณภาพน้ำ','ส่งตรวจ PCR น้ำก่อนลงกุ้งรอผล','พร้อมปล่อยกุ้ง'];
+  const STEP_RULES=[[9,/พร้อมปล่อยกุ้ง/],[0,/โซดาไฟ|NaOH/],[4,/Subdrain|ด่างทับทิม|ค่างทับทิม|รอยรั่ว|Soak/i],[5,/คลอรีน|Chlorine/i],[6,/Swab/i],[8,/PCR/i],[7,/เติมน้ำ|ปรับคุณภาพน้ำ|ผลออก/],[1,/ฉีด|ขัดล้าง/],[3,/ซิน|ทาสี|ซ่อมแซมโครงสร้าง/],[2,/ซ่อมบำรุง|PM|จัดเตรียมอุปกรณ์/i]];
+  const stepIdx=s=>{ for(const q of STEP_RULES){ if(q[1].test(s||'')) return q[0]; } return 99; };
+  const polyType=p=>/^RW-/i.test(p)?'R':(/I\d+$/i.test(p)?'I':'G');
+  const areaRank=r=>{ const i=EXP_AREAS.indexOf(String(r[0]).trim()); return i<0?99:i; };
   /* ===== 1 Situation (layout ตามหน้า Dashboard · Situation) ===== */
   if(T('w_situation')){
     const s=bg(); expTitle(pres,s,'สถานการณ์ฟาร์มร้อยเพชร'+(st.area==='ALL'?'':' · '+an));
@@ -430,11 +437,11 @@ function expWeeklySlides(pres,bg,st,raw,d,now){
     const nInter=wk.filter(r=>/^inter/i.test(String(r[2]))).length, nGrow=nTot-nInter;
     const nCulI=cul.filter(r=>/^inter/i.test(String(r[2]))).length, nCulG=nCul-nCulI;
     expKpiRow(pres,s,[
-      {label:'บ่อลงทะเบียน',val:String(nTot),sub:'บ่อ',col:EXP_C.dark},
+      {label:'บ่อหลัก',val:String(nTot),sub:'บ่อ',col:EXP_C.dark},
       {label:'บ่อเลี้ยง (มีกุ้ง)',val:String(nCul),sub:'Inter '+nCulI+' · Growout '+nCulG,col:EXP_OK},
-      {label:'บ่อว่าง / ปิด',val:String(nTot-nCul),sub:'บ่อ',col:EXP_C.grey},
+      {label:'เตรียมบ่อ',val:String(nClo),sub:'บ่อ',col:EXP_C.grey},
       {label:'% บ่อมีกุ้ง',val:fmt(util,0)+'%',sub:nCul+'/'+nTot+' บ่อ',col:EXP_WARN},
-      {label:'มีกุ้ง ณ สิ้นเดือน',val:fmt(eomN,0)+' บ่อ',sub:lastS?'('+fmt(eomP,0)+'%) เดือน'+MT[lastS.m-1]:'–',col:'7C3AED'}
+      {label:'ประมาณการ มีกุ้ง ณ สิ้นเดือน',val:fmt(eomN,0)+' บ่อ',sub:lastS?'('+fmt(eomP,0)+'%) เดือน'+MT[lastS.m-1]:'–',col:'7C3AED'}
     ],1.2);
     const U=0.0115, ox=0.45, oy=2.55, colsC={culture:'86EFAC',close:'D1D5DB',other:'F9A8D4'};
     const X=v=>ox+(v-25)*U, Y=v=>oy+(v-26)*U;
@@ -454,13 +461,14 @@ function expWeeklySlides(pres,bg,st,raw,d,now){
       rc(bx0-5,by0+84,155,33,'F2F2F2','F2F2F2',0); tx('โมดูล '+mod,bx0-5,by0+84,155,33,20,'1F2F6B');
     });
     const cnt=k=>wk.filter(r=>(k==='culture'?/culture/i.test(r[4]):k==='close'?/close/i.test(r[4]):!/culture|close/i.test(r[4]))).length;
-    [['มีกุ้ง (Culture) '+cnt('culture')+' บ่อ','culture'],['ปิดบ่อ / เตรียมบ่อ '+cnt('close')+' บ่อ','close'],['สถานะอื่น '+cnt('other')+' บ่อ','other']].forEach((l,i)=>{
+    [['มีกุ้ง (Culture) '+cnt('culture')+' บ่อ','culture'],['เตรียมบ่อ '+cnt('close')+' บ่อ','close'],['สถานะอื่น '+cnt('other')+' บ่อ','other']].forEach((l,i)=>{
       s.addShape(pres.ShapeType.roundRect,{x:4.9+i*2.75,y:2.7,w:0.3,h:0.28,fill:{color:colsC[l[1]]},line:{color:EXP_C.line,width:0.5},rectRadius:0.04});
       s.addText(l[0],{x:5.28+i*2.75,y:2.62,w:2.4,h:0.45,fontFace:EXP_FONT,fontSize:18,color:EXP_C.ink,valign:'middle',isTextBox:true,margin:0});
     });
-    const mrows=areas.map(a=>{ const rs=wk.filter(r=>String(r[0]).trim()===a), c=rs.filter(r=>/culture/i.test(r[4])).length; return [{t:'โมดูล '+a,align:'center'},rs.length,c,rs.length?fmt(c/rs.length*100,0)+'%':'0%',rs.length-c]; });
-    if(areas.length>1) mrows.push([{t:'รวม',align:'center',bold:true},{t:String(nTot),bold:true},{t:String(nCul),bold:true},{t:fmt(util,0)+'%',bold:true},{t:String(nTot-nCul),bold:true}]);
-    expTable(s,['โมดูล','ลงทะเบียน','มีกุ้ง','% มีกุ้ง','ปิด / อื่น ๆ'],mrows,{x:4.9,y:3.3,w:8.0,colW:[1.9,1.6,1.3,1.5,1.7],fs:18,rowH:0.46});
+    const nOth=nTot-nCul-nClo;
+    const mrows=areas.map(a=>{ const rs=wk.filter(r=>String(r[0]).trim()===a), c=rs.filter(r=>/culture/i.test(r[4])).length, cl=rs.filter(r=>/close/i.test(r[4])).length, o=rs.length-c-cl; return [{t:'โมดูล '+a,align:'center'},rs.length,c,rs.length?fmt(c/rs.length*100,0)+'%':'0%',cl,o?String(o):'']; });
+    if(areas.length>1) mrows.push([{t:'รวม',align:'center',bold:true},{t:String(nTot),bold:true},{t:String(nCul),bold:true},{t:fmt(util,0)+'%',bold:true},{t:String(nClo),bold:true},{t:nOth?String(nOth):'',bold:true}]);
+    expTable(s,['โมดูล','บ่อหลัก (บ่อ)','มีกุ้ง (บ่อ)','% มีกุ้ง','เตรียม (บ่อ)','อื่นๆ'],mrows,{x:4.9,y:3.3,w:8.0,colW:[1.5,1.6,1.4,1.2,1.4,0.9],fs:18,rowH:0.46});
     expNote(s,'ข้อมูลสถานะบ่อล่าสุดจากหน้า Weekly · ผลผลิตรวมในบ่อ '+fmt(cul.reduce((a,r)=>a+expN(r[10]),0)/1000,1)+' ตัน · DOC เฉลี่ย '+fx(cul.reduce((a,r)=>a+expN(r[7]),0)/Math.max(nCul,1),0)+' วัน');
   }
   /* ===== 1.5 สถานะการเตรียมบ่อ ===== */
@@ -475,9 +483,6 @@ function expWeeklySlides(pres,bg,st,raw,d,now){
       {label:'ล่าช้า',val:lateN+' บ่อ',sub:pc(lateN),col:lateN?EXP_BAD:EXP_OK},
       {label:'ไม่ระบุแผน',val:naN+' บ่อ',sub:pc(naN),col:EXP_C.grey}
     ],1.2);
-    const STEP_LIST=['ฆ่าเชื้อบ่อด้วยโซดาไฟ (pH 11-13)','ฉีดล้าง ขัดล้างบ่อ','ซ่อมบำรุง อุปกรณ์บ่อเลี้ยง','ซินพื้นบ่อ ซ่อมแซมโครงสร้าง ทาสี','แช่ Subdrain ด่างทับทิม 300 ppm (ตรวจสอบรอยรั่ว)','ฆ่าเชื้อคลอรีน Acidified Chlorine 300 ppm','ตรวจ Swab test (PCR) รอผล PCR Swab test','เติมน้ำ พร้อมปรับคุณภาพน้ำ','ส่งตรวจ PCR น้ำก่อนลงกุ้งรอผล','พร้อมปล่อยกุ้ง'];
-    const STEP_RULES=[[9,/พร้อมปล่อยกุ้ง/],[0,/โซดาไฟ|NaOH/],[4,/Subdrain|ด่างทับทิม|ค่างทับทิม|รอยรั่ว|Soak/i],[5,/คลอรีน|Chlorine/i],[6,/Swab/i],[8,/PCR/i],[7,/เติมน้ำ|ปรับคุณภาพน้ำ|ผลออก/],[1,/ฉีด|ขัดล้าง/],[3,/ซิน|ทาสี|ซ่อมแซมโครงสร้าง/],[2,/ซ่อมบำรุง|PM|จัดเตรียมอุปกรณ์/i]];
-    const stepIdx=s=>{ for(const q of STEP_RULES){ if(q[1].test(s||'')) return q[0]; } return 99; };
     const steps={}; P.forEach(r=>{ const i=stepIdx(String(r[6]||'')); const k=i===99?'อื่นๆ / ไม่ระบุขั้นตอน':(i+1)+'. '+STEP_LIST[i]; (steps[k]=steps[k]||[]).push(r); });
     const keys=Object.keys(steps).sort((a,b)=>(parseInt(a)||99)-(parseInt(b)||99)).slice(0,9);
     const rows=keys.map(k=>{ const rs=steps[k], o=rs.filter(r=>/ตามแผน/.test(r[10])).length, l=rs.filter(r=>/ล่าช้า/.test(r[10])).length;
@@ -486,6 +491,22 @@ function expWeeklySlides(pres,bg,st,raw,d,now){
     expTable(s,['ขั้นตอน','จำนวนบ่อ','% ของบ่อปิด','ตามแผน','ล่าช้า','สถานะ','บ่อ'],rows.length?rows:[['ไม่มีบ่อที่อยู่ระหว่างเตรียมบ่อ','','','','','','']],{x:0.5,y:2.65,w:12.3,colW:[3.9,1.1,1.4,1.0,1.0,1.7,2.2],fs:16,rowH:0.44,leftFirst:true});
     expNote(s,'บ่อสถานะ Close จากหน้า Prepare pond · แยกตามขั้นตอนปัจจุบัน · สถานะล่าช้า = มีอย่างน้อย 1 บ่อล่าช้าในขั้นตอนนั้น');
   }
+  /* ===== 1.6 สถานะการเตรียมบ่อ (รายละเอียด) ===== */
+  if(T('w_preparedetail')){
+    const P=d.prep;
+    const grp=STEP_LIST.map(()=>[]), oth=[]; P.forEach(r=>{ const i=stepIdx(String(r[6]||'')); (i===99?oth:grp[i]).push(r); });
+    const rowsAll=STEP_LIST.map((nmS,i)=>({k:(i+1)+'.'+nmS,rs:grp[i]}));
+    if(oth.length) rowsAll.push({k:'อื่นๆ / ไม่ระบุขั้นตอน',rs:oth});
+    const mk=o=>{ const rs=o.rs.slice().sort((a,b)=>areaRank(a)-areaRank(b)||String(a[1]).localeCompare(String(b[1]))); const ok=rs.filter(r=>/ตามแผน/.test(r[10])).length, lt=rs.filter(r=>/ล่าช้า/.test(r[10])).length;
+      const names=rs.map(r=>String(r[1]).trim()).join(', '), days=rs.map(r=>String(r[5]||'–').trim()).join(', ');
+      const lines=Math.max(1,Math.ceil(names.length/38),Math.ceil(o.k.length/34),Math.ceil(days.length/16));
+      return {lines:lines,row:[{t:o.k,align:'left'},rs.length,{t:names,align:'left'},{t:days,align:'center'},{t:rs.length?('ตามแผน '+ok+' · ล่าช้า '+lt):'',align:'left',color:lt?EXP_BAD:EXP_C.ink}]}; };
+    const items=rowsAll.map(mk), pages=[]; let cur=[],h=0;
+    items.forEach(it=>{ const ih=it.lines*0.3+0.1; if(cur.length&&h+ih>4.2){ pages.push(cur); cur=[]; h=0; } cur.push(it.row); h+=ih; }); if(cur.length) pages.push(cur);
+    pages.forEach((chunk,pi)=>{ const s=bg(); expTitle(pres,s,'สถานะการเตรียมบ่อ (รายละเอียด)'+(pages.length>1?' ('+(pi+1)+'/'+pages.length+')':''));
+      expTable(s,['ขั้นตอน (10 ขั้นตอน)','จำนวนบ่อ','ชื่อบ่อ','วันเตรียม','รายละเอียด'],chunk,{x:0.5,y:1.3,w:12.3,colW:[3.6,1.1,4.1,1.4,2.1],fs:18,rowH:0.4,leftFirst:true});
+      if(pi===pages.length-1) expNote(s,'บ่อสถานะ Close จากหน้า Prepare pond · วันเตรียม = จำนวนวันเตรียมบ่อสะสม · เรียงตามพื้นที่ A,B,C,D,R'); });
+  }
   /* ===== 2 ประสิทธิภาพ (สรุป) ===== */
   if(T('w_perf')){
     const s=bg(); expTitle(pres,s,'ประสิทธิภาพประจำสัปดาห์ · '+an);
@@ -493,8 +514,8 @@ function expWeeklySlides(pres,bg,st,raw,d,now){
     expDonut(pres,s,2.3,1.75,2.4,1.9,nCul,nTot,EXP_OK,'Utilization');
     expCard(pres,s,6.75,1.25,6.05,2.75);
     const sz=cul.map(r=>nm(r[9])).filter(x=>!isNaN(x)&&x>0);
-    const szb=[{n:'>100',f:x=>x>100},{n:'60-100',f:x=>x>60&&x<=100},{n:'30-60',f:x=>x>30&&x<=60},{n:'<30',f:x=>x<=30}];
-    s.addChart(pres.charts.BAR,[{name:'จำนวนบ่อ',labels:szb.map(b=>b.n+' ตัว/กก.'),values:szb.map(b=>sz.filter(b.f).length)}],Object.assign(expChartBase('ขนาดกุ้ง (Size Distribution)'),{x:6.85,y:1.3,w:5.85,h:2.65,barDir:'col',chartColors:[EXP_C.teal],showLegend:false,showValue:true,dataLabelPosition:'outEnd',titleFontSize:20}));
+    const szb=[{n:'>100',f:x=>x>100},{n:'70-100',f:x=>x>70&&x<=100},{n:'50-70',f:x=>x>50&&x<=70},{n:'40-50',f:x=>x>40&&x<=50},{n:'30-40',f:x=>x>30&&x<=40},{n:'25-30',f:x=>x>25&&x<=30},{n:'20-25',f:x=>x>20&&x<=25},{n:'<20',f:x=>x<=20}];
+    s.addChart(pres.charts.BAR,[{name:'จำนวนบ่อ',labels:szb.map(b=>b.n),values:szb.map(b=>sz.filter(b.f).length)}],Object.assign(expChartBase('ขนาดกุ้ง (Size ตัว/กก.) จำนวนบ่อ'),{x:6.85,y:1.3,w:5.85,h:2.65,barDir:'col',chartColors:[EXP_C.teal],showLegend:false,showValue:true,dataLabelPosition:'outEnd',titleFontSize:20}));
     expCard(pres,s,0.5,4.15,6.05,2.8);
     const dc=cul.map(r=>nm(r[7])).filter(x=>!isNaN(x));
     const dcb=[{n:'≤30 วัน',f:x=>x<=30},{n:'31-60 วัน',f:x=>x>30&&x<=60},{n:'61-90 วัน',f:x=>x>60&&x<=90},{n:'>90 วัน',f:x=>x>90}];
@@ -509,14 +530,16 @@ function expWeeklySlides(pres,bg,st,raw,d,now){
     const s=bg(); expTitle(pres,s,'ประสิทธิภาพประจำสัปดาห์ · เฉพาะบ่อที่มีปัญหา');
     expAlert(pres,s,0.5,1.12,6.0,0.72,'การเติบโตต่ำกว่า 3 g/สัปดาห์: '+gainLow.length+' บ่อ',null,gainLow.length>0);
     expAlert(pres,s,6.8,1.12,6.0,0.72,'อัตรารอดสะสม < 70%: '+srLow.length+' บ่อ',null,srLow.length>0);
-    const rows=probSet.slice(0,9).map(r=>{const g=nm(r[11]),x=nm(r[14]);return [r[1],r[2]||'–',r[7]||'–',r[8]||'–',expCell(r[11]||'–',(!isNaN(g)&&g<3)?'red':''),r[9]||'–',r[12]||'–',expCell(r[14]||'–',(!isNaN(x)&&x>0&&x<70)?'red':((!isNaN(x)&&x<85)?'yellow':'')),r[16]||'–',r[17]||'–'];});
-    expTable(s,['Pond','System','DoC','MBW','MBW Gain','Size','ADG','Accum %SR','Total Biomass','Total Yield (kg/rai)'],rows.length?rows:[['ไม่พบบ่อที่มีปัญหา','','','','','','','','','']],{x:0.5,y:2.0,w:12.3,colW:[1.2,1.5,0.9,1.0,1.2,0.9,0.9,1.4,1.5,1.8],fs:15,rowH:0.38});
-    expNote(s,'เกณฑ์: MBW Gain < 3 g/สัปดาห์ หรือ Accum %SR < 70% (แดง) · < 85% (เหลือง)'+(probSet.length>11?' · แสดง 11 จาก '+probSet.length+' บ่อ (ดูครบในสไลด์รายละเอียด)':''));
+    const tn=(v,dd)=>{ const x=nm(v); return isNaN(x)?'–':fmt(x/1000,dd===undefined?2:dd); };
+    const rows=probSet.slice(0,9).map(r=>{const g=nm(r[11]),x=nm(r[14]);return [r[1],r[2]||'–',r[7]||'–',r[8]||'–',expCell(r[11]||'–',(!isNaN(g)&&g<3)?'red':''),r[9]||'–',r[12]||'–',r[13]||'–',expCell(r[14]||'–',(!isNaN(x)&&x>0&&x<70)?'red':((!isNaN(x)&&x<85)?'yellow':'')),tn(r[16]),tn(r[10]),tn(r[17])];});
+    expTable(s,['Pond','System','DoC','MBW','MBW Gain','Size','ADG','%SR','Accum %SR','Total Biomass (ton/pond)','Biomass (ton/pond)','Total Yield (Ton/rai)'],rows.length?rows:[['ไม่พบบ่อที่มีปัญหา','','','','','','','','','','','']],{x:0.5,y:2.0,w:12.3,colW:[1.1,1.2,0.75,0.85,1.0,0.75,0.8,0.8,1.0,1.4,1.4,1.25],fs:15,rowH:0.38});
+    expNote(s,'เกณฑ์: MBW Gain < 3 g/สัปดาห์ หรือ Accum %SR < 70% (แดง) · < 85% (เหลือง)'+(probSet.length>9?' · แสดง 9 จาก '+probSet.length+' บ่อ (ดูครบในสไลด์รายละเอียด)':''));
   }
   /* ===== 4 ประสิทธิภาพ รายละเอียด ===== */
   if(T('w_perfdetail')){
-    const rows=cul.slice().sort((a,b)=>String(a[1]).localeCompare(String(b[1]))).map(r=>{const g=nm(r[11]),x=nm(r[14]);return [r[1],r[2]||'–',r[7]||'–',r[8]||'–',expCell(r[11]||'–',(!isNaN(g)&&g<3)?'red':''),r[9]||'–',r[12]||'–',expCell(r[14]||'–',(!isNaN(x)&&x>0&&x<70)?'red':((!isNaN(x)&&x<85)?'yellow':'')),r[15]||'–',r[16]||'–',r[18]||'–'];});
-    expPagedW(pres,bg,'ประสิทธิภาพประจำสัปดาห์ (รายละเอียด)',['Pond','System','DoC','MBW (g)','MBW Gain','Size','ADG','Accum %SR','FCR','Total Biomass','Feed/day (kg)'],rows.length?rows:[['–','','','','','','','','','','']],[1.2,1.4,0.9,1.0,1.1,0.9,0.9,1.3,0.9,1.5,1.2],13,14,'ข้อมูลล่าสุดจากหน้า Weekly (บ่อสถานะ Culture)',0.34);
+    const tn2=v=>{ const x=nm(v); return isNaN(x)?'–':fmt(x/1000,2); };
+    const rows=cul.slice().sort((a,b)=>areaRank(a)-areaRank(b)||expN(b[7])-expN(a[7])||String(a[1]).localeCompare(String(b[1]))).map(r=>{const g=nm(r[11]),x=nm(r[14]);return [r[1],r[2]||'–',r[7]||'–',r[8]||'–',expCell(r[11]||'–',(!isNaN(g)&&g<3)?'red':''),r[9]||'–',r[12]||'–',r[13]||'–',expCell(r[14]||'–',(!isNaN(x)&&x>0&&x<70)?'red':((!isNaN(x)&&x<85)?'yellow':'')),r[15]||'–',tn2(r[10]),tn2(r[16]),r[18]||'–'];});
+    expPagedW(pres,bg,'ประสิทธิภาพประจำสัปดาห์ (รายละเอียด)',['Pond','System','DoC','MBW (g)','MBW Gain','Size','ADG','%SR','Accum %SR','FCR','Biomass (ton/pond)','Total Biomass (ton/pond)','Feed/day (kg)'],rows.length?rows:[['–','','','','','','','','','','','','']],[1.05,1.15,0.75,0.9,0.95,0.75,0.8,0.8,1.05,0.8,1.1,1.2,0.95],10,14,'ข้อมูลล่าสุดจากหน้า Weekly (บ่อสถานะ Culture) · เรียงตามพื้นที่ A,B,C,D,R และ DOC มาก→น้อย',0.38);
   }
   /* ===== 5 คุณภาพน้ำเกินเกณฑ์ ===== */
   if(T('w_wq')){
@@ -565,7 +588,7 @@ function expWeeklySlides(pres,bg,st,raw,d,now){
     if(lateP.length) cand.push({n:lateP.length,p:'เตรียมบ่อล่าช้ากว่าแผน '+lateP.length+' บ่อ\n– บ่อ '+nm5(lateP,5),s:'เร่งขั้นตอนที่ค้าง กำหนดผู้รับผิดชอบรายบ่อ เพื่อให้ลงกุ้งตามแผน'});
     cand.sort((a,b)=>b.n-a.n);
     const top=cand.slice(0,3); while(top.length<3) top.push({p:'(เพิ่มปัญหาที่พบ)',s:'(เพิ่มแนวทางแก้ไข)'});
-    const colr=['1F7A6D','B8860B','B91C1C'];
+    const colr=[EXP_C.dark,'B8860B','B91C1C'];
     top.forEach((c,i)=>{
       const y=1.55+i*1.8;
       s.addShape(pres.ShapeType.roundRect,{x:0.5,y:y,w:6.05,h:1.65,fill:{color:'FFFFFF'},line:{color:colr[i],width:2},rectRadius:0.08});
@@ -589,14 +612,15 @@ function expWeeklySlides(pres,bg,st,raw,d,now){
     const tot=stkRows.reduce((a,x)=>a+x.pcs,0), done=stkRows.filter(isDone).reduce((a,x)=>a+x.pcs,0), wait=tot-done;
     expKpiRow(pres,s,[{label:'จำนวนบ่อตามแผน',val:stkRows.length+' บ่อ',sub:'ใหญ่ '+big.length+' · อนุบาล '+nur.length},{label:'ยอดลงตามแผน',val:fmt(tot/1e6,2)+' ล้านตัว',sub:fmt(tot,0)+' ตัว'},{label:'ลงแล้ว',val:fmt(done/1e6,2)+' ล้านตัว',sub:stkRows.filter(isDone).length+' บ่อ',col:EXP_OK},{label:'รอลง',val:fmt(wait/1e6,2)+' ล้านตัว',sub:stkRows.filter(x=>!isDone(x)).length+' บ่อ',col:EXP_WARN}],1.25);
     const pdone=tot?done/tot*100:0;
-    [['สถานะการลงกุ้ง',(tot?'ลงแล้ว '+fmt(pdone,0)+'%':'ไม่มีแผน'),EXP_OK,pdone,'เป้าหมาย '+fmt(tot/1e6,2)+' ล้านตัว / ลงจริง '+fmt(done/1e6,2)+' ล้านตัว ('+stkRows.filter(isDone).length+' บ่อ)','บ่อที่ลงแล้ว: '+(lst(stkRows.filter(isDone)))],['แผนดำเนินการ',(tot?'รอลง '+fmt(100-pdone,0)+'%':'ไม่มีแผน'),EXP_WARN,tot?100-pdone:0,'จำนวนที่รอลง '+fmt(wait/1e6,2)+' ล้านตัว ('+stkRows.filter(x=>!isDone(x)).length+' บ่อ)','แผนลงกุ้ง: '+(lst(stkRows.filter(x=>!isDone(x))))]].forEach((c,i)=>{
+    const igr=a=>'บ่อ I จำนวน '+a.filter(x=>polyType(x.p)==='I').length+' บ่อ   บ่อ G จำนวน '+a.filter(x=>polyType(x.p)==='G').length+' บ่อ   บ่อ R จำนวน '+a.filter(x=>polyType(x.p)==='R').length+' บ่อ';
+    [['สถานะการลงกุ้ง',(tot?'ลงแล้ว '+stkRows.filter(isDone).length+' บ่อ ('+fmt(pdone,0)+'%)':'ไม่มีแผน'),EXP_OK,pdone,'เป้าหมาย '+fmt(tot/1e6,2)+' ล้านตัว / ลงจริง '+fmt(done/1e6,2)+' ล้านตัว ('+stkRows.filter(isDone).length+' บ่อ)   '+igr(stkRows.filter(isDone)),'บ่อที่ลงแล้ว: '+(lst(stkRows.filter(isDone)))],['แผนดำเนินการ',(tot?'รอลง '+stkRows.filter(x=>!isDone(x)).length+' บ่อ ('+fmt(100-pdone,0)+'%)':'ไม่มีแผน'),EXP_WARN,tot?100-pdone:0,'จำนวนที่รอลง '+fmt(wait/1e6,2)+' ล้านตัว ('+stkRows.filter(x=>!isDone(x)).length+' บ่อ)   '+igr(stkRows.filter(x=>!isDone(x))),'แผนลงกุ้ง: '+(lst(stkRows.filter(x=>!isDone(x))))]].forEach((c,i)=>{
       const y=2.75+i*2.1; expCard(pres,s,0.5,y,12.3,1.95);
       s.addText(c[0],{x:0.8,y:y+0.1,w:6,h:0.5,fontFace:EXP_FONT,fontSize:26,bold:true,color:EXP_C.ink,isTextBox:true,margin:0});
       s.addShape(pres.ShapeType.roundRect,{x:10.0,y:y+0.12,w:2.5,h:0.45,fill:{color:c[2]},line:{color:c[2],width:0},rectRadius:0.2});
       s.addText(c[1],{x:10.0,y:y+0.12,w:2.5,h:0.45,align:'center',valign:'middle',fontFace:EXP_FONT,fontSize:18,bold:true,color:'FFFFFF',isTextBox:true,margin:0});
       s.addShape(pres.ShapeType.roundRect,{x:0.8,y:y+0.7,w:11.7,h:0.2,fill:{color:'E5E7EB'},line:{color:'E5E7EB',width:0},rectRadius:0.1});
       if(c[3]>0) s.addShape(pres.ShapeType.roundRect,{x:0.8,y:y+0.7,w:Math.max(0.2,11.7*c[3]/100),h:0.2,fill:{color:c[2]},line:{color:c[2],width:0},rectRadius:0.1});
-      s.addText(c[4],{x:0.8,y:y+1.0,w:11.7,h:0.35,align:'center',fontFace:EXP_FONT,fontSize:18,color:EXP_C.ink,isTextBox:true,margin:0});
+      s.addText(c[4],{x:0.8,y:y+1.0,w:11.7,h:0.35,align:'center',fontFace:EXP_FONT,fontSize:16,color:EXP_C.ink,isTextBox:true,margin:0});
       s.addText(c[5],{x:0.8,y:y+1.38,w:11.7,h:0.5,align:'center',fontFace:EXP_FONT,fontSize:15,color:EXP_C.grey,valign:'top',isTextBox:true,margin:0});
     });
     expNote(s,(stkFb?'ยังไม่มีแผนลงกุ้งเดือนถัดไปในชีต Stocking จึงแสดงแผนเดือนปัจจุบัน · ':'')+'แผนลงกุ้งจากชีต Stocking · ถือว่า "ลงแล้ว" เมื่อวันที่ลงกุ้ง ≤ วันที่ส่งออกรายงาน');
@@ -624,12 +648,12 @@ function expWeeklySlides(pres,bg,st,raw,d,now){
     const items=raw.oh.slice(1).filter(r=>areas.indexOf(String(r[10]).trim())>=0&&String(r[11]).trim()).map(r=>({p:String(r[11]).trim(),pd:expMonthOf(r[12]),ty:String(r[20]||'').trim(),tar:expN(r[19]),tsz:expN(r[18]),ad:expMonthOf(r[21]),asz:expN(r[24]),act:expN(r[26])})).filter(x=>x.pd&&x.pd.m===rm&&x.pd.y===ry&&x.ty);
     const types=[...new Set(items.map(x=>x.ty))].sort();
     const av=a=>{const v=a.filter(x=>x>0);return v.length?v.reduce((p,x)=>p+x,0)/v.length:NaN;};
-    const rows=types.map(t=>{const g=items.filter(x=>x.ty===t);return [t,fmt(g.reduce((a,x)=>a+x.tar,0),1),fx(av(g.map(x=>x.tsz)),0),String(g.length),fmt(g.reduce((a,x)=>a+x.act,0),2),fx(av(g.map(x=>x.asz)),0)];});
-    const tT=items.reduce((a,x)=>a+x.tar,0), tA=items.reduce((a,x)=>a+x.act,0);
-    rows.push(['Grand Total',fmt(tT,1),'',String(items.length),fmt(tA,2),'']);
-    expTable(s,['Row Labels','Tar.Ton','Tar AVG Size','Tar Pond','Ac.Ton','Ac. AVG Size'],rows.length>1?rows:[['ไม่มีแผนจับเดือนนี้','','','','','']],{x:0.5,y:1.35,w:7.3,colW:[1.9,1.1,1.3,1.0,1.0,1.0],fs:16,rowH:0.4,boldLast:true});
+    const rows=types.map(t=>{const g=items.filter(x=>x.ty===t);const ga=g.filter(x=>x.act>0);return [t,fmt(g.reduce((a,x)=>a+x.tar,0),1),fx(av(g.map(x=>x.tsz)),0),String(g.length),fmt(g.reduce((a,x)=>a+x.act,0),2),fx(av(g.map(x=>x.asz)),0),ga.length?String(ga.length):''];});
+    const tT=items.reduce((a,x)=>a+x.tar,0), tA=items.reduce((a,x)=>a+x.act,0), nA=items.filter(x=>x.act>0).length;
+    rows.push(['Grand Total',fmt(tT,1),'',String(items.length),fmt(tA,2),'',nA?String(nA):'']);
+    expTable(s,['Row Labels','Est.Ton','Est. AVG Size','Est. Pond','Act. (Ton)','Act. AVG Size','Act. pond'],rows.length>1?rows:[['ไม่มีแผนจับเดือนนี้','','','','','','']],{x:0.5,y:1.35,w:7.3,colW:[1.4,0.95,1.1,0.95,1.0,1.1,0.8],fs:16,rowH:0.4,boldLast:true});
     const sT=av(items.map(x=>x.tsz)), sA=av(items.map(x=>x.asz));
-    expKpiRow(pres,s,[{label:'Size เฉลี่ย เป้าหมาย',val:fx(sT,0),sub:'ตัว/กก.'},{label:'Size เฉลี่ย เกิดจริง',val:fx(sA,0),sub:'ตัว/กก.',col:(!isNaN(sT)&&!isNaN(sA)&&sA>sT*1.15)?EXP_WARN:EXP_OK}],5.0);
+    expKpiRow(pres,s,[{label:'Size เฉลี่ย เป้าหมาย',val:fx(sT,0),sub:'ตัว/กก.'},{label:'Size เฉลี่ย เกิดจริง',val:fx(sA,0),sub:'ตัว/กก.',col:(!isNaN(sT)&&!isNaN(sA)&&sA>sT*1.15)?EXP_WARN:EXP_OK}],5.4);
     if(types.length) s.addChart(pres.charts.BAR,[{name:'แผน (ตัน)',labels:types,values:types.map(t=>+items.filter(x=>x.ty===t).reduce((a,x)=>a+x.tar,0).toFixed(1))},{name:'จริง (ตัน)',labels:types,values:types.map(t=>+items.filter(x=>x.ty===t).reduce((a,x)=>a+x.act,0).toFixed(2))}],Object.assign(expChartBase('แผนจับ vs จับจริง แยกประเภท (ตัน)'),{x:8.0,y:1.25,w:4.9,h:3.6,barDir:'col',chartColors:['9CA3AF',EXP_C.teal],showValue:true,dataLabelPosition:'outEnd'}));
     expNote(s,'ข้อมูลจากหน้า Order Harvest (วันที่แผนจับในเดือนปัจจุบัน) · จับจริง = Ac.Ton');
   }
@@ -650,10 +674,12 @@ function expWeeklySlides(pres,bg,st,raw,d,now){
       {label:'กำไรสุทธิ',val:fmt(F.N/1000,2)+' ลบ.',sub:'margin '+(F.S?fmt(F.N/F.S*100,1)+'%':'–'),col:F.N>=0?EXP_OK:EXP_BAD}
     ],1.15);
     const labs=f.map(r=>MT[r.m-1]);
-    s.addChart(pres.charts.BAR,[{name:'กำไร/ขาดทุนสุทธิ (ล้านบาท)',labels:labs,values:f.map(r=>+(r.NetProfit/1000).toFixed(2))}],Object.assign(expChartBase('กำไร/ขาดทุนสุทธิ (ล้านบาท)'),{x:0.4,y:2.5,w:6.3,h:3.5,barDir:'col',chartColors:[EXP_C.dark],invertedColors:['DC2626'],showLegend:false,showValue:true,dataLabelPosition:'outEnd',dataLabelFontSize:11}));
-    s.addChart(pres.charts.BAR,[{name:'ผลผลิต (ตัน)',labels:labs,values:f.map(r=>+r.Weight.toFixed(1))}],Object.assign(expChartBase('ผลผลิต (ตัน)'),{x:6.8,y:2.5,w:6.2,h:3.5,barDir:'col',chartColors:[EXP_C.teal],showLegend:false,showValue:true,dataLabelPosition:'outEnd',dataLabelFontSize:11}));
+    s.addChart(pres.charts.BAR,[{name:'กำไร/ขาดทุนสุทธิ (ล้านบาท)',labels:labs,values:f.map(r=>+(r.NetProfit/1000).toFixed(2))}],Object.assign(expChartBase('กำไร/ขาดทุนสุทธิ (ล้านบาท)'),{x:0.4,y:2.45,w:6.3,h:3.05,barDir:'col',chartColors:[EXP_C.dark],invertedColors:['DC2626'],showLegend:false,showValue:true,dataLabelPosition:'outEnd',dataLabelFontSize:11}));
+    s.addChart(pres.charts.BAR,[{name:'ผลผลิต (ตัน)',labels:labs,values:f.map(r=>+r.Weight.toFixed(1))}],Object.assign(expChartBase('ผลผลิต (ตัน)'),{x:6.8,y:2.45,w:6.2,h:3.05,barDir:'col',chartColors:[EXP_C.teal],showLegend:false,showValue:true,dataLabelPosition:'outEnd',dataLabelFontSize:11}));
     const uRow=d.stocking.map(r=>fmt(r.pct,0)+'%');
-    expTable(s,['เดือน'].concat(labs),[['บ่อมีกุ้ง (%)'].concat(uRow)],{x:0.5,y:6.15,w:12.3,colW:[1.5].concat(labs.map(()=>10.8/labs.length)),fs:13,rowH:0.34});
+    const ohs=raw.oh.slice(1).filter(r=>areas.indexOf(String(r[10]).trim())>=0&&expN(r[26])>0&&expN(r[24])>0&&(expMonthOf(r[21])||{}).y===st.year).map(r=>({m:expMonthOf(r[21]).m,t:expN(r[26]),sz:expN(r[24])}));
+    const szRow=f.map(r=>{ const g=ohs.filter(x=>x.m===r.m), tt=g.reduce((a,x)=>a+x.t,0); return tt>0?fmt(g.reduce((a,x)=>a+x.t*x.sz,0)/tt,0):'–'; });
+    expTable(s,['เดือน'].concat(labs),[['บ่อมีกุ้ง (%)'].concat(uRow),['Size เฉลี่ย (ตัว/กก.)'].concat(szRow)],{x:0.5,y:5.55,w:12.3,colW:[2.1].concat(labs.map(()=>10.2/labs.length)),fs:13,rowH:0.34,leftFirst:true});
     expNote(s,'หน่วย: ล้านบาท (กำไร) · ตัน (ผลผลิต) · ข้อมูลตามหน้า Financial / Stocking · ตัน/ไร่ = ผลผลิตรวม ÷ พื้นที่ (ไร่) ของบ่อทั้งหมดในพื้นที่ที่เลือก');
   }
 }
@@ -665,9 +691,10 @@ function expGenerate(PptxGenJS,st,raw,bgs){
   const st2=Object.assign({},st,{months:weekly?[1,2,3,4,5,6,7,8,9,10,11,12]:st.months});
   const ms=st2.months.slice().sort((a,b)=>a-b);
   const d=expCompute(raw,st2);
-  const bg=()=>{ const s=pres.addSlide(); s.background={data:bgs.content}; return expShift(s); };
+  const navy=st.theme==='navy'; Object.assign(EXP_C,EXP_THEMES[navy?'navy':'green']);
+  const bg=()=>{ const s=pres.addSlide(); if(navy){ s.background={color:'FFFFFF'}; s.addShape(pres.ShapeType.rect,{x:0,y:0,w:13.333,h:1.1,fill:{color:'002060'},line:{color:'002060',width:0}}); s.addShape(pres.ShapeType.rect,{x:0,y:1.1,w:13.333,h:0.05,fill:{color:'2E75B6'},line:{color:'2E75B6',width:0}}); } else s.background={data:bgs.content}; return expShift(s); };
   const nowTxt=now.toLocaleDateString('th-TH',{day:'numeric',month:'long',year:'numeric'});
-  const c=pres.addSlide(); c.background={data:bgs.cover};
+  const c=pres.addSlide(); if(navy) c.background={color:'002060'}; else c.background={data:bgs.cover};
   const MODTH={A:'เอ',B:'บี',C:'ซี',D:'ดี',R:'อาร์'};
   const farmLine='ฟาร์มเลี้ยงกุ้งโรงเรือนระบบปิดร้อยเพชร'+(st.area==='ALL'?'':' (โมดุล '+(MODTH[st.area]||st.area)+')');
   c.addText(weekly?'รายงานความก้าวหน้า':'รายงานสรุปผู้บริหาร',{x:0.4,y:2.8,w:12,h:1.0,fontFace:EXP_FONT,fontSize:60,bold:true,color:'FFFFFF',valign:'middle',isTextBox:true,margin:0});
@@ -676,7 +703,7 @@ function expGenerate(PptxGenJS,st,raw,bgs){
   c.addText(nowTxt,{x:0.4,y:6.6,w:6,h:0.5,fontFace:EXP_FONT,fontSize:24,color:'FFFFFF',valign:'middle',isTextBox:true,margin:0});
   if(weekly) expWeeklySlides(pres,bg,st,raw,d,now);
   else expExecSlides(pres,bg,st,d,ms,(n,dd)=>isNaN(n)?'–':expFmt(n,dd));
-  const e=pres.addSlide(); e.background={data:bgs.thanks};
+  const e=pres.addSlide(); if(navy) e.background={color:'002060'}; else e.background={data:bgs.thanks};
   e.addText('ขอบคุณครับ',{x:5.2,y:3.0,w:7.5,h:1.6,fontFace:EXP_FONT,fontSize:72,bold:true,color:'FFFFFF',isTextBox:true,margin:0});
   return pres;
 }
@@ -716,6 +743,7 @@ function expPaint(){
   const weekly=EXP_ST.style==='weekly';
   el('expStyle').innerHTML=chip(!weekly,'รายงานผู้บริหาร','EXP_ST.style=\'exec\';expPaint()')+chip(weekly,'รายงานประจำสัปดาห์','EXP_ST.style=\'weekly\';expPaint()');
   el('expStyleHint').textContent=weekly?'นำเสนอสรุปความก้าวหน้าประจำสัปดาห์ · ปัญหาและแนวทางแก้ไข · แผนลงกุ้ง/จับกุ้ง · ประมาณการ (ใช้ข้อมูลล่าสุด ณ วันที่ส่งออก)':'สรุปผลการดำเนินงาน เทียบแผน/เกณฑ์ พร้อมปัญหาและแนวทางแก้ไข (ตามช่วงปี/เดือนที่เลือก)';
+  el('expTheme').innerHTML=chip(EXP_ST.theme!=='navy','1. สีเขียว','EXP_ST.theme=\'green\';expPaint()')+chip(EXP_ST.theme==='navy','2. สีน้ำเงิน','EXP_ST.theme=\'navy\';expPaint()');
   el('expAreas').innerHTML=['ALL'].concat(EXP_AREAS).map(a=>chip(EXP_ST.area===a,a==='ALL'?'ทั้งฟาร์ม':a,'EXP_ST.area=\''+a+'\';expPaint()')).join('');
   el('expYears').innerHTML=[2026,2027].map(y=>chip(EXP_ST.year===y,String(y),'EXP_ST.year='+y+';expPaint()')).join('');
   el('expMonths').innerHTML=MONTH_TH.map((t,i)=>chip(EXP_ST[weekly?'wmonths':'months'].indexOf(i+1)>=0,t,'expToggle(\''+(weekly?'wmonths':'months')+'\','+(i+1)+')')).join('');
@@ -731,6 +759,7 @@ async function pageExport(){
   el('subtitle').textContent='Export Data · สร้างไฟล์นำเสนอ (.pptx) จากข้อมูล Dashboard';
   el('app').innerHTML='<style>.expchip{border:1px solid var(--line,#d1d5db);background:#fff;border-radius:999px;padding:7px 16px;margin:0 8px 8px 0;font-size:14px;cursor:pointer;font-family:inherit}.expchip.on{background:#4AC5B1;border-color:#4AC5B1;color:#fff;font-weight:700}.expbox{background:#fff;border:1px solid var(--line,#e5e7eb);border-radius:14px;padding:18px 20px;margin-bottom:14px}.expbox h3{margin:0 0 10px;font-size:15px}.expgo{background:#1F7A6D;color:#fff;border:0;border-radius:12px;padding:13px 28px;font-size:16px;font-weight:700;cursor:pointer}.expgo:disabled{opacity:.6;cursor:wait}</style>'
    +'<div class="expbox"><h3 data-t="รูปแบบรายงาน">รูปแบบรายงาน</h3><div id="expStyle"></div><div class="hint" id="expStyleHint" style="margin-top:4px"></div></div>'
+   +'<div class="expbox"><h3 data-t="โทนสีนำเสนอ">โทนสีนำเสนอ</h3><div id="expTheme"></div><div class="hint" style="margin-top:4px">สีเขียว = โทนเดิมของฟาร์ม · สีน้ำเงิน = หัวข้อแถบสีกรมท่า ตารางหัวสีน้ำเงิน</div></div>'
    +'<div class="expbox"><h3 data-t="เดือน / ปี">เดือน / ปี</h3><div id="expYears"></div><div id="expMonths"></div><div id="expMonthBtns"></div><div class="hint" id="expMonthHint"></div></div>'
    +'<div class="expbox"><h3 data-t="พื้นที่">พื้นที่</h3><div id="expAreas"></div></div>'
    +'<div class="expbox"><h3 id="expTopicTitle" data-t="เนื้อหาหัวข้อ">เนื้อหาหัวข้อ</h3><div id="expTopics"></div></div>'
