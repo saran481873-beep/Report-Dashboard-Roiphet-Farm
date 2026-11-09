@@ -98,8 +98,8 @@ function expCompute(raw,st){
 /* ---------- slide helpers ---------- */
 function expTitle(pres,slide,text){
   text=String(text).replace(/\s*·?\s*ทั้งฟาร์ม/g,'').replace(/\s+/g,' ').trim();
-  const fs=text.length>34?Math.max(30,Math.floor(44*34/text.length)):44;
-  slide.addText(text,{x:0.5,y:0.1,w:12.3,h:0.95,align:'center',valign:'middle',fontFace:EXP_FONT,fontSize:fs,bold:true,color:'FFFFFF',isTextBox:true,margin:0});
+  const fs=text.length>26?Math.max(28,Math.floor(44*26/text.length)):44;
+  slide.addText(text,{x:1.7,y:0.1,w:9.4,h:0.95,align:'center',valign:'middle',fontFace:EXP_FONT,fontSize:fs,bold:true,color:'FFFFFF',isTextBox:true,margin:0});
 }
 /* ย้ายเนื้อหาลงใต้แถบหัวข้อ: y<1.0 (หัวข้อ) คงเดิม, y≥1.0 บีบช่วง 1.05–7.0 → 1.45–7.0 */
 function expShift(s){
