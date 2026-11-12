@@ -25,7 +25,8 @@ const EXP_WTOPICS=[
   {id:'w_stockplan',label:'แผนการลงกุ้ง (สรุป)'},
   {id:'w_stockdetail',label:'แผนการลงกุ้ง (รายละเอียด)'},
   {id:'w_harvest',label:'แผนการจับกุ้ง'},
-  {id:'w_pnl',label:'ประมาณการและผลดำเนินการ'}
+  {id:'w_pnl',label:'ประมาณการและผลดำเนินการ'},
+  {id:'w_loss',label:'สาเหตุการขาดทุน (ประสิทธิภาพการผลิต · No Stk & Damage · Period Cost)'}
 ];
 const EXP_THEMES={green:{teal:'4AC5B1',dark:'1F7A6D',zebra:'EAF8F5'},navy:{teal:'2E75B6',dark:'002060',zebra:'EEF3FA'}};
 const EXP_ST={theme:'green',area:'ALL',year:new Date().getFullYear(),wmonths:[new Date().getMonth()+1],style:'exec',months:[1,2,3,4,5,6,7,8,9,10,11,12],topics:['situation','stocking','harvest','performance','prepare','financial','summary'],wtopics:EXP_WTOPICS.map(t=>t.id)};
@@ -97,10 +98,13 @@ function expCompute(raw,st){
   const starts={A:0,B:54,C:108,D:162,R:216};
   const labels=['Weight','Sales','Production Cost','GrossProfit','Admin','Interest','NetProfit'];
   out.financial=ms.map(m=>{
-    const rec={m}; labels.forEach(l=>rec[l]=0);
+    const rec={m}; labels.forEach(l=>rec[l]=0); ['NoStk','Period','Direct','Fixed','Variable','AdminInt'].forEach(k=>rec[k]=0);
+    const xmap={'nostk&damage':'NoStk','periodcost':'Period','directcost':'Direct','fixedcost':'Fixed','variablecost':'Variable','admin&interest':'AdminInt'};
     areas.forEach(a=>{
       const s=starts[a]; const col=EXP_MONTH_COL[m-1];
       for(let i=s+3;i<=s+9&&i<raw.fin.length;i++){ const lab=String(raw.fin[i][0]).trim(); if(labels.indexOf(lab)>=0) rec[lab]+=expN(raw.fin[i][col]); }
+      /* Cost Structure (Baht) block: s+10 .. s+30 */
+      for(let i=s+10;i<=s+30&&i<raw.fin.length;i++){ const k=xmap[String(raw.fin[i][0]).replace(/\s+/g,'').toLowerCase()]; if(k) rec[k]+=expN(raw.fin[i][col]); }
     });
     return rec;
   });
@@ -693,13 +697,44 @@ function expWeeklySlides(pres,bg,st,raw,d,now){
       {label:'กำไรสุทธิ',val:fmt(F.N/1000,2)+' ลบ.',sub:'margin '+(F.S?fmt(F.N/F.S*100,1)+'%':'–'),col:F.N>=0?EXP_OK:EXP_BAD}
     ],1.15);
     const labs=f.map(r=>MT[r.m-1]);
-    s.addChart(pres.charts.BAR,[{name:'กำไร/ขาดทุนสุทธิ (ล้านบาท)',labels:labs,values:f.map(r=>+(r.NetProfit/1000).toFixed(2))}],Object.assign(expChartBase('กำไร/ขาดทุนสุทธิ (ล้านบาท)'),{x:0.4,y:2.45,w:6.3,h:3.05,barDir:'col',chartColors:[EXP_C.dark],invertedColors:['DC2626'],showLegend:false,showValue:true,dataLabelPosition:'outEnd',dataLabelFontSize:11}));
-    s.addChart(pres.charts.BAR,[{name:'ผลผลิต (ตัน)',labels:labs,values:f.map(r=>+r.Weight.toFixed(1))}],Object.assign(expChartBase('ผลผลิต (ตัน)'),{x:6.8,y:2.45,w:6.2,h:3.05,barDir:'col',chartColors:[EXP_C.teal],showLegend:false,showValue:true,dataLabelPosition:'outEnd',dataLabelFontSize:11}));
+    s.addChart(pres.charts.BAR,[{name:'กำไร/ขาดทุนสุทธิ (ล้านบาท)',labels:labs,values:f.map(r=>+(r.NetProfit/1000).toFixed(2))}],Object.assign(expChartBase('กำไร/ขาดทุนสุทธิ (ล้านบาท)'),{x:0.4,y:2.45,w:6.3,h:2.8,barDir:'col',chartColors:[EXP_C.dark],invertedColors:['DC2626'],showLegend:false,showValue:true,dataLabelPosition:'outEnd',dataLabelFontSize:11}));
+    s.addChart(pres.charts.BAR,[{name:'ผลผลิต (ตัน)',labels:labs,values:f.map(r=>+r.Weight.toFixed(1))}],Object.assign(expChartBase('ผลผลิต (ตัน)'),{x:6.8,y:2.45,w:6.2,h:2.8,barDir:'col',chartColors:[EXP_C.teal],showLegend:false,showValue:true,dataLabelPosition:'outEnd',dataLabelFontSize:11}));
     const uRow=d.stocking.map(r=>fmt(r.pct,0)+'%');
     const ohs=raw.oh.slice(1).filter(r=>areas.indexOf(String(r[10]).trim())>=0&&expN(r[26])>0&&expN(r[24])>0&&(expMonthOf(r[21])||{}).y===st.year).map(r=>({m:expMonthOf(r[21]).m,t:expN(r[26]),sz:expN(r[24])}));
     const szRow=f.map(r=>{ const g=ohs.filter(x=>x.m===r.m), tt=g.reduce((a,x)=>a+x.t,0); return tt>0?fmt(g.reduce((a,x)=>a+x.t*x.sz,0)/tt,0):'–'; });
-    expTable(s,['เดือน'].concat(labs),[['บ่อมีกุ้ง (%)'].concat(uRow),['Size เฉลี่ย (ตัว/กก.)'].concat(szRow)],{x:0.5,y:5.55,w:12.3,colW:[2.1].concat(labs.map(()=>10.2/labs.length)),fs:13,rowH:0.34,leftFirst:true});
+    const wtRow=f.map(r=>r.Weight>0?fmt(r.Weight,1):'–');
+    expTable(s,['เดือน'].concat(labs),[['บ่อมีกุ้ง (%)'].concat(uRow),['Size เฉลี่ย (ตัว/กก.)'].concat(szRow),['ผลผลิต (ตัน)'].concat(wtRow)],{x:0.5,y:5.3,w:12.3,colW:[2.1].concat(labs.map(()=>10.2/labs.length)),fs:13,rowH:0.34,leftFirst:true});
     expNote(s,'หน่วย: ล้านบาท (กำไร) · ตัน (ผลผลิต) · ข้อมูลตามหน้า Financial / Stocking · ตัน/ไร่ = ผลผลิตรวม ÷ พื้นที่ (ไร่) ของบ่อทั้งหมดในพื้นที่ที่เลือก');
+  }
+  /* ===== 14 สาเหตุการขาดทุน ===== */
+  if(T('w_loss')){
+    const s=bg(); expTitle(pres,s,'สาเหตุการขาดทุน · '+an+' ปี '+st.year);
+    const f=d.financial.filter(r=>r.Sales!==0||r.NetProfit!==0||r.NoStk!==0);
+    const M=r=>r/1000, K=(r,k)=>r.Weight>0?r[k]/r.Weight:NaN;
+    /* ประสิทธิภาพการผลิต = ยอดขาย − (ต้นทุนตรง+คงที่+แปรผัน) ก่อน No Stk & Damage / Period Cost */
+    const eff=r=>r.Sales-(r.Direct+r.Fixed+r.Variable);
+    const T0={eff:f.reduce((a,r)=>a+eff(r),0),ns:f.reduce((a,r)=>a+r.NoStk,0),pc:f.reduce((a,r)=>a+r.Period,0),ai:f.reduce((a,r)=>a+Math.abs(r.AdminInt),0),net:f.reduce((a,r)=>a+r.NetProfit,0)};
+    expKpiRow(pres,s,[
+      {label:'กำไร/ขาดทุนสุทธิ',val:fmt(M(T0.net),2)+' ลบ.',sub:'รวมทุกเดือนที่มีข้อมูล',col:T0.net>=0?EXP_OK:EXP_BAD},
+      {label:'ประสิทธิภาพการผลิต',val:fmt(M(T0.eff),2)+' ลบ.',sub:'ยอดขาย − ต้นทุนผลิตปกติ',col:T0.eff>=0?EXP_OK:EXP_BAD},
+      {label:'No Stk & Damage',val:fmt(M(T0.ns),2)+' ลบ.',sub:'ลงกุ้งไม่ติด / เสียหาย',col:T0.ns>0?EXP_BAD:EXP_OK},
+      {label:'Period Cost',val:fmt(M(T0.pc),2)+' ลบ.',sub:'ต้นทุนช่วงเวลา (ผลต่างตัดจ่าย)',col:T0.pc>0?EXP_BAD:EXP_OK}
+    ],1.15);
+    const labs=f.map(r=>MT[r.m-1]);
+    s.addChart(pres.charts.BAR,[
+      {name:'ประสิทธิภาพการผลิต',labels:labs,values:f.map(r=>+M(eff(r)).toFixed(2))},
+      {name:'No Stk & Damage',labels:labs,values:f.map(r=>-+M(r.NoStk).toFixed(2))},
+      {name:'Period Cost',labels:labs,values:f.map(r=>-+M(r.Period).toFixed(2))},
+      {name:'Admin & Interest',labels:labs,values:f.map(r=>-+M(Math.abs(r.AdminInt)).toFixed(2))}
+    ],Object.assign(expChartBase('องค์ประกอบกำไร/ขาดทุนรายเดือน (ล้านบาท)'),{x:0.4,y:2.45,w:12.5,h:2.85,barDir:'col',barGrouping:'stacked',chartColors:[EXP_C.teal,'DC2626','F59E0B','94A3B8'],showLegend:true,showValue:false}));
+    const row=(name,fn,dg)=>[name].concat(f.map(r=>{ const v=fn(r); return isNaN(v)?'–':fmt(v,dg); }));
+    expTable(s,['บาท/กก.'].concat(labs),[
+      row('ราคาขาย',r=>K(r,'Sales'),0),
+      row('ต้นทุนผลิตปกติ',r=>K(r,'Direct')+K(r,'Fixed')+K(r,'Variable'),0),
+      row('No Stk & Damage',r=>K(r,'NoStk'),1),
+      row('Period Cost',r=>K(r,'Period'),1)
+    ],{x:0.5,y:5.35,w:12.3,colW:[2.4].concat(labs.map(()=>9.9/labs.length)),fs:13,rowH:0.34,leftFirst:true});
+    expNote(s,'ประสิทธิภาพการผลิต = ยอดขาย − (ต้นทุนตรง + คงที่ + แปรผัน) · ก่อนหัก No Stk & Damage, Period Cost, Admin & Interest · ข้อมูลหน้า Financial');
   }
 }
 
