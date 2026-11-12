@@ -40,8 +40,15 @@ const EXP_MONTH_COL=[1,2,3,5,6,7,9,10,11,13,14,15];
 function expWSize(rows){ let pcs=0,bio=0; rows.forEach(r=>{ const b=num(r[10]),s=num(r[9]); if(!isNaN(b)&&!isNaN(s)&&b>0&&s>0){ pcs+=b*s; bio+=b; } }); return bio?pcs/bio:NaN; }
 function expN(x){ const n=num(x); return isNaN(n)?0:n; }
 function expMonthOf(s){ const m=String(s||'').trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/); return m?{d:+m[1],m:+m[2],y:+m[3]}:null; }
-function expAreaList(area){ return area==='ALL'?EXP_AREAS.slice():[area]; }
-function expAreaName(area){ return area==='ALL'?'ทั้งฟาร์ม':'พื้นที่ '+area; }
+function expAreaList(area){ return area==='ALL'?EXP_AREAS.slice():EXP_AREAS.filter(a=>String(area).split(',').indexOf(a)>=0); }
+function expAreaName(area){ return area==='ALL'?'ทั้งฟาร์ม':'พื้นที่ '+expAreaList(area).join(', '); }
+function expToggleArea(a){
+  if(a==='ALL'){ EXP_ST.area='ALL'; return; }
+  let cur=EXP_ST.area==='ALL'?EXP_AREAS.slice():expAreaList(EXP_ST.area);
+  const i=cur.indexOf(a); if(i>=0) cur.splice(i,1); else cur.push(a);
+  cur=EXP_AREAS.filter(x=>cur.indexOf(x)>=0);
+  EXP_ST.area=(cur.length===0||cur.length===EXP_AREAS.length)?'ALL':cur.join(',');
+}
 
 async function expLoadData(){
   const [stk,oh,wk,fin,pr,dy]=await Promise.all([getTab('stocking'),getTab('orderharvest'),getTab('weekly'),getTab('financial'),getTab('prepare'),getTab('daily')]);
@@ -708,7 +715,7 @@ function expGenerate(PptxGenJS,st,raw,bgs){
   const nowTxt=now.toLocaleDateString('th-TH',{day:'numeric',month:'long',year:'numeric'});
   const c=pres.addSlide(); if(navy) c.background={color:'002060'}; else c.background={data:bgs.cover};
   const MODTH={A:'เอ',B:'บี',C:'ซี',D:'ดี',R:'อาร์'};
-  const farmLine='ฟาร์มเลี้ยงกุ้งโรงเรือนระบบปิดร้อยเพชร'+(st.area==='ALL'?'':' (โมดุล '+(MODTH[st.area]||st.area)+')');
+  const farmLine='ฟาร์มเลี้ยงกุ้งโรงเรือนระบบปิดร้อยเพชร'+(st.area==='ALL'?'':' (โมดุล '+expAreaList(st.area).map(a=>MODTH[a]||a).join(', ')+')');
   c.addText(weekly?'รายงานความก้าวหน้า':'รายงานสรุปผู้บริหาร',{x:0.4,y:2.8,w:12,h:1.0,fontFace:EXP_FONT,fontSize:60,bold:true,color:'FFFFFF',valign:'middle',isTextBox:true,margin:0});
   c.addText(farmLine,{x:0.4,y:3.95,w:12,h:0.6,fontFace:EXP_FONT,fontSize:28,color:'FFFFFF',valign:'middle',isTextBox:true,margin:0});
   if(!weekly) c.addText('ปี '+st.year+'  |  '+(ms.length===12?'ทุกเดือน':ms.map(m=>MONTH_TH[m-1]).join(' ')),{x:0.4,y:4.5,w:9,h:0.5,fontFace:EXP_FONT,fontSize:24,color:'FFFFFF',valign:'middle',isTextBox:true,margin:0});
@@ -740,7 +747,7 @@ async function expRun(){
     const bgs={cover:await expImg('pptx-bg1.jpg'),content:await expImg('pptx-bg2.jpg'),thanks:await expImg('pptx-bg3.jpg')};
     msg.textContent='กำลังสร้างสไลด์…';
     const pres=expGenerate(window.PptxGenJS,EXP_ST,raw,bgs);
-    const fn=(weekly?'Roiphet_Weekly_':'Roiphet_Exec_')+(EXP_ST.area==='ALL'?'Farm':EXP_ST.area)+'_'+new Date().toISOString().slice(0,10)+'.pptx';
+    const fn=(weekly?'Roiphet_Weekly_':'Roiphet_Exec_')+(EXP_ST.area==='ALL'?'Farm':EXP_ST.area.replace(/,/g,''))+'_'+new Date().toISOString().slice(0,10)+'.pptx';
     await pres.writeFile({fileName:fn});
     msg.textContent='✓ สร้างไฟล์สำเร็จ: '+fn;
   }catch(e){ msg.textContent='เกิดข้อผิดพลาด: '+(e&&e.message||e); console.error(e); }
@@ -756,7 +763,7 @@ function expPaint(){
   el('expStyle').innerHTML=chip(!weekly,'รายงานผู้บริหาร','EXP_ST.style=\'exec\';expPaint()')+chip(weekly,'รายงานประจำสัปดาห์','EXP_ST.style=\'weekly\';expPaint()');
   el('expStyleHint').textContent=weekly?'นำเสนอสรุปความก้าวหน้าประจำสัปดาห์ · ปัญหาและแนวทางแก้ไข · แผนลงกุ้ง/จับกุ้ง · ประมาณการ (ใช้ข้อมูลล่าสุด ณ วันที่ส่งออก)':'สรุปผลการดำเนินงาน เทียบแผน/เกณฑ์ พร้อมปัญหาและแนวทางแก้ไข (ตามช่วงปี/เดือนที่เลือก)';
   el('expTheme').innerHTML=chip(EXP_ST.theme!=='navy','1. สีเขียว','EXP_ST.theme=\'green\';expPaint()')+chip(EXP_ST.theme==='navy','2. สีน้ำเงิน','EXP_ST.theme=\'navy\';expPaint()');
-  el('expAreas').innerHTML=['ALL'].concat(EXP_AREAS).map(a=>chip(EXP_ST.area===a,a==='ALL'?'ทั้งฟาร์ม':a,'EXP_ST.area=\''+a+'\';expPaint()')).join('');
+  el('expAreas').innerHTML=['ALL'].concat(EXP_AREAS).map(a=>chip(a==='ALL'?EXP_ST.area==='ALL':(EXP_ST.area!=='ALL'&&expAreaList(EXP_ST.area).indexOf(a)>=0),a==='ALL'?'ทั้งฟาร์ม':a,'expToggleArea(\''+a+'\');expPaint()')).join('');
   el('expYears').innerHTML=[2026,2027].map(y=>chip(EXP_ST.year===y,String(y),'EXP_ST.year='+y+';expPaint()')).join('');
   el('expMonths').innerHTML=MONTH_TH.map((t,i)=>chip(EXP_ST[weekly?'wmonths':'months'].indexOf(i+1)>=0,t,'expToggle(\''+(weekly?'wmonths':'months')+'\','+(i+1)+')')).join('');
   { const k=weekly?'wmonths':'months'; el('expMonthBtns').innerHTML='<button class="expchip" onclick="EXP_ST.'+k+'=[1,2,3,4,5,6,7,8,9,10,11,12];expPaint()">เลือกทั้งหมด</button><button class="expchip" onclick="EXP_ST.'+k+'=[];expPaint()">ล้างการเลือก</button>'; }
