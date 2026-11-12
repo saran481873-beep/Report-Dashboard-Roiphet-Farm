@@ -726,14 +726,14 @@ function expWeeklySlides(pres,bg,st,raw,d,now){
       {name:'No Stk & Damage',labels:labs,values:f.map(r=>-+M(r.NoStk).toFixed(2))},
       {name:'Period Cost',labels:labs,values:f.map(r=>-+M(r.Period).toFixed(2))},
       {name:'Admin & Interest',labels:labs,values:f.map(r=>-+M(Math.abs(r.AdminInt)).toFixed(2))}
-    ],Object.assign(expChartBase('องค์ประกอบกำไร/ขาดทุนรายเดือน (ล้านบาท)'),{x:0.4,y:2.45,w:12.5,h:2.85,barDir:'col',barGrouping:'stacked',chartColors:[EXP_C.teal,'DC2626','F59E0B','94A3B8'],showLegend:true,showValue:false}));
-    const row=(name,fn,dg)=>[name].concat(f.map(r=>{ const v=fn(r); return isNaN(v)?'–':fmt(v,dg); }));
+    ],Object.assign(expChartBase('องค์ประกอบกำไร/ขาดทุนรายเดือน (ล้านบาท)'),{x:0.4,y:2.45,w:12.5,h:2.45,barDir:'col',barGrouping:'stacked',chartColors:[EXP_C.teal,'DC2626','F59E0B','94A3B8'],showLegend:true,showValue:false}));
+    const row=(name,fn,dg)=>[name].concat(f.map(r=>{ const v=fn(r); return isNaN(v)?'–':fmt(v,Math.abs(v)>=100?0:dg); }));
     expTable(s,['บาท/กก.'].concat(labs),[
       row('ราคาขาย',r=>K(r,'Sales'),0),
       row('ต้นทุนผลิตปกติ',r=>K(r,'Direct')+K(r,'Fixed')+K(r,'Variable'),0),
       row('No Stk & Damage',r=>K(r,'NoStk'),1),
       row('Period Cost',r=>K(r,'Period'),1)
-    ],{x:0.5,y:5.35,w:12.3,colW:[2.4].concat(labs.map(()=>9.9/labs.length)),fs:13,rowH:0.34,leftFirst:true});
+    ],{x:0.5,y:4.95,w:12.3,colW:[2.4].concat(labs.map(()=>9.9/labs.length)),fs:13,rowH:0.34,leftFirst:true});
     expNote(s,'ประสิทธิภาพการผลิต = ยอดขาย − (ต้นทุนตรง + คงที่ + แปรผัน) · ก่อนหัก No Stk & Damage, Period Cost, Admin & Interest · ข้อมูลหน้า Financial');
   }
 }
