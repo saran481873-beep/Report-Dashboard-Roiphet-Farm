@@ -692,7 +692,7 @@ function expWeeklySlides(pres,bg,st,raw,d,now){
       {label:'ผลผลิต',val:fmt(F.W,0)+' ตัน',sub:rai>0?fmt(F.W*1000/rai/1000,1)+' ตัน/ไร่ (ประมาณ)':'–'},
       {label:'ขนาดเฉลี่ย',val:fx(szA,0),sub:'ตัว/กก. (ไซส์ที่จับจริง)'},
       {label:'ราคาขาย',val:fx(price,0),sub:'บาท/กก.'},
-      {label:'ต้นทุนสุทธิ',val:fx(cost,0),sub:'บาท/กก. (รวม Admin & Interest)'},
+      {label:'ต้นทุนสุทธิ',val:fx(isNaN(cost)?cost:Math.floor(cost),0),sub:'บาท/กก. (รวม Admin & Interest)'},
       {label:'กำไร/กก.',val:fx(F.W>0?F.N/F.W:NaN,0),sub:'บาท/กก.',col:F.N>=0?EXP_OK:EXP_BAD},
       {label:'กำไรสุทธิ',val:fmt(F.N/1000,2)+' ลบ.',sub:'margin '+(F.S?fmt(F.N/F.S*100,1)+'%':'–'),col:F.N>=0?EXP_OK:EXP_BAD}
     ],1.15);
