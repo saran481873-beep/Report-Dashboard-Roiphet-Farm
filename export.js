@@ -684,7 +684,7 @@ function expWeeklySlides(pres,bg,st,raw,d,now){
   /* ===== 13 ประมาณการและผลดำเนินการ ===== */
   if(T('w_pnl')){
     const s=bg(); expTitle(pres,s,'ประมาณการณ์และผลดำเนินการ · '+an+' ปี '+st.year);
-    const f=d.financial, F={W:f.reduce((a,r)=>a+r.Weight,0),S:f.reduce((a,r)=>a+r.Sales,0),C:f.reduce((a,r)=>a+Math.abs(r['Production Cost']),0),N:f.reduce((a,r)=>a+r.NetProfit,0)};
+    const f=d.financial, F={W:f.reduce((a,r)=>a+r.Weight,0),S:f.reduce((a,r)=>a+r.Sales,0),C:f.reduce((a,r)=>a+Math.abs(r['Production Cost'])+Math.abs(r.Admin)+Math.abs(r.Interest),0),N:f.reduce((a,r)=>a+r.NetProfit,0)};
     const rai=dy.concat(raw.dy.slice(2).filter(r=>areas.indexOf(String(r[0]).trim())>=0&&/close/i.test(r[4])&&!isCx(r))).reduce((a,r)=>a+expN(r[37]),0);
     const szAvg=raw.oh.slice(1).filter(r=>areas.indexOf(String(r[10]).trim())>=0&&expN(r[26])>0&&expN(r[24])>0&&(expMonthOf(r[21])||{}).y===st.year).map(r=>expN(r[24])), szA=szAvg.length?szAvg.reduce((a,x)=>a+x,0)/szAvg.length:NaN;
     const price=F.W>0?F.S/F.W:NaN, cost=F.W>0?F.C/F.W:NaN;
@@ -692,8 +692,8 @@ function expWeeklySlides(pres,bg,st,raw,d,now){
       {label:'ผลผลิต',val:fmt(F.W,0)+' ตัน',sub:rai>0?fmt(F.W*1000/rai/1000,1)+' ตัน/ไร่ (ประมาณ)':'–'},
       {label:'ขนาดเฉลี่ย',val:fx(szA,0),sub:'ตัว/กก. (ไซส์ที่จับจริง)'},
       {label:'ราคาขาย',val:fx(price,0),sub:'บาท/กก.'},
-      {label:'ต้นทุนสุทธิ',val:fx(cost,0),sub:'บาท/กก.'},
-      {label:'กำไร/กก.',val:fx(price-cost,0),sub:'บาท/กก.',col:(price-cost)>=0?EXP_OK:EXP_BAD},
+      {label:'ต้นทุนสุทธิ',val:fx(cost,0),sub:'บาท/กก. (รวม Admin & Interest)'},
+      {label:'กำไร/กก.',val:fx(F.W>0?F.N/F.W:NaN,0),sub:'บาท/กก.',col:F.N>=0?EXP_OK:EXP_BAD},
       {label:'กำไรสุทธิ',val:fmt(F.N/1000,2)+' ลบ.',sub:'margin '+(F.S?fmt(F.N/F.S*100,1)+'%':'–'),col:F.N>=0?EXP_OK:EXP_BAD}
     ],1.15);
     const labs=f.map(r=>MT[r.m-1]);
