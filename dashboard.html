@@ -2186,6 +2186,7 @@ const AI_SUGGEST = [
 
 window.prepSort = function(){ var st=F.prepare; st.sortDir = (st.sortDir===1)?-1:1; renderPage('prepare'); };
 
+var PREP_EXCLUDE=['C4I07','C4I08'];  /* บ่อที่ปิดไม่ใช้งาน (Module C) — เพิ่ม/ลบรหัสบ่อในรายการนี้ได้ */
 async function pagePrepare(){
   el('subtitle').textContent='สรุปการเตรียมบ่อ (Prepare) · สถานะและความคืบหน้าการเตรียมบ่อก่อนลงกุ้ง เฉพาะบ่อสถานะ Close';
   var d=await getTab('prepare'); var V=d.values;
@@ -2193,6 +2194,7 @@ async function pagePrepare(){
   for(var i=2;i<V.length;i++){
     var r=V[i]; if(!(r[1]||'').trim())continue;
     if((r[4]||'').trim()!=='Close')continue;
+    if(PREP_EXCLUDE.indexOf((r[1]||'').trim())>=0)continue;  /* บ่อปิดไม่ใช้งาน ไม่นับเป็นบ่อเตรียม */
     rows.push({mod:(r[0]||'').trim(),pond:(r[1]||'').trim(),type:(r[2]||'').trim(),unit:(r[3]||'').trim(),day:num(r[5]),stage:(r[6]||'').trim(),update:(r[8]||'').trim(),target:(r[9]||'').trim(),plan:(r[10]||'').trim()});
   }
   var mods=[...new Set(rows.map(function(r){return r.mod;}))].filter(Boolean).sort();
@@ -2212,8 +2214,11 @@ async function pagePrepare(){
   var modOrder=['A','B','C','D','R'];
   var shownMods=modOrder.filter(function(m){return isAllArea||areaSel.includes(m);});
 
-  var dayRowsAll={A:3,B:4,C:5,D:6,R:7};
-  var dayRows=shownMods.map(function(m){var r=V[dayRowsAll[m]]; return {m:m,b1:num(r[25]),b2:num(r[26]),b3:num(r[27])};});
+  /* นับจากรายบ่อ (ตัดบ่อปิดไม่ใช้งานออก) แทนการอ่านสูตรสรุปในชีต */
+  var dayRows=shownMods.map(function(m){
+    var mr=filtered.filter(function(r){return r.mod===m&&r.day>0;});
+    return {m:m,b1:mr.filter(function(r){return r.day<=20;}).length,b2:mr.filter(function(r){return r.day>20&&r.day<=30;}).length,b3:mr.filter(function(r){return r.day>30;}).length};
+  });
   var dayTotal=dayRows.reduce(function(a,r){return {b1:a.b1+(r.b1||0),b2:a.b2+(r.b2||0),b3:a.b3+(r.b3||0)};},{b1:0,b2:0,b3:0});
   var t1Rows=dayRows.map(function(r){
     return '<tr><td class="l"><span class="mod-badge">'+r.m+'</span></td><td>'+fmt(r.b1)+'</td><td>'+fmt(r.b2)+'</td><td>'+fmt(r.b3)+'</td></tr>';
