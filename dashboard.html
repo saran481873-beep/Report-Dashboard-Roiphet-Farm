@@ -2258,14 +2258,16 @@ async function pagePrepare(){
 
   /* เกณฑ์อายุการเตรียมบ่อ: เขียว ≤10 วัน (ถึงขั้น SWAB) · เหลือง 10-15 วัน · แดง >15 วัน */
   var AGE_C={g:{bg:'#dcfce7',fg:'#15803d',t:'เขียว'},y:{bg:'#fef9c3',fg:'#a16207',t:'เหลือง'},r:{bg:'#fee2e2',fg:'#b91c1c',t:'แดง'}};
-  function ageBand(d){ return (d===null||d===undefined||isNaN(d)||d<=0)?'':(d<=10?'g':(d<=15?'y':'r')); }
-  function agePill(d){ var b=ageBand(d); if(!b) return '–'; var c=AGE_C[b]; return '<span style="display:inline-block;min-width:34px;padding:2px 10px;border-radius:999px;font-weight:700;background:'+c.bg+';color:'+c.fg+'">'+fmt(d)+'</span>'; }
-  var ageCnt={g:0,y:0,r:0}, ageByMod={};
-  shownMods.forEach(function(m){ ageByMod[m]={g:0,y:0,r:0}; });
-  filtered.forEach(function(r){ var b=ageBand(r.day); if(b){ ageCnt[b]++; if(ageByMod[r.mod]) ageByMod[r.mod][b]++; } });
+  AGE_C.s={bg:'#dbeafe',fg:'#1d4ed8',t:'ผ่าน SWAB'};
+  function passedSwab(r){ return stepIdx(r.stage)>=6; }  /* ขั้น 7 ตรวจ Swab test เป็นต้นไป = ถึง SWAB แล้ว */
+  function ageBand(d,r){ if(r&&passedSwab(r)) return (d===null||d===undefined||isNaN(d)||d<=0)?'':'s'; return (d===null||d===undefined||isNaN(d)||d<=0)?'':(d<=10?'g':(d<=15?'y':'r')); }
+  function agePill(d,r){ var b=ageBand(d,r); if(!b) return '–'; var c=AGE_C[b]; return '<span style="display:inline-block;min-width:34px;padding:2px 10px;border-radius:999px;font-weight:700;background:'+c.bg+';color:'+c.fg+'">'+fmt(d)+'</span>'; }
+  var ageCnt={g:0,y:0,r:0,s:0}, ageByMod={};
+  shownMods.forEach(function(m){ ageByMod[m]={g:0,y:0,r:0,s:0}; });
+  filtered.forEach(function(r){ var b=ageBand(r.day,r); if(b){ ageCnt[b]++; if(ageByMod[r.mod]) ageByMod[r.mod][b]++; } });
   var ageCell=function(n,b){ var c=AGE_C[b]; return '<td><span style="display:inline-block;min-width:34px;padding:2px 10px;border-radius:999px;font-weight:700;background:'+c.bg+';color:'+c.fg+'">'+fmt(n)+'</span></td>'; };
-  var ageRows=shownMods.map(function(m){ var a=ageByMod[m]; return '<tr><td class="l"><span class="mod-badge">'+m+'</span></td>'+ageCell(a.g,'g')+ageCell(a.y,'y')+ageCell(a.r,'r')+'<td>'+fmt(a.g+a.y+a.r)+'</td></tr>'; }).join('');
-  var t3='<div class="card"><h3><span class="dot"></span>อายุการเตรียมบ่อ แยกตามเกณฑ์</h3><div class="hint">เกณฑ์: <b style="color:#15803d">เขียว</b> เตรียมไม่เกิน 10 วัน (ถึงขั้นตอน SWAB) · <b style="color:#a16207">เหลือง</b> 10-15 วัน · <b style="color:#b91c1c">แดง</b> มากกว่า 15 วัน (นับจาก Prepare (day) เฉพาะบ่อ Status Close)</div><table class="dtable stripe"><thead><tr><th>Module</th><th>เขียว (≤10 วัน)</th><th>เหลือง (10-15 วัน)</th><th>แดง (&gt;15 วัน)</th><th>รวม</th></tr></thead><tbody>'+(ageRows||'<tr><td colspan="5">ไม่พบข้อมูล</td></tr>')+'</tbody><tfoot><tr><td class="l">รวม</td>'+ageCell(ageCnt.g,'g')+ageCell(ageCnt.y,'y')+ageCell(ageCnt.r,'r')+'<td>'+fmt(ageCnt.g+ageCnt.y+ageCnt.r)+'</td></tr></tfoot></table></div>';
+  var ageRows=shownMods.map(function(m){ var a=ageByMod[m]; return '<tr><td class="l"><span class="mod-badge">'+m+'</span></td>'+ageCell(a.g,'g')+ageCell(a.y,'y')+ageCell(a.r,'r')+ageCell(a.s,'s')+'<td>'+fmt(a.g+a.y+a.r+a.s)+'</td></tr>'; }).join('');
+  var t3='<div class="card"><h3><span class="dot"></span>อายุการเตรียมบ่อ แยกตามเกณฑ์</h3><div class="hint">เกณฑ์: <b style="color:#15803d">เขียว</b> เตรียมไม่เกิน 10 วัน (ถึงขั้นตอน SWAB) · <b style="color:#a16207">เหลือง</b> 10-15 วัน · <b style="color:#b91c1c">แดง</b> มากกว่า 15 วัน — ประเมินเฉพาะบ่อที่ยังไม่ถึงขั้นตอน SWAB (นับจาก Prepare (day), บ่อ Status Close) · <b style="color:#1d4ed8">ผ่าน SWAB</b> = บ่อที่ถึงขั้นตอนตรวจ Swab test หรือถัดไปแล้ว ไม่นำมาประเมินสี</div><table class="dtable stripe"><thead><tr><th>Module</th><th>เขียว (≤10 วัน)</th><th>เหลือง (10-15 วัน)</th><th>แดง (&gt;15 วัน)</th><th>ผ่าน SWAB แล้ว</th><th>รวม</th></tr></thead><tbody>'+(ageRows||'<tr><td colspan="6">ไม่พบข้อมูล</td></tr>')+'</tbody><tfoot><tr><td class="l">รวม</td>'+ageCell(ageCnt.g,'g')+ageCell(ageCnt.y,'y')+ageCell(ageCnt.r,'r')+ageCell(ageCnt.s,'s')+'<td>'+fmt(ageCnt.g+ageCnt.y+ageCnt.r+ageCnt.s)+'</td></tr></tfoot></table></div>';
   kpis=kpis.replace(/<\/div>$/,'')
     +'<div class="kpi g"><div class="klabel">อายุเตรียมบ่อ เขียว (≤10 วัน)</div><div class="kval">'+fmt(ageCnt.g)+'</div><div class="ksub">บ่อ</div></div>'
     +'<div class="kpi y"><div class="klabel">อายุเตรียมบ่อ เหลือง (10-15 วัน)</div><div class="kval">'+fmt(ageCnt.y)+'</div><div class="ksub">บ่อ</div></div>'
@@ -2275,7 +2277,7 @@ async function pagePrepare(){
   var psd=(st.sortDir===1)?1:-1;
   var detailRows=filtered.slice().sort(function(a,b){return psd===1?(a.day||0)-(b.day||0):(b.day||0)-(a.day||0);});
   var detailBody=detailRows.map(function(r){
-    return '<tr><td class="l">'+r.pond+'</td><td>'+agePill(r.day)+'</td><td class="l">'+(r.stage||'–')+'</td><td>'+(r.update||'–')+'</td><td>'+(r.target||'–')+'</td><td>'+(r.plan||'–')+'</td></tr>';
+    return '<tr><td class="l">'+r.pond+'</td><td>'+agePill(r.day,r)+'</td><td class="l">'+(r.stage||'–')+'</td><td>'+(r.update||'–')+'</td><td>'+(r.target||'–')+'</td><td>'+(r.plan||'–')+'</td></tr>';
   }).join('');
   var t4='<div class="card"><h3><span class="dot"></span>รายละเอียดสถานะการเตรียมบ่อรายบ่อ</h3><div class="hint">เฉพาะบ่อ Status Close ตามตัวกรองด้านบน ・ คลิกหัวตาราง Prepare (day) เพื่อเรียงลำดับ</div><table class="dtable stripe"><thead><tr><th>ชื่อบ่อ</th><th onclick="prepSort()" style="cursor:pointer;user-select:none" title="คลิกเพื่อเรียงลำดับ">Prepare (day)'+(psd===1?' ▲':' ▼')+'</th><th>สถานะเตรียมบ่อ</th><th>UPDATE</th><th>กำหนดเสร็จ</th><th>เทียบแผน</th></tr></thead><tbody>'+(detailBody||'<tr><td colspan="6">ไม่พบข้อมูล</td></tr>')+'</tbody></table></div>';
 
