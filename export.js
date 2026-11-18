@@ -715,12 +715,12 @@ function expWeeklySlides(pres,bg,st,raw,d,now){
     const s=bg(); expTitle(pres,s,'สาเหตุการขาดทุน · '+an+' ปี '+st.year);
     const f=d.financial.filter(r=>r.Sales!==0||r.NetProfit!==0||r.NoStk!==0);
     const M=r=>r/1000, K=(r,k)=>r.Weight>0?r[k]/r.Weight:NaN;
-    /* ประสิทธิภาพการผลิต = ยอดขาย − (ต้นทุนตรง+คงที่+แปรผัน) ก่อน No Stk & Damage / Period Cost */
-    const eff=r=>r.Sales-(r.Direct+r.Fixed+r.Variable);
+    /* ประสิทธิภาพการผลิต = ยอดขาย − (ต้นทุนตรง+คงที่+แปรผัน+Admin&Interest) → สุทธิ = ประสิทธิภาพ − No Stk − Period */
+    const eff=r=>r.Sales-(r.Direct+r.Fixed+r.Variable)-Math.abs(r.AdminInt);
     const T0={eff:f.reduce((a,r)=>a+eff(r),0),ns:f.reduce((a,r)=>a+r.NoStk,0),pc:f.reduce((a,r)=>a+r.Period,0),ai:f.reduce((a,r)=>a+Math.abs(r.AdminInt),0),net:f.reduce((a,r)=>a+r.NetProfit,0)};
     expKpiRow(pres,s,[
       {label:'กำไร/ขาดทุนสุทธิ',val:fmt(M(T0.net),2)+' ลบ.',sub:'รวมทุกเดือนที่มีข้อมูล',col:T0.net>=0?EXP_OK:EXP_BAD},
-      {label:'ประสิทธิภาพการผลิต',val:fmt(M(T0.eff),2)+' ลบ.',sub:'ยอดขาย − ต้นทุนผลิตปกติ',col:T0.eff>=0?EXP_OK:EXP_BAD},
+      {label:'ประสิทธิภาพการผลิต',val:fmt(M(T0.eff),2)+' ลบ.',sub:'ยอดขาย − ต้นทุนผลิต − Admin & Interest',col:T0.eff>=0?EXP_OK:EXP_BAD},
       {label:'No Stk & Damage',val:fmt(M(T0.ns),2)+' ลบ.',sub:'ลงกุ้งไม่ติด / เสียหาย',col:T0.ns>0?EXP_BAD:EXP_OK},
       {label:'Period Cost',val:fmt(M(T0.pc),2)+' ลบ.',sub:'ต้นทุนช่วงเวลา (ผลต่างตัดจ่าย)',col:T0.pc>0?EXP_BAD:EXP_OK}
     ],1.15);
@@ -728,9 +728,8 @@ function expWeeklySlides(pres,bg,st,raw,d,now){
     s.addChart(pres.charts.BAR,[
       {name:'ประสิทธิภาพการผลิต',labels:labs,values:f.map(r=>+M(eff(r)).toFixed(2))},
       {name:'No Stk & Damage',labels:labs,values:f.map(r=>-+M(r.NoStk).toFixed(2))},
-      {name:'Period Cost',labels:labs,values:f.map(r=>-+M(r.Period).toFixed(2))},
-      {name:'Admin & Interest',labels:labs,values:f.map(r=>-+M(Math.abs(r.AdminInt)).toFixed(2))}
-    ],Object.assign(expChartBase('องค์ประกอบกำไร/ขาดทุนรายเดือน (ล้านบาท)'),{x:0.4,y:2.45,w:12.5,h:2.45,barDir:'col',barGrouping:'stacked',chartColors:[EXP_C.teal,'DC2626','F59E0B','94A3B8'],showLegend:true,showValue:false}));
+      {name:'Period Cost',labels:labs,values:f.map(r=>-+M(r.Period).toFixed(2))}
+    ],Object.assign(expChartBase('องค์ประกอบกำไร/ขาดทุนรายเดือน (ล้านบาท)'),{x:0.4,y:2.45,w:12.5,h:2.45,barDir:'col',barGrouping:'stacked',chartColors:[EXP_C.teal,'DC2626','F59E0B'],showLegend:true,showValue:false}));
     const row=(name,fn,dg)=>[name].concat(f.map(r=>{ const v=fn(r); return isNaN(v)?'–':fmt(v,Math.abs(v)>=100?0:dg); }));
     expTable(s,['บาท/กก.'].concat(labs),[
       row('ราคาขาย',r=>K(r,'Sales'),0),
@@ -738,7 +737,7 @@ function expWeeklySlides(pres,bg,st,raw,d,now){
       row('No Stk & Damage',r=>K(r,'NoStk'),1),
       row('Period Cost',r=>K(r,'Period'),1)
     ],{x:0.5,y:4.95,w:12.3,colW:[2.4].concat(labs.map(()=>9.9/labs.length)),fs:13,rowH:0.34,leftFirst:true});
-    expNote(s,'ประสิทธิภาพการผลิต = ยอดขาย − (ต้นทุนตรง + คงที่ + แปรผัน) · ก่อนหัก No Stk & Damage, Period Cost, Admin & Interest · ข้อมูลหน้า Financial');
+    expNote(s,'ประสิทธิภาพการผลิต = ยอดขาย − (ต้นทุนตรง + คงที่ + แปรผัน + Admin & Interest) · กำไร/ขาดทุนสุทธิ = ประสิทธิภาพ − No Stk & Damage − Period Cost · ข้อมูลหน้า Financial');
   }
 }
 
