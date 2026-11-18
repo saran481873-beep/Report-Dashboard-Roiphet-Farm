@@ -416,13 +416,17 @@ function expWeeklySlides(pres,bg,st,raw,d,now){
   const dy=raw.dy.slice(2).filter(r=>areas.indexOf(String(r[0]).trim())>=0&&String(r[1]).trim()&&!isCx(r)&&/culture/i.test(r[4]));
   const fx=(n,dd)=>isNaN(n)?'–':expFmt(n,dd);
   const nm=x=>{const v=num(x);return isNaN(v)?NaN:v;};
+  /* เกณฑ์การโต (MBW Gain) ตามตารางในชีต Weekly คอลัมน์ V (MBW) / W (MBW Gain) — เดิมใช้ 3 g คงที่ */
+  const gStd=[]; for(let i=1;i<=6;i++){ const rr=raw.wk[i]; if(rr&&rr[21]!=null&&String(rr[21]).trim()){ const th=num(rr[21]),gn=num(rr[22]); if(!isNaN(th)&&!isNaN(gn)) gStd.push([th,gn]); } }
+  const gainStdOf=(mbw)=>{ if(!gStd.length) return 3; if(isNaN(mbw)) return gStd[gStd.length-1][1]; for(const [th,gn] of gStd){ if(mbw<th) return gn; } return gStd[gStd.length-1][1]; };
+  const gainSlow=r=>{ const g=nm(r[11]); return !isNaN(g)&&g<gainStdOf(nm(r[8])); };
   const nowD=now.getDate(), nowM=now.getMonth()+1, nowY=now.getFullYear();
   const nTot=wk.length, nCul=cul.length, nClo=clo.length, util=nTot?nCul/nTot*100:0;
   const bin=(vals,edges)=>edges.map(e=>vals.filter(e.f).length);
   /* ---- metrics ---- */
-  const gainLow=cul.filter(r=>{const g=nm(r[11]);return !isNaN(g)&&g<3;}).sort((a,b)=>expN(b[7])-expN(a[7]));
+  const gainLow=cul.filter(gainSlow).sort((a,b)=>expN(b[7])-expN(a[7]));
   const srLow=cul.filter(r=>{const x=nm(r[14]);return !isNaN(x)&&x>0&&x<70;});
-  const probSet=cul.filter(r=>{const g=nm(r[11]),x=nm(r[14]);return (!isNaN(g)&&g<3)||(!isNaN(x)&&x>0&&x<70);}).sort((a,b)=>expN(b[7])-expN(a[7]));
+  const probSet=cul.filter(r=>{const g=nm(r[11]),x=nm(r[14]);return gainSlow(r)||(!isNaN(x)&&x>0&&x<70);}).sort((a,b)=>expN(b[7])-expN(a[7]));
   const wqKeys=[{k:'pH',i:20,v:9,dd:2},{k:'T.Alk',i:21,v:10,dd:0},{k:'TAN',i:22,v:11,dd:2},{k:'NO₂-N',i:23,v:12,dd:2}];
   const wqRed=wqKeys.map(q=>dy.filter(r=>expLet(r[q.i])==='red'));
   const wqYel=wqKeys.map(q=>dy.filter(r=>expLet(r[q.i])==='yellow'));
@@ -545,23 +549,23 @@ function expWeeklySlides(pres,bg,st,raw,d,now){
     s.addChart(pres.charts.BAR,[{name:'จำนวนบ่อ',labels:dcb.map(b=>b.n),values:dcb.map(b=>dc.filter(b.f).length)}],Object.assign(expChartBase('อายุการเลี้ยง (DOC)'),{x:0.6,y:4.2,w:5.85,h:2.7,barDir:'col',chartColors:['B8860B'],showLegend:false,showValue:true,dataLabelPosition:'outEnd',titleFontSize:20}));
     expCard(pres,s,6.75,4.15,6.05,2.8);
     s.addText('การแจ้งเตือน (Alerts)',{x:6.95,y:4.2,w:5.6,h:0.4,fontFace:EXP_FONT,fontSize:20,bold:true,color:EXP_C.ink,isTextBox:true,margin:0});
-    expAlert(pres,s,6.95,4.65,5.65,1.0,'การเติบโตต่ำกว่า 3 g/สัปดาห์: '+gainLow.length+' บ่อ',expDelta(gainLow.length,pv('gainLow'),true),gainLow.length>0);
+    expAlert(pres,s,6.95,4.65,5.65,1.0,'การเติบโตต่ำกว่าเกณฑ์ (ตาม MBW): '+gainLow.length+' บ่อ',expDelta(gainLow.length,pv('gainLow'),true),gainLow.length>0);
     expAlert(pres,s,6.95,5.8,5.65,1.0,'อัตรารอดสะสมน้อยกว่า 70%: '+srLow.length+' บ่อ',expDelta(srLow.length,pv('srLow'),true),srLow.length>0);
   }
   /* ===== 3 เฉพาะบ่อที่มีปัญหา ===== */
   if(T('w_problem')){
     const s=bg(); expTitle(pres,s,'ประสิทธิภาพประจำสัปดาห์ · เฉพาะบ่อที่มีปัญหา');
-    expAlert(pres,s,0.5,1.12,6.0,0.72,'การเติบโตต่ำกว่า 3 g/สัปดาห์: '+gainLow.length+' บ่อ',null,gainLow.length>0);
+    expAlert(pres,s,0.5,1.12,6.0,0.72,'การเติบโตต่ำกว่าเกณฑ์ (ตาม MBW): '+gainLow.length+' บ่อ',null,gainLow.length>0);
     expAlert(pres,s,6.8,1.12,6.0,0.72,'อัตรารอดสะสม < 70%: '+srLow.length+' บ่อ',null,srLow.length>0);
     const tn=(v,dd)=>{ const x=nm(v); return isNaN(x)?'–':fmt(x/1000,dd===undefined?2:dd); };
-    const rows=probSet.slice(0,9).map(r=>{const g=nm(r[11]),x=nm(r[14]);return [r[1],r[2]||'–',r[7]||'–',r[8]||'–',expCell(r[11]||'–',(!isNaN(g)&&g<3)?'red':''),r[9]||'–',r[12]||'–',r[13]||'–',expCell(r[14]||'–',(!isNaN(x)&&x>0&&x<70)?'red':((!isNaN(x)&&x<85)?'yellow':'')),tn(r[16]),tn(r[10]),tn(r[17])];});
+    const rows=probSet.slice(0,9).map(r=>{const g=nm(r[11]),x=nm(r[14]);return [r[1],r[2]||'–',r[7]||'–',r[8]||'–',expCell(r[11]||'–',gainSlow(r)?'red':''),r[9]||'–',r[12]||'–',r[13]||'–',expCell(r[14]||'–',(!isNaN(x)&&x>0&&x<70)?'red':((!isNaN(x)&&x<85)?'yellow':'')),tn(r[16]),tn(r[10]),tn(r[17])];});
     expTable(s,['Pond','System','DoC','MBW','MBW Gain','Size','ADG','%SR','Accum %SR','Total Biomass (ton/pond)','Biomass (ton/pond)','Total Yield (Ton/rai)'],rows.length?rows:[['ไม่พบบ่อที่มีปัญหา','','','','','','','','','','','']],{x:0.5,y:2.0,w:12.3,colW:[1.1,1.2,0.75,0.85,1.0,0.75,0.8,0.8,1.0,1.4,1.4,1.25],fs:15,rowH:0.38});
-    expNote(s,'เกณฑ์: MBW Gain < 3 g/สัปดาห์ หรือ Accum %SR < 70% (แดง) · < 85% (เหลือง)'+(probSet.length>9?' · แสดง 9 จาก '+probSet.length+' บ่อ (ดูครบในสไลด์รายละเอียด)':''));
+    expNote(s,'เกณฑ์: MBW Gain ต่ำกว่าเกณฑ์ตาม MBW ('+gStd.map(a=>'<'+a[0]+'g→'+a[1]).join(' · ')+') หรือ Accum %SR < 70% (แดง) · < 85% (เหลือง)'+(probSet.length>9?' · แสดง 9 จาก '+probSet.length+' บ่อ (ดูครบในสไลด์รายละเอียด)':''));
   }
   /* ===== 4 ประสิทธิภาพ รายละเอียด ===== */
   if(T('w_perfdetail')){
     const tn2=v=>{ const x=nm(v); return isNaN(x)?'–':fmt(x/1000,2); };
-    const rows=cul.slice().sort((a,b)=>areaRank(a)-areaRank(b)||expN(b[7])-expN(a[7])||String(a[1]).localeCompare(String(b[1]))).map(r=>{const g=nm(r[11]),x=nm(r[14]);return [r[1],r[2]||'–',r[7]||'–',r[8]||'–',expCell(r[11]||'–',(!isNaN(g)&&g<3)?'red':''),r[9]||'–',r[12]||'–',r[13]||'–',expCell(r[14]||'–',(!isNaN(x)&&x>0&&x<70)?'red':((!isNaN(x)&&x<85)?'yellow':'')),r[15]||'–',tn2(r[10]),tn2(r[16]),r[18]||'–'];});
+    const rows=cul.slice().sort((a,b)=>areaRank(a)-areaRank(b)||expN(b[7])-expN(a[7])||String(a[1]).localeCompare(String(b[1]))).map(r=>{const g=nm(r[11]),x=nm(r[14]);return [r[1],r[2]||'–',r[7]||'–',r[8]||'–',expCell(r[11]||'–',gainSlow(r)?'red':''),r[9]||'–',r[12]||'–',r[13]||'–',expCell(r[14]||'–',(!isNaN(x)&&x>0&&x<70)?'red':((!isNaN(x)&&x<85)?'yellow':'')),r[15]||'–',tn2(r[10]),tn2(r[16]),r[18]||'–'];});
     expPagedW(pres,bg,'ประสิทธิภาพประจำสัปดาห์ (รายละเอียด)',['Pond','System','DoC','MBW (g)','MBW Gain','Size','ADG','%SR','Accum %SR','FCR','Biomass (ton/pond)','Total Biomass (ton/pond)','Feed/day (kg)'],rows.length?rows:[['–','','','','','','','','','','','','']],[1.05,1.15,0.75,0.9,0.95,0.75,0.8,0.8,1.05,0.8,1.1,1.2,0.95],10,14,'ข้อมูลล่าสุดจากหน้า Weekly (บ่อสถานะ Culture) · เรียงตามพื้นที่ A,B,C,D,R และ DOC มาก→น้อย',0.38);
   }
   /* ===== 5 คุณภาพน้ำเกินเกณฑ์ ===== */
@@ -604,7 +608,7 @@ function expWeeklySlides(pres,bg,st,raw,d,now){
     const nm5=(rs,n)=>rs.slice(0,n).map(r=>String(r[1]||r.p||'').trim()).join(', ')+(rs.length>n?' ฯลฯ':'');
     const lateP=d.prep.filter(r=>/ล่าช้า/.test(r[10]));
     const cand=[];
-    if(gainLow.length) cand.push({n:gainLow.length,p:'กุ้งโตช้ากว่า 3 g/สัปดาห์ '+gainLow.length+' บ่อ\n– บ่อ '+nm5(gainLow,5),s:'ทบทวนปริมาณอาหาร/เช็คยอ ตรวจสุขภาพกุ้งและคุณภาพน้ำ เพิ่มอาหารเสริมตามโปรแกรม'});
+    if(gainLow.length) cand.push({n:gainLow.length,p:'กุ้งโตช้ากว่าเกณฑ์ (ตาม MBW) '+gainLow.length+' บ่อ\n– บ่อ '+nm5(gainLow,5),s:'ทบทวนปริมาณอาหาร/เช็คยอ ตรวจสุขภาพกุ้งและคุณภาพน้ำ เพิ่มอาหารเสริมตามโปรแกรม'});
     if(srLow.length) cand.push({n:srLow.length,p:'อัตรารอดสะสมต่ำกว่า 70% '+srLow.length+' บ่อ\n– บ่อ '+nm5(srLow,5),s:'ตรวจสาเหตุกุ้งตาย (โรค/คุณภาพน้ำ) วางแผนจับก่อนกำหนดหากเสียหายต่อเนื่อง'});
     if(wqBad.length) cand.push({n:wqBad.length,p:'คุณภาพน้ำเกินเกณฑ์ '+wqBad.length+' บ่อ (TAN/NO₂/pH/Alk)\n– บ่อ '+nm5(wqBad,5),s:'เพิ่มการถ่ายน้ำ/ปรับ Alk และจุลินทรีย์ปรับสภาพน้ำ ลดอาหารชั่วคราวในบ่อที่ TAN/NO₂ สูง'});
     if(tvcWbad.length||tvcLbad.length) cand.push({n:tvcWbad.length+tvcLbad.length,p:'แบคทีเรียเกินเกณฑ์ น้ำ '+tvcWbad.length+' บ่อ · ตับ '+tvcLbad.length+' บ่อ\n– บ่อ '+nm5(tvcWbad.concat(tvcLbad),5),s:'ลงโปรไบโอติกทุกวัน ติดตามผล TVC ซ้ำ และตรวจตับ-ตับอ่อน'});
